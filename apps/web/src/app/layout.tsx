@@ -46,6 +46,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${archivoBlack.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} font-sans antialiased`}
+        suppressHydrationWarning
       >
         <ClerkConvexProvider>
           <AppProviders>{children}</AppProviders>
