@@ -89,6 +89,31 @@ export const ZONING_CATEGORY_COLORS: Record<ZoningCategory, string> = {
 }
 
 /**
+ * Base extrusion heights for 3D zoning visualization (in meters)
+ * Heights represent typical building heights for each zone category
+ */
+export const ZONE_BASE_HEIGHTS: Record<ZoningCategory, number> = {
+  residential: 10, // ~3 floors
+  commercial: 20, // ~6 floors
+  industrial: 30, // ~9 floors (tall warehouses/factories)
+  'mixed-use': 25, // ~7-8 floors
+  special: 15, // ~4-5 floors (parks, institutional)
+}
+
+/**
+ * 3D Layer opacity for fill-extrusion
+ * Semi-transparent to show Mapbox Standard 3D buildings beneath
+ */
+export const ZONE_3D_OPACITY = 0.6
+
+/**
+ * Neutral color for 3D extrusions
+ * Using stone-500 for clean architectural look
+ * Zone colors remain visible on the 2D ground plane
+ */
+export const ZONE_3D_NEUTRAL_COLOR = '#78716c'
+
+/**
  * Zoning code prefix to category mapping
  * Based on Milwaukee zoning code structure
  */
@@ -135,6 +160,16 @@ export function getZoningCategory(zoneCode: string): ZoningCategory {
 export function getZoningColor(zoneCode: string): string {
   const category = getZoningCategory(zoneCode)
   return ZONING_CATEGORY_COLORS[category]
+}
+
+/**
+ * Get base height for a specific zone code (for 3D extrusion)
+ * @param zoneCode - Milwaukee zoning code
+ * @returns Height in meters for the zone
+ */
+export function getZoningHeight(zoneCode: string): number {
+  const category = getZoningCategory(zoneCode)
+  return ZONE_BASE_HEIGHTS[category]
 }
 
 // =============================================================================

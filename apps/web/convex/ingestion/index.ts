@@ -79,7 +79,7 @@
  *
  * ## Corpus Configuration
  *
- * The corpus is configured in `corpus-config.ts`. Each source has:
+ * The corpus is configured in `corpusConfig.ts`. Each source has:
  * - `id`: Unique identifier
  * - `title`: Human-readable name
  * - `category`: Classification for organization
@@ -101,7 +101,7 @@ export type {
   IngestionMethod,
   DocumentCategory,
   CorpusSource,
-} from "./corpus-config";
+} from "./corpusConfig";
 
 // Re-export utility functions from corpus config
 export {
@@ -112,4 +112,4 @@ export {
   getSourcesByMethod,
   getSourcesByCategory,
   getSourceById,
-} from "./corpus-config";
+} from "./corpusConfig";

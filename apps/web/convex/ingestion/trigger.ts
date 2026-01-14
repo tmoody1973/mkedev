@@ -14,7 +14,7 @@ import {
   getSourcesByCategory,
   ALL_SOURCES,
   type CorpusSource,
-} from "./corpus-config";
+} from "./corpusConfig";
 
 // =============================================================================
 // Types

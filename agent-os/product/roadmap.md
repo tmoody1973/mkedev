@@ -30,11 +30,15 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 |----------|---------|-------------|--------------|
 | P0 | Gemini Live API | Real-time bidirectional voice interface | App Shell |
 | P0 | Voice Activity Detection | Automatic microphone management | Gemini Live |
+| P0 | Mapbox Spatial Tools | Agent tools for geocoding, POI search, isochrone, directions | Mapbox Integration |
+| P0 | Forms Integration | Actionable permit/application forms with download links | Document Ingestion |
+| P0 | FormActionCard Component | Generative UI for form actions with walkthrough | CopilotKit, Forms |
 | P0 | Nano Banana Tool | `generateArchitecturalPreview` using Gemini 2.5 Flash Image | Agents |
 | P0 | Design Advisor Agent | Agent for design guidelines + vision integration | Nano Banana |
 | P0 | VisionCard Component | Generative UI for architectural previews | CopilotKit |
 | P0 | ZoneInfoCard Component | Generative UI for zoning summaries | CopilotKit |
 | P1 | VoiceIndicator | Visual feedback during voice interaction | Gemini Live |
+| P1 | IsochroneCard Component | Generative UI for accessibility/reachability analysis | Mapbox Spatial Tools |
 
 ### Week 3: Advanced Agents & Evaluation (Days 15-21)
 
@@ -142,19 +146,38 @@ Foundation
     ├── Design System
     │   └── App Shell
     │       ├── Mapbox Integration
-    │       │   └── ESRI Layers
+    │       │   ├── ESRI Layers (zoning, parcels, TIF, etc.)
+    │       │   ├── 3D Buildings (Mapbox Standard style)
+    │       │   └── Mapbox Spatial Tools
+    │       │       ├── Geocoding (address → coordinates)
+    │       │       ├── POI Search (nearby places)
+    │       │       ├── Isochrone (accessibility analysis)
+    │       │       ├── Directions (travel time/distance)
+    │       │       └── Static Maps (visual context)
     │       └── Conversational Interface
     │           ├── Gemini Live (Voice)
     │           └── CopilotKit (Generative UI)
+    │               └── FormActionCard (form downloads + walkthrough)
     │
-Document Ingestion (Firecrawl → Gemini File Search)
+Document Ingestion (Gemini File Search)
+    ├── Zoning Code PDFs (informational)
+    ├── Area Plans PDFs (informational)
+    └── Application Forms (actionable)
+        ├── Form metadata (downloadUrl, formNumber, etc.)
+        └── Form-aware RAG responses
+    │
     └── Agent System (Google ADK)
         ├── Zoning Interpreter
         ├── Area Plan Advisor
         ├── Incentives Navigator
         ├── Design Advisor
         │   └── Nano Banana (Vision)
+        ├── Location Intelligence (Mapbox Tools)
+        │   └── geocode_address, search_nearby_pois,
+        │       calculate_isochrone, get_travel_time,
+        │       generate_map_image
         ├── Permit Navigator
+        │   └── Form-aware guidance + walkthrough
         └── Feasibility Analyst (Meta-Agent)
             └── Orchestrates all above
 

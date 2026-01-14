@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "upload-docs": "tsx scripts/upload-documents.ts",
+    "upload-docs:status": "tsx scripts/upload-documents.ts --status",
+    "upload-docs:zoning": "tsx scripts/upload-documents.ts --zoning"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.7",
@@ -23,6 +26,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.31.4",
+    "dotenv": "^17.2.3",
     "lucide-react": "^0.562.0",
     "mapbox-gl": "^3.17.0",
     "mapbox-gl-arcgis-featureserver": "^0.0.8",
@@ -48,6 +52,7 @@
     "eslint-config-next": "16.1.1",
     "jsdom": "^27.4.0",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.17"
   }

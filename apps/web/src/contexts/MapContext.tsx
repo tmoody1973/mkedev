@@ -6,6 +6,7 @@ import {
   useState,
   useCallback,
   useRef,
+  useEffect,
   type ReactNode,
 } from 'react'
 import type { Map as MapboxMap } from 'mapbox-gl'
@@ -41,8 +42,12 @@ export interface MapContextValue {
   layerOpacity: LayerOpacity
   /** Set a layer's opacity (0-1) */
   setLayerOpacity: (layerId: string, opacity: number) => void
-  /** Fly the map to a specific location */
-  flyTo: (center: [number, number], zoom?: number) => void
+  /** Fly the map to a specific location with optional pitch and bearing */
+  flyTo: (
+    center: [number, number],
+    zoom?: number,
+    options?: { pitch?: number; bearing?: number; duration?: number }
+  ) => void
   /** Reset the map to default Milwaukee view */
   resetView: () => void
   /** Whether the map has finished loading */
@@ -53,6 +58,16 @@ export interface MapContextValue {
   mapError: string | null
   /** Set map error */
   setMapError: (error: string | null) => void
+  /** Whether 3D mode is enabled */
+  is3DMode: boolean
+  /** Set 3D mode explicitly */
+  setIs3DMode: (enabled: boolean) => void
+  /** Toggle 3D mode */
+  toggle3DMode: () => void
+  /** Animate camera to 3D view (pitch 45, bearing -17.6) */
+  animateTo3DView: () => void
+  /** Animate camera to 2D view (pitch 0, bearing 0) */
+  animateTo2DView: () => void
 }
 
 // =============================================================================
@@ -63,6 +78,20 @@ export interface MapContextValue {
 export const MILWAUKEE_CENTER: [number, number] = [-87.9065, 43.0389]
 /** Default zoom level for city view */
 export const DEFAULT_ZOOM = 12
+
+/** 3D Camera Settings */
+export const CAMERA_3D_PITCH = 45
+export const CAMERA_3D_BEARING = -17.6
+export const CAMERA_2D_PITCH = 0
+export const CAMERA_2D_BEARING = 0
+export const CAMERA_ANIMATION_DURATION = 1500
+
+/** Map Style URLs */
+export const MAP_STYLE_2D = 'mapbox://styles/mapbox/streets-v12'
+export const MAP_STYLE_3D = 'mapbox://styles/mapbox/standard'
+
+/** localStorage key for 3D mode persistence */
+const STORAGE_KEY_3D_MODE = 'mkedev-3d-mode'
 
 /** Default layer visibility states */
 const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
@@ -84,6 +113,23 @@ const DEFAULT_LAYER_OPACITY: LayerOpacity = {
   historic: 1,
   arb: 1,
   cityOwned: 1,
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Get initial 3D mode from localStorage (SSR-safe)
+ */
+function getInitial3DMode(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY_3D_MODE)
+    return stored === 'true'
+  } catch {
+    return false
+  }
 }
 
 // =============================================================================
@@ -117,6 +163,7 @@ export function MapProvider({
     useState<LayerOpacity>(initialLayerOpacity)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [is3DMode, setIs3DModeState] = useState<boolean>(getInitial3DMode)
 
   const setMap = useCallback((map: MapboxMap | null) => {
     mapRef.current = map
@@ -145,15 +192,24 @@ export function MapProvider({
     }))
   }, [])
 
-  const flyTo = useCallback((center: [number, number], zoom?: number) => {
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center,
-        zoom: zoom ?? mapRef.current.getZoom(),
-        duration: 1500,
-      })
-    }
-  }, [])
+  const flyTo = useCallback(
+    (
+      center: [number, number],
+      zoom?: number,
+      options?: { pitch?: number; bearing?: number; duration?: number }
+    ) => {
+      if (mapRef.current) {
+        mapRef.current.flyTo({
+          center,
+          zoom: zoom ?? mapRef.current.getZoom(),
+          pitch: options?.pitch,
+          bearing: options?.bearing,
+          duration: options?.duration ?? 1500,
+        })
+      }
+    },
+    []
+  )
 
   const resetView = useCallback(() => {
     if (mapRef.current) {
@@ -164,6 +220,73 @@ export function MapProvider({
       })
     }
   }, [])
+
+  // 3D Mode state management with localStorage persistence
+  const setIs3DMode = useCallback((enabled: boolean) => {
+    setIs3DModeState(enabled)
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(STORAGE_KEY_3D_MODE, String(enabled))
+      } catch {
+        // Ignore localStorage errors
+      }
+    }
+  }, [])
+
+  const toggle3DMode = useCallback(() => {
+    setIs3DModeState((prev) => {
+      const newValue = !prev
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(STORAGE_KEY_3D_MODE, String(newValue))
+        } catch {
+          // Ignore localStorage errors
+        }
+      }
+      return newValue
+    })
+  }, [])
+
+  // Animate to 3D view (pitch 45, bearing -17.6)
+  const animateTo3DView = useCallback(() => {
+    if (mapRef.current) {
+      const currentCenter = mapRef.current.getCenter()
+      const currentZoom = mapRef.current.getZoom()
+      mapRef.current.flyTo({
+        center: [currentCenter.lng, currentCenter.lat],
+        zoom: currentZoom,
+        pitch: CAMERA_3D_PITCH,
+        bearing: CAMERA_3D_BEARING,
+        duration: CAMERA_ANIMATION_DURATION,
+      })
+    }
+  }, [])
+
+  // Animate to 2D view (pitch 0, bearing 0)
+  const animateTo2DView = useCallback(() => {
+    if (mapRef.current) {
+      const currentCenter = mapRef.current.getCenter()
+      const currentZoom = mapRef.current.getZoom()
+      mapRef.current.flyTo({
+        center: [currentCenter.lng, currentCenter.lat],
+        zoom: currentZoom,
+        pitch: CAMERA_2D_PITCH,
+        bearing: CAMERA_2D_BEARING,
+        duration: CAMERA_ANIMATION_DURATION,
+      })
+    }
+  }, [])
+
+  // Persist 3D mode to localStorage on change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(STORAGE_KEY_3D_MODE, String(is3DMode))
+      } catch {
+        // Ignore localStorage errors
+      }
+    }
+  }, [is3DMode])
 
   const value: MapContextValue = {
     map: mapRef.current,
@@ -181,6 +304,11 @@ export function MapProvider({
     setIsMapLoaded,
     mapError,
     setMapError,
+    is3DMode,
+    setIs3DMode,
+    toggle3DMode,
+    animateTo3DView,
+    animateTo2DView,
   }
 
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>

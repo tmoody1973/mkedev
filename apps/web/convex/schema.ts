@@ -174,9 +174,11 @@ export default defineSchema({
     .index("by_conversationId_timestamp", ["conversationId", "timestamp"]),
 
   // ---------------------------------------------------------------------------
-  // Documents - Knowledge base documents for RAG
+  // Documents - Knowledge base documents for RAG (Gemini Files API)
   // ---------------------------------------------------------------------------
   documents: defineTable({
+    // Core identification
+    sourceId: v.string(), // Unique ID from corpusConfig.ts
     title: v.string(),
     category: v.union(
       v.literal("zoning-codes"),
@@ -185,23 +187,116 @@ export default defineSchema({
       v.literal("ordinances"),
       v.literal("guides")
     ),
-    sourceUrl: v.string(),
-    sourceDomain: v.optional(v.string()),
-    content: v.string(),
-    contentPreview: v.optional(v.string()),
-    lastCrawled: v.number(),
+    description: v.optional(v.string()),
+
+    // Source location (local file path or URL)
+    sourcePath: v.string(), // e.g., "data/zoning-code-pdfs/CH295-sub1.pdf"
+    sourceType: v.union(v.literal("pdf"), v.literal("web")),
+
+    // Gemini Files API tracking
+    geminiFileUri: v.optional(v.string()), // e.g., "files/abc123"
+    geminiFileName: v.optional(v.string()), // Display name in Gemini
+    mimeType: v.optional(v.string()), // e.g., "application/pdf"
+
+    // Upload lifecycle
+    uploadedAt: v.optional(v.number()), // Timestamp of last upload
+    expiresAt: v.optional(v.number()), // 48 hours after upload
     status: v.union(
+      v.literal("pending"), // Not yet uploaded
+      v.literal("uploading"), // Currently uploading
+      v.literal("uploaded"), // Successfully uploaded, file URI valid
+      v.literal("expired"), // Past expiration, needs refresh
+      v.literal("error") // Upload failed
+    ),
+    errorMessage: v.optional(v.string()),
+
+    // Metadata
+    fileSizeBytes: v.optional(v.number()),
+    priority: v.number(), // 1 = highest priority for refresh
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_sourceId", ["sourceId"])
+    .index("by_category", ["category"])
+    .index("by_status", ["status"])
+    .index("by_category_status", ["category", "status"])
+    .index("by_expiresAt", ["expiresAt"])
+    .index("by_priority", ["priority"]),
+
+  // ---------------------------------------------------------------------------
+  // File Search Stores - Gemini persistent document stores
+  // ---------------------------------------------------------------------------
+  fileSearchStores: defineTable({
+    // Store identification
+    name: v.string(), // Gemini store name (e.g., "fileSearchStores/abc123")
+    displayName: v.string(), // Human-readable name
+    category: v.union(
+      v.literal("zoning-codes"),
+      v.literal("area-plans"),
+      v.literal("policies"),
+      v.literal("ordinances"),
+      v.literal("guides"),
+      v.literal("all") // Combined store for cross-category queries
+    ),
+
+    // Store metadata
+    documentCount: v.number(),
+    totalSizeBytes: v.optional(v.number()),
+
+    // Status tracking
+    status: v.union(
+      v.literal("creating"),
       v.literal("active"),
-      v.literal("stale"),
       v.literal("error")
     ),
-    wordCount: v.number(),
-    pageCount: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_category", ["category"])
+    .index("by_name", ["name"])
+    .index("by_status", ["status"]),
+
+  // ---------------------------------------------------------------------------
+  // Store Documents - Documents in File Search Stores
+  // ---------------------------------------------------------------------------
+  storeDocuments: defineTable({
+    // References
+    storeId: v.id("fileSearchStores"),
+    sourceId: v.string(), // Maps to corpus config ID
+
+    // Gemini document info
+    documentName: v.optional(v.string()), // Gemini doc name
+    displayName: v.string(),
+    mimeType: v.string(),
+    sizeBytes: v.optional(v.number()),
+
+    // Metadata for filtering
+    category: v.union(
+      v.literal("zoning-codes"),
+      v.literal("area-plans"),
+      v.literal("policies"),
+      v.literal("ordinances"),
+      v.literal("guides")
+    ),
+
+    // Status
+    status: v.union(
+      v.literal("pending"),
+      v.literal("uploading"),
+      v.literal("processing"),
+      v.literal("active"),
+      v.literal("error")
+    ),
+    errorMessage: v.optional(v.string()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_storeId", ["storeId"])
+    .index("by_sourceId", ["sourceId"])
     .index("by_status", ["status"])
-    .index("by_category_status", ["category", "status"])
-    .index("by_sourceUrl", ["sourceUrl"]),
+    .index("by_storeId_status", ["storeId", "status"]),
 });

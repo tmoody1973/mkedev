@@ -2,6 +2,7 @@
 
 import { useState, useCallback, type ReactNode } from 'react'
 import { Header } from './Header'
+import { useMap } from '@/contexts/MapContext'
 
 export interface AppShellProps {
   /** Content for the chat panel (left side on desktop) */
@@ -37,6 +38,7 @@ export function AppShell({
   initialMapVisible = false,
 }: AppShellProps) {
   const [isMapVisible, setIsMapVisible] = useState(initialMapVisible)
+  const { is3DMode, toggle3DMode } = useMap()
 
   const handleMapToggle = useCallback(() => {
     setIsMapVisible((prev) => !prev)
@@ -51,6 +53,8 @@ export function AppShell({
       <Header
         isVoiceActive={isVoiceActive}
         onVoiceToggle={onVoiceToggle}
+        is3DMode={is3DMode}
+        on3DToggle={toggle3DMode}
         onLayersClick={onLayersClick}
         onLogoClick={onLogoClick}
         onMapToggle={handleMapToggle}

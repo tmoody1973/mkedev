@@ -1,7 +1,7 @@
 /**
  * Convex Cron Jobs
  *
- * Scheduled tasks for automated document ingestion and maintenance.
+ * Scheduled tasks for automated document maintenance.
  */
 
 import { cronJobs } from "convex/server";
@@ -14,18 +14,21 @@ const crons = cronJobs();
 // =============================================================================
 
 /**
- * Daily refresh of web-based document sources.
- * Runs at 3:00 AM UTC every day to refresh Firecrawl sources.
+ * Daily check for expired Gemini files.
+ * Runs at 6:00 AM UTC every day.
  *
- * This cron job:
- * 1. Fetches all auto-refresh enabled web sources
- * 2. Re-crawls each source using Firecrawl
- * 3. Updates the documents table with fresh content
+ * Gemini files expire after 48 hours. This cron:
+ * 1. Marks documents with expired files as "expired"
+ * 2. Logs status for monitoring
+ *
+ * Note: Actual re-upload of expired files should be triggered
+ * manually using the upload-docs script, since it requires
+ * local file access.
  */
 crons.daily(
-  "refresh-web-sources",
-  { hourUTC: 3, minuteUTC: 0 },
-  internal.ingestion.firecrawl.refreshWebSources
+  "mark-expired-documents",
+  { hourUTC: 6, minuteUTC: 0 },
+  internal.ingestion.documents.markExpiredDocuments
 );
 
 /**
@@ -36,30 +39,11 @@ crons.daily(
  * 1. Lists all files in Gemini File API
  * 2. Checks for expired or failed files
  * 3. Reports status for monitoring
- *
- * Note: Gemini files expire after 48 hours, so this is mainly
- * for monitoring and alerting purposes.
  */
 crons.weekly(
   "check-gemini-files",
   { dayOfWeek: "monday", hourUTC: 4, minuteUTC: 0 },
   internal.ingestion.gemini.checkFileStatuses
-);
-
-/**
- * Weekly document staleness check.
- * Runs every Sunday at 2:00 AM UTC.
- *
- * This cron job:
- * 1. Checks all active documents
- * 2. Marks documents older than 7 days as stale
- * 3. Stale documents will be re-ingested on next refresh
- */
-crons.weekly(
-  "mark-stale-documents",
-  { dayOfWeek: "sunday", hourUTC: 2, minuteUTC: 0 },
-  internal.ingestion.documents.markStaleDocuments,
-  { maxAgeMs: 7 * 24 * 60 * 60 * 1000 } // 7 days
 );
 
 export default crons;

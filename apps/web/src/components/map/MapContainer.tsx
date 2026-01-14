@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { MapPin, AlertTriangle, Loader2 } from 'lucide-react'
-import { useMap, MILWAUKEE_CENTER, DEFAULT_ZOOM } from '@/contexts/MapContext'
+import {
+  useMap,
+  MILWAUKEE_CENTER,
+  DEFAULT_ZOOM,
+  MAP_STYLE_2D,
+  MAP_STYLE_3D,
+} from '@/contexts/MapContext'
 import { ESRILayerLoader } from './layers/ESRILayerLoader'
 import { LayerPanel } from './LayerPanel'
 import { ParcelPopup } from './ParcelPopup'
@@ -19,7 +25,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 export interface MapContainerProps {
   /** Custom class name for the container */
   className?: string
-  /** Map style URL (defaults to streets-v12) */
+  /** Map style URL (defaults to streets-v12) - will be overridden by 3D mode */
   mapStyle?: string
   /** Initial zoom level */
   initialZoom?: number
@@ -51,7 +57,7 @@ export interface MapContainerProps {
 
 export function MapContainer({
   className = '',
-  mapStyle = 'mapbox://styles/mapbox/streets-v12',
+  mapStyle,
   initialZoom = DEFAULT_ZOOM,
   initialCenter = MILWAUKEE_CENTER,
   enableESRILayers = true,
@@ -69,8 +75,20 @@ export function MapContainer({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
+  const [isStyleChanging, setIsStyleChanging] = useState(false)
 
-  const { setMap, setIsMapLoaded, setMapError, setSelectedParcelId } = useMap()
+  const {
+    setMap,
+    setIsMapLoaded,
+    setMapError,
+    setSelectedParcelId,
+    is3DMode,
+    animateTo3DView,
+    animateTo2DView,
+  } = useMap()
+
+  // Determine the style URL based on 3D mode (prop overrides if provided)
+  const effectiveStyle = mapStyle ?? (is3DMode ? MAP_STYLE_3D : MAP_STYLE_2D)
 
   // Handle parcel selection from ESRI layers
   const handleParcelSelect = useCallback(
@@ -106,11 +124,13 @@ export function MapContainer({
     [onParcelAsk]
   )
 
+  // Initial map setup
   useEffect(() => {
     // Check for Mapbox access token
     const accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
     if (!accessToken) {
-      const tokenError = 'Mapbox access token is not configured. Please set NEXT_PUBLIC_MAPBOX_TOKEN in your environment variables.'
+      const tokenError =
+        'Mapbox access token is not configured. Please set NEXT_PUBLIC_MAPBOX_TOKEN in your environment variables.'
       setError(tokenError)
       setMapError(tokenError)
       setIsLoading(false)
@@ -126,10 +146,10 @@ export function MapContainer({
     mapboxgl.accessToken = accessToken
 
     try {
-      // Initialize the map
+      // Initialize the map with the effective style
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: mapStyle,
+        style: effectiveStyle,
         center: initialCenter,
         zoom: initialZoom,
         attributionControl: true,
@@ -182,7 +202,8 @@ export function MapContainer({
 
       // Handle map error event
       map.on('error', (e) => {
-        const errorMessage = e.error?.message || 'An error occurred while loading the map'
+        const errorMessage =
+          e.error?.message || 'An error occurred while loading the map'
         setError(errorMessage)
         setMapError(errorMessage)
         setIsLoading(false)
@@ -199,15 +220,17 @@ export function MapContainer({
         }
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to initialize map'
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to initialize map'
       setError(errorMessage)
       setMapError(errorMessage)
       setIsLoading(false)
       onMapError?.(err instanceof Error ? err : new Error(errorMessage))
       return undefined
     }
+    // Note: effectiveStyle is intentionally excluded - style changes are handled separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mapStyle,
     initialZoom,
     initialCenter,
     setMap,
@@ -216,6 +239,52 @@ export function MapContainer({
     onMapLoad,
     onMapError,
   ])
+
+  // Track previous 3D mode to detect changes
+  const prev3DModeRef = useRef(is3DMode)
+
+  // Handle 3D mode style switching and camera animation
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map || isLoading) return
+
+    // Only trigger if 3D mode actually changed
+    if (prev3DModeRef.current === is3DMode) return
+    prev3DModeRef.current = is3DMode
+
+    // Set flag to indicate style is changing
+    setIsStyleChanging(true)
+
+    // Get current camera state before style change
+    const currentCenter = map.getCenter()
+    const currentZoom = map.getZoom()
+
+    // Determine the new style
+    const newStyle = is3DMode ? MAP_STYLE_3D : MAP_STYLE_2D
+
+    // Handle style load event
+    const handleStyleLoad = () => {
+      // Restore center and zoom
+      map.setCenter([currentCenter.lng, currentCenter.lat])
+      map.setZoom(currentZoom)
+
+      // Animate camera after style loads
+      if (is3DMode) {
+        animateTo3DView()
+      } else {
+        animateTo2DView()
+      }
+
+      // Style change complete
+      setIsStyleChanging(false)
+    }
+
+    // Listen for style load
+    map.once('style.load', handleStyleLoad)
+
+    // Switch to the new style
+    map.setStyle(newStyle)
+  }, [is3DMode, isLoading, animateTo3DView, animateTo2DView])
 
   // Always render the map container - overlay loading/error states on top
   return (
@@ -266,6 +335,7 @@ export function MapContainer({
               onParcelSelect={handleParcelSelect}
               onParcelClear={handleParcelClear}
               showZoningTooltip={showZoningTooltip}
+              isStyleChanging={isStyleChanging}
             />
           )}
           {showLayerPanel && <LayerPanel />}

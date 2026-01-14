@@ -2,16 +2,25 @@
   "name": "agents",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Agent system for MKE.dev - Multi-agent orchestration using Google ADK",
   "scripts": {
-    "dev": "echo 'Agent system not yet implemented'",
-    "build": "echo 'Agent system not yet implemented'",
-    "lint": "echo 'Agent system not yet implemented'",
-    "typecheck": "echo 'Agent system not yet implemented'"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@google/adk": "^0.1.0",
+    "@google/genai": "^1.14.0",
+    "zod": "^3.24.0",
+    "dotenv": "^17.2.3"
+  },
   "devDependencies": {
     "@types/node": "^20",
-    "typescript": "^5"
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^4.0.17"
   }
 }

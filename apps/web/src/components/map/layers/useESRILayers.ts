@@ -41,6 +41,8 @@ export interface UseESRILayersResult {
   zoningTooltip: ZoningTooltipData | null
   /** Highlight a parcel by tax key */
   highlightParcel: (taxKey: string) => void
+  /** Re-initialize layers (after style change) */
+  reinitializeLayers: () => void
 }
 
 // =============================================================================
@@ -58,6 +60,7 @@ export function useESRILayers(): UseESRILayersResult {
     layerVisibility,
     layerOpacity,
     setSelectedParcelId,
+    is3DMode,
   } = useMap()
 
   const layerManagerRef = useRef<ESRILayerManager | PMTilesLayerManager | null>(null)
@@ -68,6 +71,7 @@ export function useESRILayers(): UseESRILayersResult {
     null
   )
   const [usePMTiles] = useState(() => isPMTilesConfigured())
+  const [reinitializeCounter, setReinitializeCounter] = useState(0)
 
   // Handle feature click events
   const handleFeatureClick = useCallback(
@@ -100,19 +104,31 @@ export function useESRILayers(): UseESRILayersResult {
   const handleFeatureClickRef = useRef(handleFeatureClick)
   const handleFeatureHoverRef = useRef(handleFeatureHover)
   const layerVisibilityRef = useRef(layerVisibility)
+  const is3DModeRef = useRef(is3DMode)
   handleFeatureClickRef.current = handleFeatureClick
   handleFeatureHoverRef.current = handleFeatureHover
   layerVisibilityRef.current = layerVisibility
+  is3DModeRef.current = is3DMode
 
   // Track initialization state to prevent double-init in StrictMode
   const isInitializedRef = useRef(false)
+
+  // Helper to format address from parcel properties
+  function formatAddress(props: Record<string, unknown>): string {
+    const houseNum = props.HOUSE_NR_LO || ''
+    const dir = props.SDIR || ''
+    const street = props.STREET || ''
+    const type = props.STTYPE || ''
+    return `${houseNum} ${dir} ${street} ${type}`.trim().replace(/\s+/g, ' ')
+  }
 
   // Initialize layer manager when map is loaded
   useEffect(() => {
     if (!map || !isMapLoaded) return
 
     // Prevent double initialization in React StrictMode
-    if (isInitializedRef.current && layerManagerRef.current) {
+    // But allow re-initialization when reinitializeCounter changes
+    if (isInitializedRef.current && layerManagerRef.current && reinitializeCounter === 0) {
       console.log('Layers already initialized, skipping')
       setIsLoading(false)
       return
@@ -120,6 +136,12 @@ export function useESRILayers(): UseESRILayersResult {
 
     const initializeLayers = async () => {
       try {
+        // Destroy existing manager if re-initializing
+        if (layerManagerRef.current) {
+          layerManagerRef.current.destroy()
+          layerManagerRef.current = null
+        }
+
         setIsLoading(true)
         setError(null)
 
@@ -167,6 +189,11 @@ export function useESRILayers(): UseESRILayersResult {
           isInitializedRef.current = true
 
           await manager.initialize(layerVisibilityRef.current as Record<LayerType, boolean>)
+
+          // Set 3D mode if active after initialization
+          if (is3DModeRef.current && manager.setZoning3DMode) {
+            manager.setZoning3DMode(true)
+          }
         } else {
           // Fall back to ESRI REST API
           console.log('Using ESRI REST API')
@@ -202,16 +229,7 @@ export function useESRILayers(): UseESRILayersResult {
         isInitializedRef.current = false
       }
     }
-  }, [map, isMapLoaded, usePMTiles])
-
-  // Helper to format address from parcel properties
-  function formatAddress(props: Record<string, unknown>): string {
-    const houseNum = props.HOUSE_NR_LO || ''
-    const dir = props.SDIR || ''
-    const street = props.STREET || ''
-    const type = props.STTYPE || ''
-    return `${houseNum} ${dir} ${street} ${type}`.trim().replace(/\s+/g, ' ')
-  }
+  }, [map, isMapLoaded, usePMTiles, reinitializeCounter])
 
   // Sync layer visibility with MapContext
   useEffect(() => {
@@ -239,6 +257,16 @@ export function useESRILayers(): UseESRILayersResult {
     })
   }, [layerOpacity, isLoading])
 
+  // Sync 3D mode with layer manager
+  useEffect(() => {
+    if (!layerManagerRef.current || isLoading) return
+
+    const manager = layerManagerRef.current
+    if ('setZoning3DMode' in manager) {
+      ;(manager as PMTilesLayerManager).setZoning3DMode(is3DMode)
+    }
+  }, [is3DMode, isLoading])
+
   // Clear selected parcel
   const clearSelectedParcel = useCallback(() => {
     setSelectedParcel(null)
@@ -251,6 +279,11 @@ export function useESRILayers(): UseESRILayersResult {
     layerManagerRef.current?.highlightParcelByTaxKey(taxKey)
   }, [])
 
+  // Re-initialize layers (called after style change)
+  const reinitializeLayers = useCallback(() => {
+    setReinitializeCounter((prev) => prev + 1)
+  }, [])
+
   return {
     isLoading,
     error,
@@ -258,5 +291,9 @@ export function useESRILayers(): UseESRILayersResult {
     clearSelectedParcel,
     zoningTooltip,
     highlightParcel,
+    reinitializeLayers,
   }
 }
+
+// Type import for PMTilesLayerManager
+type PMTilesLayerManager = import('./pmtiles-layer-manager').PMTilesLayerManager

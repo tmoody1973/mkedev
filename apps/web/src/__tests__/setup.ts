@@ -1,41 +1,53 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+// Create a mock Map class
+class MockMap {
+  on = vi.fn((event, callback) => {
+    if (event === 'load') {
+      // Simulate map load after a tick
+      setTimeout(() => callback(), 0)
+    }
+    return this
+  })
+  once = vi.fn((event, callback) => {
+    if (event === 'idle') {
+      setTimeout(() => callback(), 0)
+    }
+    return this
+  })
+  off = vi.fn()
+  remove = vi.fn()
+  addControl = vi.fn()
+  removeControl = vi.fn()
+  getZoom = vi.fn(() => 12)
+  getCenter = vi.fn(() => ({ lng: -87.9065, lat: 43.0389 }))
+  setCenter = vi.fn()
+  setZoom = vi.fn()
+  flyTo = vi.fn()
+  resize = vi.fn()
+  addSource = vi.fn()
+  removeSource = vi.fn()
+  addLayer = vi.fn()
+  removeLayer = vi.fn()
+  getLayer = vi.fn()
+  getSource = vi.fn()
+  setLayoutProperty = vi.fn()
+  setPaintProperty = vi.fn()
+  setStyle = vi.fn()
+  queryRenderedFeatures = vi.fn(() => [])
+  loaded = vi.fn(() => false)
+  getCanvas = vi.fn(() => ({
+    style: { cursor: '' },
+  }))
+}
+
 // Mock mapbox-gl
 vi.mock('mapbox-gl', () => {
-  const mockMap = {
-    on: vi.fn((event, callback) => {
-      if (event === 'load') {
-        // Simulate map load after a tick
-        setTimeout(() => callback(), 0)
-      }
-      return mockMap
-    }),
-    off: vi.fn(),
-    remove: vi.fn(),
-    addControl: vi.fn(),
-    removeControl: vi.fn(),
-    getZoom: vi.fn(() => 12),
-    getCenter: vi.fn(() => ({ lng: -87.9065, lat: 43.0389 })),
-    setCenter: vi.fn(),
-    setZoom: vi.fn(),
-    flyTo: vi.fn(),
-    resize: vi.fn(),
-    addSource: vi.fn(),
-    removeSource: vi.fn(),
-    addLayer: vi.fn(),
-    removeLayer: vi.fn(),
-    getLayer: vi.fn(),
-    getSource: vi.fn(),
-    setLayoutProperty: vi.fn(),
-    setPaintProperty: vi.fn(),
-    queryRenderedFeatures: vi.fn(() => []),
-  }
-
   return {
     default: {
       accessToken: '',
-      Map: vi.fn(() => mockMap),
+      Map: MockMap,
       NavigationControl: vi.fn(),
       ScaleControl: vi.fn(),
       GeolocateControl: vi.fn(),
@@ -51,7 +63,7 @@ vi.mock('mapbox-gl', () => {
         remove: vi.fn(),
       })),
     },
-    Map: vi.fn(() => mockMap),
+    Map: MockMap,
     NavigationControl: vi.fn(),
     ScaleControl: vi.fn(),
     GeolocateControl: vi.fn(),

@@ -24,6 +24,8 @@ export interface ESRILayerLoaderProps {
   showLoadingOverlay?: boolean
   /** Whether to show the zoning tooltip on hover */
   showZoningTooltip?: boolean
+  /** Whether a style change is in progress (for layer re-initialization) */
+  isStyleChanging?: boolean
 }
 
 // =============================================================================
@@ -39,14 +41,26 @@ export function ESRILayerLoader({
   onParcelClear,
   showLoadingOverlay = true,
   showZoningTooltip = true,
+  isStyleChanging = false,
 }: ESRILayerLoaderProps) {
-  const { isLoading, error, selectedParcel, zoningTooltip } = useESRILayers()
+  const { isLoading, error, selectedParcel, zoningTooltip, reinitializeLayers } =
+    useESRILayers()
 
   const [tooltipPosition, setTooltipPosition] = useState<{
     x: number
     y: number
   } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const prevStyleChangingRef = useRef(isStyleChanging)
+
+  // Re-initialize layers after style change completes
+  useEffect(() => {
+    // Detect when style change completes (was true, now false)
+    if (prevStyleChangingRef.current && !isStyleChanging) {
+      reinitializeLayers?.()
+    }
+    prevStyleChangingRef.current = isStyleChanging
+  }, [isStyleChanging, reinitializeLayers])
 
   // Track mouse position for tooltip
   useEffect(() => {
@@ -76,7 +90,7 @@ export function ESRILayerLoader({
   }, [selectedParcel, onParcelSelect, onParcelClear])
 
   // Render loading overlay
-  if (isLoading && showLoadingOverlay) {
+  if ((isLoading || isStyleChanging) && showLoadingOverlay) {
     return (
       <div
         ref={containerRef}
@@ -99,10 +113,12 @@ export function ESRILayerLoader({
               </div>
               <div>
                 <p className="font-sans font-semibold text-stone-900 dark:text-stone-100 text-sm">
-                  Loading Layers
+                  {isStyleChanging ? 'Switching Style' : 'Loading Layers'}
                 </p>
                 <p className="font-sans text-xs text-stone-500 dark:text-stone-400">
-                  Connecting to Milwaukee GIS...
+                  {isStyleChanging
+                    ? 'Updating map view...'
+                    : 'Connecting to Milwaukee GIS...'}
                 </p>
               </div>
             </div>

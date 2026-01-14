@@ -320,18 +320,8 @@ export const uploadPdfFromBase64 = action({
 
       const uploadResult = await uploadResponse.json();
 
-      // Store reference in Convex documents table
-      await ctx.runMutation(internal.ingestion.documents.createDocument, {
-        title: args.displayName,
-        category: args.category,
-        sourceUrl: uploadResult.file?.uri ?? "",
-        sourceDomain: "gemini-file-api",
-        content: `[PDF uploaded to Gemini File API: ${uploadResult.file?.name}]`,
-        contentPreview: `PDF document: ${args.displayName}`,
-        wordCount: 0, // PDF word count not easily calculated
-        pageCount: undefined,
-        status: "active",
-      });
+      // Note: Document record storage is handled by the upload-documents.ts script
+      // which calls updateGeminiFile mutation after successful upload
 
       return {
         success: true,

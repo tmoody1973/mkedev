@@ -18,12 +18,19 @@ vi.mock('@/contexts/MapContext', () => ({
     layerVisibility: {},
     toggleLayerVisibility: vi.fn(),
     setLayerVisibility: vi.fn(),
+    layerOpacity: {},
+    setLayerOpacity: vi.fn(),
     flyTo: vi.fn(),
     resetView: vi.fn(),
     isMapLoaded: false,
     setIsMapLoaded: vi.fn(),
     mapError: null,
     setMapError: vi.fn(),
+    is3DMode: false,
+    setIs3DMode: vi.fn(),
+    toggle3DMode: vi.fn(),
+    animateTo3DView: vi.fn(),
+    animateTo2DView: vi.fn(),
   }),
 }))
 
@@ -47,6 +54,7 @@ describe('AppShell', () => {
     expect(screen.getByTestId('app-header')).toBeInTheDocument()
     expect(screen.getByText('MKE.dev')).toBeInTheDocument()
     expect(screen.getByLabelText(/voice mode/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Toggle 3D view')).toBeInTheDocument()
     expect(screen.getByLabelText('Toggle map layers panel')).toBeInTheDocument()
     expect(screen.getByTestId('user-menu')).toBeInTheDocument()
   })

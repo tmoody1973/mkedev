@@ -352,7 +352,7 @@ export const refreshWebSources = internalAction({
     errors: string[];
   }> => {
     // Import corpus config dynamically to get auto-refresh sources
-    const { AUTO_REFRESH_SOURCES } = await import("./corpus-config");
+    const { AUTO_REFRESH_SOURCES } = await import("./corpusConfig");
 
     const webSources = AUTO_REFRESH_SOURCES.filter(
       (source) => source.method === "firecrawl"
