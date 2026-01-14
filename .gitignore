@@ -39,3 +39,11 @@ coverage/
 # Misc
 *.tsbuildinfo
 .turbo/
+
+# Large generated files (hosted on Cloudflare R2)
+*.pmtiles
+packages/tile-builder/output/
+apps/web/public/tiles/
+
+# Playwright MCP screenshots (temporary)
+.playwright-mcp/

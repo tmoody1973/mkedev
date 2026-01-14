@@ -1,0 +1,84 @@
+name: Refresh Milwaukee Tiles
+
+on:
+  # Weekly schedule - every Sunday at 6am UTC
+  schedule:
+    - cron: '0 6 * * 0'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      skip_upload:
+        description: 'Skip upload to R2 (local build only)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  build-tiles:
+    name: Build and Upload PMTiles
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install tippecanoe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsqlite3-dev zlib1g-dev
+          git clone https://github.com/felt/tippecanoe.git
+          cd tippecanoe
+          make -j
+          sudo make install
+          tippecanoe --version
+
+      - name: Install dependencies
+        run: pnpm install --filter @mkedev/tile-builder
+
+      - name: Export ESRI layers
+        run: pnpm --filter @mkedev/tile-builder export
+        timeout-minutes: 30
+
+      - name: Build PMTiles
+        run: pnpm --filter @mkedev/tile-builder tiles
+        timeout-minutes: 15
+
+      - name: Upload to R2
+        if: ${{ github.event.inputs.skip_upload != 'true' }}
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+        run: pnpm --filter @mkedev/tile-builder upload
+
+      - name: Upload artifact (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: milwaukee-pmtiles
+          path: packages/tile-builder/output/tiles/milwaukee.pmtiles
+          retention-days: 7
+
+      - name: Summary
+        run: |
+          echo "## Tile Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Built at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Layers:** 7 Milwaukee GIS layers" >> $GITHUB_STEP_SUMMARY
+          if [ -f packages/tile-builder/output/tiles/milwaukee.pmtiles ]; then
+            SIZE=$(du -h packages/tile-builder/output/tiles/milwaukee.pmtiles | cut -f1)
+            echo "- **PMTiles size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+          fi

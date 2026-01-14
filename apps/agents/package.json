@@ -1,0 +1,17 @@
+{
+  "name": "agents",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent system for MKE.dev - Multi-agent orchestration using Google ADK",
+  "scripts": {
+    "dev": "echo 'Agent system not yet implemented'",
+    "build": "echo 'Agent system not yet implemented'",
+    "lint": "echo 'Agent system not yet implemented'",
+    "typecheck": "echo 'Agent system not yet implemented'"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}

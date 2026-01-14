@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   MKE.dev Design System - Tailwind CSS v4 Configuration
+   ============================================================================= */
+
+/* Enable dark mode using class selector */
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* -------------------------------------------------------------------------
+     Custom Color Scales
+     Using Tailwind's built-in sky, amber, and stone palettes
+     ------------------------------------------------------------------------- */
+
+  /* Primary: sky - Used for buttons, links, key accents */
+  --color-primary-50: oklch(0.977 0.013 236.62);
+  --color-primary-100: oklch(0.951 0.026 236.824);
+  --color-primary-200: oklch(0.901 0.058 230.902);
+  --color-primary-300: oklch(0.828 0.111 230.318);
+  --color-primary-400: oklch(0.746 0.16 232.661);
+  --color-primary-500: oklch(0.685 0.169 237.323);
+  --color-primary-600: oklch(0.588 0.158 241.966);
+  --color-primary-700: oklch(0.5 0.134 242.749);
+  --color-primary-800: oklch(0.443 0.11 240.79);
+  --color-primary-900: oklch(0.391 0.09 240.876);
+  --color-primary-950: oklch(0.293 0.066 243.157);
+
+  /* Secondary: amber - Used for tags, highlights, secondary elements */
+  --color-secondary-50: oklch(0.987 0.022 95.277);
+  --color-secondary-100: oklch(0.962 0.059 95.617);
+  --color-secondary-200: oklch(0.924 0.12 95.746);
+  --color-secondary-300: oklch(0.879 0.169 91.605);
+  --color-secondary-400: oklch(0.828 0.189 84.429);
+  --color-secondary-500: oklch(0.769 0.188 70.08);
+  --color-secondary-600: oklch(0.666 0.179 58.318);
+  --color-secondary-700: oklch(0.555 0.163 48.998);
+  --color-secondary-800: oklch(0.473 0.137 46.201);
+  --color-secondary-900: oklch(0.414 0.112 45.904);
+  --color-secondary-950: oklch(0.279 0.077 45.635);
+
+  /* Neutral: stone - Used for backgrounds, text, borders */
+  --color-neutral-50: oklch(0.985 0.002 106.423);
+  --color-neutral-100: oklch(0.97 0.003 106.424);
+  --color-neutral-200: oklch(0.923 0.003 48.717);
+  --color-neutral-300: oklch(0.869 0.005 56.366);
+  --color-neutral-400: oklch(0.709 0.01 56.259);
+  --color-neutral-500: oklch(0.553 0.013 58.071);
+  --color-neutral-600: oklch(0.444 0.011 73.639);
+  --color-neutral-700: oklch(0.374 0.01 67.558);
+  --color-neutral-800: oklch(0.268 0.007 34.298);
+  --color-neutral-900: oklch(0.216 0.006 56.043);
+  --color-neutral-950: oklch(0.147 0.004 49.25);
+
+  /* -------------------------------------------------------------------------
+     Typography - Font Families
+     ------------------------------------------------------------------------- */
+  --font-head: "Archivo Black", sans-serif;
+  --font-sans: "Space Grotesk", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  /* -------------------------------------------------------------------------
+     Neobrutalist Shadow Utilities
+     ------------------------------------------------------------------------- */
+  --shadow-brutal: 4px 4px 0 black;
+  --shadow-brutal-sm: 2px 2px 0 black;
+  --shadow-brutal-lg: 6px 6px 0 black;
+  --shadow-brutal-hover: 2px 2px 0 black;
+}
+
+/* =============================================================================
+   CSS Custom Properties for Light Mode (Default)
+   ============================================================================= */
+
+:root {
+  /* Layout Colors */
+  --background: oklch(0.985 0.002 106.423);
+  --foreground: oklch(0.216 0.006 56.043);
+
+  /* Component Colors */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.216 0.006 56.043);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.216 0.006 56.043);
+
+  /* Primary Colors (sky) */
+  --primary: oklch(0.685 0.169 237.323);
+  --primary-foreground: oklch(1 0 0);
+
+  /* Secondary Colors (amber) */
+  --secondary: oklch(0.828 0.189 84.429);
+  --secondary-foreground: oklch(0.279 0.077 45.635);
+
+  /* Muted Colors */
+  --muted: oklch(0.923 0.003 48.717);
+  --muted-foreground: oklch(0.553 0.013 58.071);
+
+  /* Accent Colors */
+  --accent: oklch(0.923 0.003 48.717);
+  --accent-foreground: oklch(0.216 0.006 56.043);
+
+  /* Destructive Colors */
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+
+  /* Border and Input */
+  --border: oklch(0 0 0);
+  --input: oklch(0.869 0.005 56.366);
+  --ring: oklch(0.685 0.169 237.323);
+
+  /* Border Radius - Neobrutalist uses sharp corners */
+  --radius: 0px;
+
+  /* Neobrutalist Specific */
+  --border-width: 2px;
+  --shadow-color: black;
+  --shadow-offset: 4px;
+}
+
+/* =============================================================================
+   Dark Mode CSS Custom Properties
+   ============================================================================= */
+
+.dark {
+  /* Layout Colors */
+  --background: oklch(0.147 0.004 49.25);
+  --foreground: oklch(0.985 0.002 106.423);
+
+  /* Component Colors */
+  --card: oklch(0.216 0.006 56.043);
+  --card-foreground: oklch(0.985 0.002 106.423);
+  --popover: oklch(0.216 0.006 56.043);
+  --popover-foreground: oklch(0.985 0.002 106.423);
+
+  /* Primary Colors (sky - adjusted for dark) */
+  --primary: oklch(0.746 0.16 232.661);
+  --primary-foreground: oklch(0.147 0.004 49.25);
+
+  /* Secondary Colors (amber - adjusted for dark) */
+  --secondary: oklch(0.769 0.188 70.08);
+  --secondary-foreground: oklch(0.147 0.004 49.25);
+
+  /* Muted Colors */
+  --muted: oklch(0.268 0.007 34.298);
+  --muted-foreground: oklch(0.709 0.01 56.259);
+
+  /* Accent Colors */
+  --accent: oklch(0.268 0.007 34.298);
+  --accent-foreground: oklch(0.985 0.002 106.423);
+
+  /* Destructive Colors */
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.147 0.004 49.25);
+
+  /* Border and Input */
+  --border: oklch(1 0 0);
+  --input: oklch(0.374 0.01 67.558);
+  --ring: oklch(0.746 0.16 232.661);
+
+  /* Neobrutalist Specific - White shadows in dark mode */
+  --shadow-color: white;
+}
+
+/* =============================================================================
+   Base Styles
+   ============================================================================= */
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* =============================================================================
+   Utility Classes for Neobrutalist Design
+   ============================================================================= */
+
+@utility brutal-shadow {
+  box-shadow: 4px 4px 0 var(--shadow-color, black);
+}
+
+@utility brutal-shadow-sm {
+  box-shadow: 2px 2px 0 var(--shadow-color, black);
+}
+
+@utility brutal-shadow-lg {
+  box-shadow: 6px 6px 0 var(--shadow-color, black);
+}
+
+@utility brutal-border {
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--border);
+}
+
+@utility brutal-hover {
+  &:hover {
+    box-shadow: 2px 2px 0 var(--shadow-color, black);
+    transform: translate(2px, 2px);
+  }
+}
+
+/* =============================================================================
+   Animation Utilities
+   ============================================================================= */
+
+@keyframes bounce-dots {
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+}
+
+@utility animate-bounce-dot {
+  animation: bounce-dots 1.4s ease-in-out infinite;
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@mkedev/tile-builder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ESRI to PMTiles converter for Milwaukee GIS data",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "export": "tsx src/index.ts export",
+    "tiles": "tsx src/index.ts tiles",
+    "upload": "tsx src/index.ts upload",
+    "all": "tsx src/index.ts all",
+    "refresh": "tsx src/index.ts all"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.400.0",
+    "@esri/arcgis-rest-feature-service": "^4.0.0",
+    "@esri/arcgis-rest-request": "^4.0.0",
+    "@terraformer/arcgis": "^2.1.2",
+    "commander": "^12.0.0",
+    "ora": "^8.0.0",
+    "p-limit": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.3.0"
+  }
+}

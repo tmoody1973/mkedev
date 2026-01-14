@@ -1,0 +1,166 @@
+'use client'
+
+// =============================================================================
+// ESRI Layer Loader Component
+// Initializes and manages ESRI layers on the map
+// =============================================================================
+
+import { useEffect, useState, useRef } from 'react'
+import { Loader2, AlertTriangle } from 'lucide-react'
+import { useESRILayers } from './useESRILayers'
+import { ZoningTooltip } from './ZoningTooltip'
+import type { ParcelData } from './esri-layer-manager'
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface ESRILayerLoaderProps {
+  /** Callback when a parcel is selected */
+  onParcelSelect?: (parcel: ParcelData) => void
+  /** Callback when parcel selection is cleared */
+  onParcelClear?: () => void
+  /** Whether to show the loading overlay */
+  showLoadingOverlay?: boolean
+  /** Whether to show the zoning tooltip on hover */
+  showZoningTooltip?: boolean
+}
+
+// =============================================================================
+// Component
+// =============================================================================
+
+/**
+ * Component that loads and manages ESRI layers on the map
+ * Should be rendered as a child of MapContainer within MapProvider
+ */
+export function ESRILayerLoader({
+  onParcelSelect,
+  onParcelClear,
+  showLoadingOverlay = true,
+  showZoningTooltip = true,
+}: ESRILayerLoaderProps) {
+  const { isLoading, error, selectedParcel, zoningTooltip } = useESRILayers()
+
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    x: number
+    y: number
+  } | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Track mouse position for tooltip
+  useEffect(() => {
+    if (!showZoningTooltip) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        setTooltipPosition({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        })
+      }
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [showZoningTooltip])
+
+  // Notify parent when parcel is selected
+  useEffect(() => {
+    if (selectedParcel) {
+      onParcelSelect?.(selectedParcel)
+    } else {
+      onParcelClear?.()
+    }
+  }, [selectedParcel, onParcelSelect, onParcelClear])
+
+  // Render loading overlay
+  if (isLoading && showLoadingOverlay) {
+    return (
+      <div
+        ref={containerRef}
+        className="absolute inset-0 pointer-events-none z-10"
+      >
+        <div className="absolute bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-64">
+          <div
+            className="
+            bg-white/95 dark:bg-stone-900/95
+            border-2 border-black dark:border-white
+            rounded-lg
+            shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+            dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]
+            p-4
+          "
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-900 flex items-center justify-center border-2 border-black">
+                <Loader2 className="w-5 h-5 text-sky-600 dark:text-sky-400 animate-spin" />
+              </div>
+              <div>
+                <p className="font-sans font-semibold text-stone-900 dark:text-stone-100 text-sm">
+                  Loading Layers
+                </p>
+                <p className="font-sans text-xs text-stone-500 dark:text-stone-400">
+                  Connecting to Milwaukee GIS...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render error state
+  if (error && showLoadingOverlay) {
+    return (
+      <div
+        ref={containerRef}
+        className="absolute inset-0 pointer-events-none z-10"
+      >
+        <div className="absolute bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-72">
+          <div
+            className="
+            bg-white/95 dark:bg-stone-900/95
+            border-2 border-red-500
+            rounded-lg
+            shadow-[4px_4px_0px_0px_rgba(239,68,68,0.5)]
+            p-4
+          "
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center border-2 border-red-500">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="font-sans font-semibold text-stone-900 dark:text-stone-100 text-sm">
+                  Layer Error
+                </p>
+                <p className="font-sans text-xs text-stone-500 dark:text-stone-400">
+                  {error}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render zoning tooltip on hover
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0 pointer-events-none z-10"
+    >
+      {showZoningTooltip && zoningTooltip && tooltipPosition && (
+        <ZoningTooltip
+          zoneCode={zoningTooltip.zoneCode}
+          position={tooltipPosition}
+          visible={true}
+        />
+      )}
+    </div>
+  )
+}
