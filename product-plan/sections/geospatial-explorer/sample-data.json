@@ -1,0 +1,575 @@
+{
+  "_meta": {
+    "models": {
+      "mapLayers": "The 8 toggleable data layers displayed on the map, each representing different development-related information like zoning or incentive areas.",
+      "parcels": "Individual properties that users can click on the map to get detailed information about what can be built there.",
+      "zoningDistricts": "Classifications that define what types of buildings and uses are allowed in different areas of the city.",
+      "incentiveZones": "Geographic areas offering financial benefits for development, including TIF districts and Opportunity Zones.",
+      "areaPlans": "Neighborhood planning documents that guide future development and land use decisions.",
+      "addressSearchResults": "Autocomplete suggestions shown when users search for an address.",
+      "mapViewState": "The current position, zoom level, and selected location on the map."
+    },
+    "relationships": [
+      "Each Parcel belongs to one ZoningDistrict",
+      "Each Parcel can be within multiple IncentiveZones (they overlap)",
+      "Each Parcel can be covered by one AreaPlan",
+      "MapLayers control which data is visible on the map",
+      "AddressSearchResults help users find and navigate to Parcels"
+    ]
+  },
+  "mapLayers": [
+    {
+      "id": "zoning-districts",
+      "name": "Zoning Districts",
+      "description": "Shows all zoning classifications (RS, RT, RM, LB, etc.)",
+      "color": "#3b82f6",
+      "isVisible": true,
+      "opacity": 0.6,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": [
+        { "label": "Residential (RS/RT/RM)", "color": "#fbbf24" },
+        { "label": "Commercial (LB/RB/CS)", "color": "#f472b6" },
+        { "label": "Industrial (IL/IH/IM)", "color": "#a78bfa" },
+        { "label": "Downtown (DT)", "color": "#f97316" }
+      ]
+    },
+    {
+      "id": "parcel-boundaries",
+      "name": "Parcel Boundaries",
+      "description": "Displays individual property boundaries with ownership data",
+      "color": "#64748b",
+      "isVisible": true,
+      "opacity": 0.8,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": []
+    },
+    {
+      "id": "tif-districts",
+      "name": "TIF Districts",
+      "description": "Highlights areas eligible for Tax Increment Financing incentives",
+      "color": "#22c55e",
+      "isVisible": false,
+      "opacity": 0.5,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": [
+        { "label": "Active TIF", "color": "#22c55e" },
+        { "label": "Proposed TIF", "color": "#86efac" }
+      ]
+    },
+    {
+      "id": "opportunity-zones",
+      "name": "Opportunity Zones",
+      "description": "Shows federally designated OZ areas for tax benefits",
+      "color": "#eab308",
+      "isVisible": false,
+      "opacity": 0.5,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": [
+        { "label": "Opportunity Zone", "color": "#eab308" }
+      ]
+    },
+    {
+      "id": "city-owned",
+      "name": "City-Owned Properties",
+      "description": "Displays vacant lots and city-owned parcels available for development",
+      "color": "#ef4444",
+      "isVisible": false,
+      "opacity": 0.7,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": [
+        { "label": "Vacant Lot", "color": "#ef4444" },
+        { "label": "City Building", "color": "#fca5a5" }
+      ]
+    },
+    {
+      "id": "area-plans",
+      "name": "Area Plan Boundaries",
+      "description": "Shows the 14 neighborhood area plan boundaries",
+      "color": "#06b6d4",
+      "isVisible": false,
+      "opacity": 0.4,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": []
+    },
+    {
+      "id": "historic-districts",
+      "name": "Historic Districts",
+      "description": "Identifies historic preservation overlay zones",
+      "color": "#8b5cf6",
+      "isVisible": false,
+      "opacity": 0.5,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": [
+        { "label": "Local Historic District", "color": "#8b5cf6" },
+        { "label": "National Register", "color": "#c4b5fd" }
+      ]
+    },
+    {
+      "id": "design-overlays",
+      "name": "Design Overlay Zones",
+      "description": "Shows areas with special architectural review requirements",
+      "color": "#ec4899",
+      "isVisible": false,
+      "opacity": 0.5,
+      "dataSource": "Milwaukee ESRI ArcGIS",
+      "legendItems": [
+        { "label": "Architectural Review Board", "color": "#ec4899" },
+        { "label": "Design Guidelines Area", "color": "#f9a8d4" }
+      ]
+    }
+  ],
+  "parcels": [
+    {
+      "id": "parcel-001",
+      "taxKey": "3600958000",
+      "address": "2400 N Farwell Ave",
+      "city": "Milwaukee",
+      "state": "WI",
+      "zipCode": "53211",
+      "coordinates": {
+        "lat": 43.0594,
+        "lng": -87.8868
+      },
+      "bounds": {
+        "north": 43.0596,
+        "south": 43.0592,
+        "east": -87.8865,
+        "west": -87.8871
+      },
+      "lotSize": 4800,
+      "lotSizeUnit": "sq ft",
+      "lotWidth": 40,
+      "lotDepth": 120,
+      "currentUse": "Commercial",
+      "ownerName": "Farwell Properties LLC",
+      "assessedValue": 425000,
+      "zoningDistrictId": "zd-lb2",
+      "incentiveZoneIds": [],
+      "areaPlanId": "ap-east-side",
+      "isHistoric": false,
+      "hasDesignOverlay": true
+    },
+    {
+      "id": "parcel-002",
+      "taxKey": "2860478000",
+      "address": "3847 N 40th St",
+      "city": "Milwaukee",
+      "state": "WI",
+      "zipCode": "53216",
+      "coordinates": {
+        "lat": 43.0812,
+        "lng": -87.9634
+      },
+      "bounds": {
+        "north": 43.0815,
+        "south": 43.0809,
+        "east": -87.9630,
+        "west": -87.9638
+      },
+      "lotSize": 7200,
+      "lotSizeUnit": "sq ft",
+      "lotWidth": 60,
+      "lotDepth": 120,
+      "currentUse": "Single-Family Residential",
+      "ownerName": "Maria Garcia",
+      "assessedValue": 185000,
+      "zoningDistrictId": "zd-rs6",
+      "incentiveZoneIds": ["iz-nid-sherman"],
+      "areaPlanId": "ap-sherman-park",
+      "isHistoric": false,
+      "hasDesignOverlay": false
+    },
+    {
+      "id": "parcel-003",
+      "taxKey": "4520123000",
+      "address": "456 W Walnut St",
+      "city": "Milwaukee",
+      "state": "WI",
+      "zipCode": "53212",
+      "coordinates": {
+        "lat": 43.0635,
+        "lng": -87.9198
+      },
+      "bounds": {
+        "north": 43.0640,
+        "south": 43.0630,
+        "east": -87.9190,
+        "west": -87.9206
+      },
+      "lotSize": 15000,
+      "lotSizeUnit": "sq ft",
+      "lotWidth": 100,
+      "lotDepth": 150,
+      "currentUse": "Vacant Land",
+      "ownerName": "City of Milwaukee",
+      "assessedValue": 45000,
+      "zoningDistrictId": "zd-rm4",
+      "incentiveZoneIds": ["iz-tif-bronzeville", "iz-oz-53212"],
+      "areaPlanId": "ap-bronzeville",
+      "isHistoric": false,
+      "hasDesignOverlay": false
+    },
+    {
+      "id": "parcel-004",
+      "taxKey": "3920456000",
+      "address": "770 N Water St",
+      "city": "Milwaukee",
+      "state": "WI",
+      "zipCode": "53202",
+      "coordinates": {
+        "lat": 43.0431,
+        "lng": -87.9104
+      },
+      "bounds": {
+        "north": 43.0435,
+        "south": 43.0427,
+        "east": -87.9098,
+        "west": -87.9110
+      },
+      "lotSize": 8500,
+      "lotSizeUnit": "sq ft",
+      "lotWidth": 85,
+      "lotDepth": 100,
+      "currentUse": "Mixed Use",
+      "ownerName": "Historic Third Ward LLC",
+      "assessedValue": 1250000,
+      "zoningDistrictId": "zd-dt",
+      "incentiveZoneIds": ["iz-tif-downtown", "iz-bid-water"],
+      "areaPlanId": null,
+      "isHistoric": true,
+      "hasDesignOverlay": true
+    },
+    {
+      "id": "parcel-005",
+      "taxKey": "2710789000",
+      "address": "2100 W North Ave",
+      "city": "Milwaukee",
+      "state": "WI",
+      "zipCode": "53205",
+      "coordinates": {
+        "lat": 43.0627,
+        "lng": -87.9401
+      },
+      "bounds": {
+        "north": 43.0630,
+        "south": 43.0624,
+        "east": -87.9395,
+        "west": -87.9407
+      },
+      "lotSize": 6000,
+      "lotSizeUnit": "sq ft",
+      "lotWidth": 50,
+      "lotDepth": 120,
+      "currentUse": "Retail",
+      "ownerName": "North Ave Partners",
+      "assessedValue": 320000,
+      "zoningDistrictId": "zd-lb1",
+      "incentiveZoneIds": ["iz-oz-53205", "iz-nid-near-west"],
+      "areaPlanId": "ap-near-west",
+      "isHistoric": false,
+      "hasDesignOverlay": false
+    }
+  ],
+  "zoningDistricts": [
+    {
+      "id": "zd-rs6",
+      "code": "RS6",
+      "name": "Single-Family Residential",
+      "description": "Low-density residential district permitting single-family homes and accessory structures.",
+      "color": "#fbbf24",
+      "maxHeight": 35,
+      "maxHeightUnit": "feet",
+      "minLotSize": 6000,
+      "minLotSizeUnit": "sq ft",
+      "maxCoverage": 40,
+      "setbacks": {
+        "front": 25,
+        "side": 5,
+        "rear": 25
+      },
+      "aduPermitted": true,
+      "codeSection": "295-505"
+    },
+    {
+      "id": "zd-rm4",
+      "code": "RM4",
+      "name": "Multi-Family Residential",
+      "description": "Medium-density residential district allowing multi-family dwellings up to 4 stories.",
+      "color": "#fb923c",
+      "maxHeight": 50,
+      "maxHeightUnit": "feet",
+      "minLotSize": 3000,
+      "minLotSizeUnit": "sq ft",
+      "maxCoverage": 60,
+      "setbacks": {
+        "front": 15,
+        "side": 5,
+        "rear": 20
+      },
+      "aduPermitted": false,
+      "codeSection": "295-603"
+    },
+    {
+      "id": "zd-lb1",
+      "code": "LB1",
+      "name": "Local Business",
+      "description": "Neighborhood-scale commercial district for retail and service uses serving nearby residents.",
+      "color": "#f472b6",
+      "maxHeight": 35,
+      "maxHeightUnit": "feet",
+      "minLotSize": 2500,
+      "minLotSizeUnit": "sq ft",
+      "maxCoverage": 80,
+      "setbacks": {
+        "front": 0,
+        "side": 0,
+        "rear": 10
+      },
+      "aduPermitted": false,
+      "codeSection": "295-701"
+    },
+    {
+      "id": "zd-lb2",
+      "code": "LB2",
+      "name": "Local Business 2",
+      "description": "Slightly larger-scale neighborhood commercial allowing mixed-use development.",
+      "color": "#e879f9",
+      "maxHeight": 45,
+      "maxHeightUnit": "feet",
+      "minLotSize": 2500,
+      "minLotSizeUnit": "sq ft",
+      "maxCoverage": 80,
+      "setbacks": {
+        "front": 0,
+        "side": 0,
+        "rear": 10
+      },
+      "aduPermitted": false,
+      "codeSection": "295-703"
+    },
+    {
+      "id": "zd-dt",
+      "code": "DT",
+      "name": "Downtown",
+      "description": "High-density mixed-use district in the urban core with minimal setback requirements.",
+      "color": "#f97316",
+      "maxHeight": 200,
+      "maxHeightUnit": "feet",
+      "minLotSize": 0,
+      "minLotSizeUnit": "sq ft",
+      "maxCoverage": 100,
+      "setbacks": {
+        "front": 0,
+        "side": 0,
+        "rear": 0
+      },
+      "aduPermitted": false,
+      "codeSection": "295-901"
+    }
+  ],
+  "incentiveZones": [
+    {
+      "id": "iz-tif-bronzeville",
+      "type": "TIF",
+      "name": "Bronzeville TIF District",
+      "description": "Tax Increment Financing district supporting revitalization of the Bronzeville neighborhood.",
+      "color": "#22c55e",
+      "status": "active",
+      "expirationYear": 2035,
+      "maxFunding": 15000000,
+      "fundingUsed": 8500000,
+      "eligibleUses": ["Commercial", "Mixed Use", "Residential"]
+    },
+    {
+      "id": "iz-tif-downtown",
+      "type": "TIF",
+      "name": "Downtown TIF District #3",
+      "description": "Supports major development projects in the downtown Milwaukee area.",
+      "color": "#22c55e",
+      "status": "active",
+      "expirationYear": 2040,
+      "maxFunding": 50000000,
+      "fundingUsed": 32000000,
+      "eligibleUses": ["Commercial", "Mixed Use", "Office"]
+    },
+    {
+      "id": "iz-oz-53212",
+      "type": "Opportunity Zone",
+      "name": "Census Tract 53212",
+      "description": "Federally designated Qualified Opportunity Zone offering capital gains tax benefits.",
+      "color": "#eab308",
+      "status": "active",
+      "expirationYear": 2028,
+      "maxFunding": null,
+      "fundingUsed": null,
+      "eligibleUses": ["All"]
+    },
+    {
+      "id": "iz-oz-53205",
+      "type": "Opportunity Zone",
+      "name": "Census Tract 53205",
+      "description": "Federally designated Qualified Opportunity Zone in the Near West Side.",
+      "color": "#eab308",
+      "status": "active",
+      "expirationYear": 2028,
+      "maxFunding": null,
+      "fundingUsed": null,
+      "eligibleUses": ["All"]
+    },
+    {
+      "id": "iz-nid-sherman",
+      "type": "NID",
+      "name": "Sherman Park NID",
+      "description": "Neighborhood Improvement District offering matching grants for exterior improvements.",
+      "color": "#06b6d4",
+      "status": "active",
+      "expirationYear": null,
+      "maxFunding": 500000,
+      "fundingUsed": 280000,
+      "eligibleUses": ["Residential", "Commercial"]
+    },
+    {
+      "id": "iz-nid-near-west",
+      "type": "NID",
+      "name": "Near West Side NID",
+      "description": "Supports facade improvements and small business development along W North Ave.",
+      "color": "#06b6d4",
+      "status": "active",
+      "expirationYear": null,
+      "maxFunding": 350000,
+      "fundingUsed": 125000,
+      "eligibleUses": ["Commercial", "Mixed Use"]
+    },
+    {
+      "id": "iz-bid-water",
+      "type": "BID",
+      "name": "Water Street BID",
+      "description": "Business Improvement District providing enhanced services and marketing for Water Street businesses.",
+      "color": "#a855f7",
+      "status": "active",
+      "expirationYear": null,
+      "maxFunding": null,
+      "fundingUsed": null,
+      "eligibleUses": ["Commercial"]
+    }
+  ],
+  "areaPlans": [
+    {
+      "id": "ap-bronzeville",
+      "name": "Bronzeville Cultural & Entertainment District Plan",
+      "adoptedYear": 2018,
+      "boundaries": {
+        "north": 43.0700,
+        "south": 43.0550,
+        "east": -87.9100,
+        "west": -87.9300
+      },
+      "color": "#06b6d4",
+      "focusAreas": ["Cultural preservation", "Mixed-use development", "Affordable housing"],
+      "documentUrl": "/plans/bronzeville-2018.pdf"
+    },
+    {
+      "id": "ap-sherman-park",
+      "name": "Sherman Park Neighborhood Plan",
+      "adoptedYear": 2016,
+      "boundaries": {
+        "north": 43.0900,
+        "south": 43.0750,
+        "east": -87.9500,
+        "west": -87.9750
+      },
+      "color": "#06b6d4",
+      "focusAreas": ["Single-family preservation", "ADU encouragement", "Commercial corridors"],
+      "documentUrl": "/plans/sherman-park-2016.pdf"
+    },
+    {
+      "id": "ap-near-west",
+      "name": "Near West Side Area Plan",
+      "adoptedYear": 2019,
+      "boundaries": {
+        "north": 43.0650,
+        "south": 43.0500,
+        "east": -87.9300,
+        "west": -87.9500
+      },
+      "color": "#06b6d4",
+      "focusAreas": ["Mixed-use corridors", "Transit-oriented development", "Industrial modernization"],
+      "documentUrl": "/plans/near-west-2019.pdf"
+    },
+    {
+      "id": "ap-east-side",
+      "name": "East Side Neighborhood Plan",
+      "adoptedYear": 2015,
+      "boundaries": {
+        "north": 43.0700,
+        "south": 43.0500,
+        "east": -87.8800,
+        "west": -87.9000
+      },
+      "color": "#06b6d4",
+      "focusAreas": ["Walkability", "Historic preservation", "Local business support"],
+      "documentUrl": "/plans/east-side-2015.pdf"
+    }
+  ],
+  "addressSearchResults": [
+    {
+      "id": "search-001",
+      "address": "2400 N Farwell Ave",
+      "fullAddress": "2400 N Farwell Ave, Milwaukee, WI 53211",
+      "parcelId": "parcel-001",
+      "coordinates": { "lat": 43.0594, "lng": -87.8868 },
+      "neighborhood": "East Side"
+    },
+    {
+      "id": "search-002",
+      "address": "3847 N 40th St",
+      "fullAddress": "3847 N 40th St, Milwaukee, WI 53216",
+      "parcelId": "parcel-002",
+      "coordinates": { "lat": 43.0812, "lng": -87.9634 },
+      "neighborhood": "Sherman Park"
+    },
+    {
+      "id": "search-003",
+      "address": "456 W Walnut St",
+      "fullAddress": "456 W Walnut St, Milwaukee, WI 53212",
+      "parcelId": "parcel-003",
+      "coordinates": { "lat": 43.0635, "lng": -87.9198 },
+      "neighborhood": "Bronzeville"
+    },
+    {
+      "id": "search-004",
+      "address": "770 N Water St",
+      "fullAddress": "770 N Water St, Milwaukee, WI 53202",
+      "parcelId": "parcel-004",
+      "coordinates": { "lat": 43.0431, "lng": -87.9104 },
+      "neighborhood": "Historic Third Ward"
+    },
+    {
+      "id": "search-005",
+      "address": "2100 W North Ave",
+      "fullAddress": "2100 W North Ave, Milwaukee, WI 53205",
+      "parcelId": "parcel-005",
+      "coordinates": { "lat": 43.0627, "lng": -87.9401 },
+      "neighborhood": "Near West Side"
+    }
+  ],
+  "mapViewState": {
+    "center": {
+      "lat": 43.0389,
+      "lng": -87.9065
+    },
+    "zoom": 12,
+    "pitch": 0,
+    "bearing": 0,
+    "bounds": {
+      "north": 43.1500,
+      "south": 42.9200,
+      "east": -87.8000,
+      "west": -88.0200
+    },
+    "viewMode": "2d",
+    "selectedParcelId": null,
+    "highlightedParcelIds": [],
+    "isLocating": false
+  }
+}

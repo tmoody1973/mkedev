@@ -1,0 +1,261 @@
+{
+  "_meta": {
+    "models": {
+      "document": "A document in the knowledge base corpus, representing a crawled or ingested source of information.",
+      "source": "A data source that feeds documents into the knowledge base via Firecrawl or manual ingestion.",
+      "category": "A classification category for organizing documents (Zoning Codes, Area Plans, etc.).",
+      "corpusStats": "Aggregate statistics about the entire knowledge base corpus."
+    },
+    "relationships": [
+      "Documents belong to a Source and are classified into one or more Categories",
+      "Sources contain multiple Documents and track their sync status",
+      "Categories organize Documents for easier browsing and filtering"
+    ]
+  },
+  "corpusStats": {
+    "totalDocuments": 1247,
+    "totalSources": 8,
+    "totalCategories": 5,
+    "lastSyncedAt": "2024-01-15T08:30:00Z",
+    "documentsAddedThisWeek": 23,
+    "documentsUpdatedThisWeek": 156
+  },
+  "categories": [
+    {
+      "id": "zoning-codes",
+      "label": "Zoning Codes",
+      "description": "Official City of Milwaukee zoning ordinances and regulations",
+      "documentCount": 342,
+      "icon": "building"
+    },
+    {
+      "id": "area-plans",
+      "label": "Area Plans",
+      "description": "Neighborhood development plans and comprehensive area studies",
+      "documentCount": 89,
+      "icon": "map"
+    },
+    {
+      "id": "policies",
+      "label": "Policies",
+      "description": "City policies, guidelines, and administrative procedures",
+      "documentCount": 215,
+      "icon": "document"
+    },
+    {
+      "id": "ordinances",
+      "label": "Ordinances",
+      "description": "City ordinances beyond zoning including building codes",
+      "documentCount": 478,
+      "icon": "gavel"
+    },
+    {
+      "id": "incentives",
+      "label": "Incentives & Programs",
+      "description": "TIF districts, Opportunity Zones, grants, and development incentives",
+      "documentCount": 123,
+      "icon": "sparkles"
+    }
+  ],
+  "sources": [
+    {
+      "id": "source-city-mke",
+      "name": "City of Milwaukee",
+      "domain": "city.milwaukee.gov",
+      "documentCount": 567,
+      "status": "synced",
+      "lastCrawledAt": "2024-01-15T08:30:00Z",
+      "crawlFrequency": "daily"
+    },
+    {
+      "id": "source-dcd",
+      "name": "Dept. of City Development",
+      "domain": "milwaukee.gov/DCD",
+      "documentCount": 234,
+      "status": "synced",
+      "lastCrawledAt": "2024-01-15T06:15:00Z",
+      "crawlFrequency": "daily"
+    },
+    {
+      "id": "source-dns",
+      "name": "Dept. of Neighborhood Services",
+      "domain": "milwaukee.gov/DNS",
+      "documentCount": 189,
+      "status": "syncing",
+      "lastCrawledAt": "2024-01-14T22:00:00Z",
+      "crawlFrequency": "daily"
+    },
+    {
+      "id": "source-wedc",
+      "name": "WEDC",
+      "domain": "wedc.org",
+      "documentCount": 78,
+      "status": "synced",
+      "lastCrawledAt": "2024-01-14T12:00:00Z",
+      "crawlFrequency": "weekly"
+    },
+    {
+      "id": "source-medc",
+      "name": "MEDC",
+      "domain": "medconline.com",
+      "documentCount": 56,
+      "status": "error",
+      "lastCrawledAt": "2024-01-12T08:00:00Z",
+      "crawlFrequency": "weekly",
+      "errorMessage": "Connection timeout - retry scheduled"
+    },
+    {
+      "id": "source-mke-code",
+      "name": "Milwaukee Code of Ordinances",
+      "domain": "library.municode.com",
+      "documentCount": 98,
+      "status": "synced",
+      "lastCrawledAt": "2024-01-15T04:00:00Z",
+      "crawlFrequency": "weekly"
+    },
+    {
+      "id": "source-assessor",
+      "name": "City Assessor",
+      "domain": "assessments.milwaukee.gov",
+      "documentCount": 15,
+      "status": "synced",
+      "lastCrawledAt": "2024-01-15T02:00:00Z",
+      "crawlFrequency": "monthly"
+    },
+    {
+      "id": "source-onmke",
+      "name": "OnMilwaukee Development",
+      "domain": "onmilwaukee.com",
+      "documentCount": 10,
+      "status": "synced",
+      "lastCrawledAt": "2024-01-13T18:00:00Z",
+      "crawlFrequency": "weekly"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-001",
+      "title": "Chapter 295 - Zoning Code",
+      "excerpt": "The zoning code establishes regulations for land use, building height, lot coverage, setbacks, and other development standards throughout the City of Milwaukee...",
+      "sourceId": "source-mke-code",
+      "sourceName": "Milwaukee Code of Ordinances",
+      "sourceDomain": "library.municode.com",
+      "categoryId": "zoning-codes",
+      "categoryLabel": "Zoning Codes",
+      "url": "https://library.municode.com/wi/milwaukee/codes/code_of_ordinances?nodeId=VOLII_CH295ZO",
+      "lastCrawledAt": "2024-01-15T04:00:00Z",
+      "addedAt": "2023-06-15T10:00:00Z",
+      "wordCount": 45230,
+      "freshness": "current"
+    },
+    {
+      "id": "doc-002",
+      "title": "Harbor District Area Plan",
+      "excerpt": "The Harbor District Area Plan envisions a mixed-use waterfront neighborhood with residential, commercial, and recreational uses along the inner harbor...",
+      "sourceId": "source-dcd",
+      "sourceName": "Dept. of City Development",
+      "sourceDomain": "milwaukee.gov/DCD",
+      "categoryId": "area-plans",
+      "categoryLabel": "Area Plans",
+      "url": "https://city.milwaukee.gov/DCD/Planning/Plans/Harbor-District",
+      "lastCrawledAt": "2024-01-15T06:15:00Z",
+      "addedAt": "2023-08-20T14:30:00Z",
+      "wordCount": 12450,
+      "freshness": "current"
+    },
+    {
+      "id": "doc-003",
+      "title": "TIF District #92 - Reed Street Yards",
+      "excerpt": "Tax Incremental Financing District #92 was created to support redevelopment of the former industrial corridor along Reed Street into a mixed-use innovation district...",
+      "sourceId": "source-dcd",
+      "sourceName": "Dept. of City Development",
+      "sourceDomain": "milwaukee.gov/DCD",
+      "categoryId": "incentives",
+      "categoryLabel": "Incentives & Programs",
+      "url": "https://city.milwaukee.gov/DCD/TIF/Districts/TIF-92",
+      "lastCrawledAt": "2024-01-14T06:15:00Z",
+      "addedAt": "2023-11-10T09:00:00Z",
+      "wordCount": 3240,
+      "freshness": "current"
+    },
+    {
+      "id": "doc-004",
+      "title": "ADU Ordinance Amendment (2023)",
+      "excerpt": "This ordinance amends Chapter 295 to expand where Accessory Dwelling Units (ADUs) are permitted and reduce barriers to construction including parking requirements...",
+      "sourceId": "source-city-mke",
+      "sourceName": "City of Milwaukee",
+      "sourceDomain": "city.milwaukee.gov",
+      "categoryId": "ordinances",
+      "categoryLabel": "Ordinances",
+      "url": "https://city.milwaukee.gov/CommonCouncil/Ordinances/ADU-2023",
+      "lastCrawledAt": "2024-01-15T08:30:00Z",
+      "addedAt": "2024-01-05T11:00:00Z",
+      "wordCount": 2180,
+      "freshness": "recent"
+    },
+    {
+      "id": "doc-005",
+      "title": "Historic Preservation Guidelines",
+      "excerpt": "Design guidelines for properties within Milwaukee's designated historic districts, covering exterior alterations, new construction, and demolition standards...",
+      "sourceId": "source-city-mke",
+      "sourceName": "City of Milwaukee",
+      "sourceDomain": "city.milwaukee.gov",
+      "categoryId": "policies",
+      "categoryLabel": "Policies",
+      "url": "https://city.milwaukee.gov/HistoricPreservation/Guidelines",
+      "lastCrawledAt": "2024-01-10T08:30:00Z",
+      "addedAt": "2023-07-22T16:00:00Z",
+      "wordCount": 8920,
+      "freshness": "stale"
+    },
+    {
+      "id": "doc-006",
+      "title": "Opportunity Zone Prospectus - 30th Street Corridor",
+      "excerpt": "Investment prospectus for the federally designated Opportunity Zone along the 30th Street Industrial Corridor, highlighting development opportunities and incentives...",
+      "sourceId": "source-wedc",
+      "sourceName": "WEDC",
+      "sourceDomain": "wedc.org",
+      "categoryId": "incentives",
+      "categoryLabel": "Incentives & Programs",
+      "url": "https://wedc.org/programs-and-resources/opportunity-zones/milwaukee-30th-street",
+      "lastCrawledAt": "2024-01-14T12:00:00Z",
+      "addedAt": "2023-09-05T13:30:00Z",
+      "wordCount": 4560,
+      "freshness": "current"
+    }
+  ],
+  "recentUpdates": [
+    {
+      "id": "update-001",
+      "documentId": "doc-004",
+      "documentTitle": "ADU Ordinance Amendment (2023)",
+      "updateType": "added",
+      "timestamp": "2024-01-15T08:30:00Z",
+      "source": "City of Milwaukee"
+    },
+    {
+      "id": "update-002",
+      "documentId": "doc-001",
+      "documentTitle": "Chapter 295 - Zoning Code",
+      "updateType": "updated",
+      "timestamp": "2024-01-15T04:00:00Z",
+      "source": "Milwaukee Code of Ordinances"
+    },
+    {
+      "id": "update-003",
+      "documentId": "doc-002",
+      "documentTitle": "Harbor District Area Plan",
+      "updateType": "updated",
+      "timestamp": "2024-01-14T06:15:00Z",
+      "source": "Dept. of City Development"
+    },
+    {
+      "id": "update-004",
+      "documentId": "doc-006",
+      "documentTitle": "Opportunity Zone Prospectus - 30th Street Corridor",
+      "updateType": "updated",
+      "timestamp": "2024-01-14T12:00:00Z",
+      "source": "WEDC"
+    }
+  ]
+}

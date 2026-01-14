@@ -1,0 +1,309 @@
+{
+  "_meta": {
+    "models": {
+      "conversations": "A chat session between a user and the platform, containing a sequence of messages. Can be starred for quick access later.",
+      "messages": "A single exchange within a conversation — either a user question or an assistant response. Assistant messages can include generative UI cards.",
+      "zoneInfoCard": "A card displaying zoning district details including permitted uses, dimensional standards, and code references.",
+      "parcelAnalysisCard": "A feasibility assessment card showing whether a proposed use is permitted, conditional, or prohibited on a specific parcel.",
+      "incentivesSummaryCard": "A card summarizing available financial incentives like TIF districts, Opportunity Zones, and BIDs for a location.",
+      "areaPlanContextCard": "A card explaining how a project aligns with the neighborhood's adopted area plan and community goals.",
+      "permitProcessCard": "A timeline card showing the steps, documents, fees, and contacts needed to get project approval.",
+      "codeCitationCard": "A card with a direct quote from the zoning code or other official document, with source reference.",
+      "opportunityListCard": "A card listing available properties that match a user's search criteria with match scores."
+    },
+    "relationships": [
+      "Each Conversation contains multiple Messages in sequence",
+      "Messages can include one or more generative UI cards as attachments",
+      "Cards reference Parcels, ZoningDistricts, IncentiveZones, and AreaPlans from the data model"
+    ]
+  },
+  "conversations": [
+    {
+      "id": "conv-001",
+      "title": "ADU in Sherman Park",
+      "isStarred": true,
+      "createdAt": "2026-01-13T14:23:00Z",
+      "updatedAt": "2026-01-13T14:28:00Z",
+      "messageCount": 4,
+      "preview": "Can I build an ADU for my mother in my backyard?"
+    },
+    {
+      "id": "conv-002",
+      "title": "TIF Sites in Bronzeville",
+      "isStarred": true,
+      "createdAt": "2026-01-12T09:15:00Z",
+      "updatedAt": "2026-01-12T09:32:00Z",
+      "messageCount": 6,
+      "preview": "Show me TIF-eligible vacant lots in Bronzeville"
+    },
+    {
+      "id": "conv-003",
+      "title": "Setbacks on Farwell Ave",
+      "isStarred": false,
+      "createdAt": "2026-01-11T16:45:00Z",
+      "updatedAt": "2026-01-11T16:52:00Z",
+      "messageCount": 3,
+      "preview": "What are the setback requirements at 2400 N Farwell?"
+    },
+    {
+      "id": "conv-004",
+      "title": "Wheelchair Ramp Permit",
+      "isStarred": false,
+      "createdAt": "2026-01-10T11:20:00Z",
+      "updatedAt": "2026-01-10T11:35:00Z",
+      "messageCount": 4,
+      "preview": "Do I need a permit to add a wheelchair ramp?"
+    }
+  ],
+  "activeConversation": {
+    "id": "conv-001",
+    "title": "ADU in Sherman Park",
+    "isStarred": true,
+    "createdAt": "2026-01-13T14:23:00Z",
+    "messages": [
+      {
+        "id": "msg-001",
+        "role": "user",
+        "content": "Can I build an ADU for my mother in my backyard at 3847 N 40th Street?",
+        "timestamp": "2026-01-13T14:23:00Z",
+        "inputMode": "voice"
+      },
+      {
+        "id": "msg-002",
+        "role": "assistant",
+        "content": "Great question! I've looked up your property at 3847 N 40th Street in the Sherman Park neighborhood. Here's what I found about building an Accessory Dwelling Unit (ADU):",
+        "timestamp": "2026-01-13T14:23:15Z",
+        "cards": [
+          {
+            "type": "zoneInfoCard",
+            "data": {
+              "zoneCode": "RS6",
+              "zoneName": "Single-Family Residential",
+              "description": "Low-density residential district permitting single-family homes and accessory structures.",
+              "maxHeight": "35 feet",
+              "minLotSize": "6,000 sq ft",
+              "maxLotCoverage": "40%",
+              "frontSetback": "25 feet",
+              "sideSetback": "5 feet",
+              "rearSetback": "25 feet",
+              "aduPermitted": true,
+              "codeSection": "295-505"
+            }
+          },
+          {
+            "type": "parcelAnalysisCard",
+            "data": {
+              "address": "3847 N 40th Street",
+              "taxKey": "2860-478-000",
+              "lotSize": "7,200 sq ft",
+              "currentUse": "Single-Family Residential",
+              "feasibilityStatus": "permitted",
+              "proposedUse": "Accessory Dwelling Unit",
+              "requirements": [
+                "ADU must not exceed 800 sq ft or 50% of primary dwelling",
+                "Must maintain 25-foot rear setback",
+                "One additional parking space required",
+                "Owner must occupy either primary or ADU"
+              ],
+              "nextSteps": [
+                "Submit building permit application",
+                "Provide site plan showing ADU location",
+                "Schedule plan review appointment"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "msg-003",
+        "role": "user",
+        "content": "Are there any grants or incentives I could use to help pay for this?",
+        "timestamp": "2026-01-13T14:26:00Z",
+        "inputMode": "text"
+      },
+      {
+        "id": "msg-004",
+        "role": "assistant",
+        "content": "Yes! Your property is in an area with several potential funding sources. Here's what's available:",
+        "timestamp": "2026-01-13T14:26:12Z",
+        "cards": [
+          {
+            "type": "incentivesSummaryCard",
+            "data": {
+              "address": "3847 N 40th Street",
+              "incentives": [
+                {
+                  "name": "STRONG Homes Loan Program",
+                  "type": "Low-Interest Loan",
+                  "amount": "Up to $60,000",
+                  "description": "City program offering 0-3% interest loans for home improvements including ADUs in targeted neighborhoods.",
+                  "eligibility": "Income below 120% AMI, owner-occupied",
+                  "status": "eligible"
+                },
+                {
+                  "name": "Sherman Park NID Grant",
+                  "type": "Grant",
+                  "amount": "Up to $10,000",
+                  "description": "Neighborhood Improvement District matching grant for exterior improvements and additions.",
+                  "eligibility": "Property within NID boundaries",
+                  "status": "eligible"
+                },
+                {
+                  "name": "Opportunity Zone",
+                  "type": "Tax Incentive",
+                  "amount": "Varies",
+                  "description": "Federal tax benefits for qualified investments, primarily for larger projects.",
+                  "eligibility": "Investment of capital gains",
+                  "status": "not-applicable"
+                }
+              ],
+              "totalPotentialValue": "$70,000",
+              "recommendation": "The STRONG Homes Loan combined with the Sherman Park NID Grant could cover a significant portion of your ADU construction costs."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "sampleCards": {
+    "areaPlanContextCard": {
+      "type": "areaPlanContextCard",
+      "data": {
+        "planName": "Sherman Park Neighborhood Plan",
+        "adoptedDate": "2019",
+        "futureLandUse": "Low-Density Residential",
+        "alignmentScore": 85,
+        "communityGoals": [
+          "Support multi-generational housing options",
+          "Preserve neighborhood character while allowing gentle density",
+          "Encourage investment in existing housing stock"
+        ],
+        "relevantRecommendations": [
+          "Encourage ADUs as a means to provide affordable housing and support aging in place",
+          "Maintain consistent setbacks and building heights with surrounding homes"
+        ],
+        "concerns": []
+      }
+    },
+    "permitProcessCard": {
+      "type": "permitProcessCard",
+      "data": {
+        "projectType": "Accessory Dwelling Unit",
+        "totalSteps": 5,
+        "estimatedTimeline": "8-12 weeks",
+        "steps": [
+          {
+            "step": 1,
+            "name": "Pre-Application Meeting",
+            "description": "Optional but recommended meeting with DNS staff to review project scope",
+            "duration": "1-2 weeks to schedule",
+            "fee": "Free",
+            "status": "optional"
+          },
+          {
+            "step": 2,
+            "name": "Building Permit Application",
+            "description": "Submit application with site plan, floor plans, and specifications",
+            "duration": "Same day",
+            "fee": "$150 base + $8/1000 sq ft",
+            "status": "required"
+          },
+          {
+            "step": 3,
+            "name": "Plan Review",
+            "description": "City reviews plans for code compliance",
+            "duration": "2-4 weeks",
+            "fee": "Included in permit",
+            "status": "required"
+          },
+          {
+            "step": 4,
+            "name": "Permit Issuance",
+            "description": "Once approved, permit is issued and construction can begin",
+            "duration": "1-3 days",
+            "fee": "None",
+            "status": "required"
+          },
+          {
+            "step": 5,
+            "name": "Inspections & Certificate of Occupancy",
+            "description": "Inspections during construction, final CO issued upon completion",
+            "duration": "Varies with construction",
+            "fee": "Included in permit",
+            "status": "required"
+          }
+        ],
+        "contactInfo": {
+          "department": "Department of Neighborhood Services",
+          "phone": "(414) 286-2268",
+          "email": "dns@milwaukee.gov",
+          "address": "841 N Broadway, Milwaukee, WI 53202"
+        }
+      }
+    },
+    "codeCitationCard": {
+      "type": "codeCitationCard",
+      "data": {
+        "codeSection": "295-505-4",
+        "title": "Accessory Dwelling Units",
+        "excerpt": "An accessory dwelling unit shall be permitted in all single-family residential districts subject to the following standards: (a) The floor area of an ADU shall not exceed 800 square feet or 50% of the floor area of the principal dwelling, whichever is less. (b) The property owner shall occupy either the principal dwelling or the ADU as their primary residence.",
+        "sourceDocument": "Milwaukee Code of Ordinances, Chapter 295 - Zoning",
+        "lastUpdated": "2023-06-15",
+        "relevance": "This section establishes the size limits and owner-occupancy requirements for your proposed ADU."
+      }
+    },
+    "opportunityListCard": {
+      "type": "opportunityListCard",
+      "data": {
+        "searchCriteria": "TIF-eligible vacant lots, 5000-15000 sq ft, Bronzeville",
+        "resultCount": 4,
+        "opportunities": [
+          {
+            "id": "opp-001",
+            "address": "2437 N 4th Street",
+            "lotSize": "8,500 sq ft",
+            "zoning": "LB2 - Local Business",
+            "askingPrice": "$45,000",
+            "owner": "City of Milwaukee",
+            "incentives": ["TIF District 74", "Opportunity Zone"],
+            "matchScore": 95
+          },
+          {
+            "id": "opp-002",
+            "address": "2501 N King Drive",
+            "lotSize": "12,000 sq ft",
+            "zoning": "RM4 - Multi-Family",
+            "askingPrice": "$72,000",
+            "owner": "City of Milwaukee",
+            "incentives": ["TIF District 74", "Opportunity Zone", "Bronzeville BID"],
+            "matchScore": 92
+          },
+          {
+            "id": "opp-003",
+            "address": "2318 N 3rd Street",
+            "lotSize": "6,200 sq ft",
+            "zoning": "LB2 - Local Business",
+            "askingPrice": "$38,000",
+            "owner": "Private",
+            "incentives": ["TIF District 74"],
+            "matchScore": 78
+          },
+          {
+            "id": "opp-004",
+            "address": "2655 N King Drive",
+            "lotSize": "14,800 sq ft",
+            "zoning": "RM4 - Multi-Family",
+            "askingPrice": "$95,000",
+            "owner": "City of Milwaukee",
+            "incentives": ["TIF District 74", "Opportunity Zone", "Bronzeville BID"],
+            "matchScore": 88
+          }
+        ]
+      }
+    }
+  },
+  "voiceState": {
+    "isActive": false,
+    "waveformData": [0.2, 0.4, 0.8, 0.6, 0.9, 0.7, 0.5, 0.3, 0.6, 0.8, 0.4, 0.2]
+  }
+}

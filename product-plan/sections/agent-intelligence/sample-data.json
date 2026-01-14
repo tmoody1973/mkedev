@@ -1,0 +1,219 @@
+{
+  "_meta": {
+    "models": {
+      "agents": "The specialist AI agents that analyze different aspects of development questions. Each agent has a specific domain of expertise.",
+      "agentActivity": "Real-time status of agents as they work on a query, showing progress and completion state.",
+      "agentContributions": "The findings and conclusions from each agent that contributed to an answer, with source citations."
+    },
+    "relationships": [
+      "Each Agent can have multiple AgentActivity states as it processes queries",
+      "AgentContributions link an Agent's findings to a specific response with citations"
+    ]
+  },
+  "agents": [
+    {
+      "id": "zoning-interpreter",
+      "name": "Zoning Interpreter",
+      "icon": "building-library",
+      "color": "sky",
+      "description": "Analyzes zoning codes, land use regulations, and district classifications",
+      "capabilities": [
+        "Zoning district lookup",
+        "Permitted use analysis",
+        "Dimensional requirements",
+        "Conditional use identification"
+      ]
+    },
+    {
+      "id": "incentives-navigator",
+      "name": "Incentives Navigator",
+      "icon": "currency-dollar",
+      "color": "emerald",
+      "description": "Identifies financial programs, grants, tax incentives, and funding opportunities",
+      "capabilities": [
+        "TIF district benefits",
+        "Opportunity Zone incentives",
+        "Historic tax credits",
+        "STRONG Homes loans",
+        "Federal/state grants"
+      ]
+    },
+    {
+      "id": "feasibility-analyst",
+      "name": "Feasibility Analyst",
+      "icon": "chart-bar",
+      "color": "amber",
+      "description": "Assesses project viability by synthesizing inputs from other agents",
+      "capabilities": [
+        "Cost-benefit analysis",
+        "Risk assessment",
+        "Timeline estimation",
+        "ROI projection"
+      ]
+    },
+    {
+      "id": "design-advisor",
+      "name": "Design Advisor",
+      "icon": "paint-brush",
+      "color": "violet",
+      "description": "Evaluates architectural guidelines, design standards, and review board requirements",
+      "capabilities": [
+        "Design overlay analysis",
+        "Historic district guidelines",
+        "ARB review requirements",
+        "Facade standards"
+      ]
+    },
+    {
+      "id": "permit-pathfinder",
+      "name": "Permit Pathfinder",
+      "icon": "document-check",
+      "color": "rose",
+      "description": "Maps permit requirements, application processes, and approval pathways",
+      "capabilities": [
+        "Permit type identification",
+        "Application requirements",
+        "Review process timeline",
+        "Fee estimation"
+      ]
+    },
+    {
+      "id": "compliance-checker",
+      "name": "Compliance Checker",
+      "icon": "shield-check",
+      "color": "teal",
+      "description": "Verifies code compliance, identifies violations, and suggests remediation",
+      "capabilities": [
+        "Code violation detection",
+        "Compliance verification",
+        "Remediation guidance",
+        "Inspection requirements"
+      ]
+    }
+  ],
+  "agentActivityDemo": {
+    "query": "Can I build an ADU on my property at 2847 N Fratney St?",
+    "status": "in_progress",
+    "agents": [
+      {
+        "agentId": "zoning-interpreter",
+        "status": "completed",
+        "progress": 100,
+        "startedAt": "2024-01-15T10:30:00Z",
+        "completedAt": "2024-01-15T10:30:02Z"
+      },
+      {
+        "agentId": "incentives-navigator",
+        "status": "completed",
+        "progress": 100,
+        "startedAt": "2024-01-15T10:30:01Z",
+        "completedAt": "2024-01-15T10:30:03Z"
+      },
+      {
+        "agentId": "design-advisor",
+        "status": "completed",
+        "progress": 100,
+        "startedAt": "2024-01-15T10:30:02Z",
+        "completedAt": "2024-01-15T10:30:04Z"
+      },
+      {
+        "agentId": "feasibility-analyst",
+        "status": "in_progress",
+        "progress": 65,
+        "startedAt": "2024-01-15T10:30:03Z",
+        "completedAt": null
+      },
+      {
+        "agentId": "permit-pathfinder",
+        "status": "pending",
+        "progress": 0,
+        "startedAt": null,
+        "completedAt": null
+      },
+      {
+        "agentId": "compliance-checker",
+        "status": "pending",
+        "progress": 0,
+        "startedAt": null,
+        "completedAt": null
+      }
+    ]
+  },
+  "agentContributionsDemo": {
+    "responseId": "response-001",
+    "query": "Can I build an ADU on my property at 2847 N Fratney St?",
+    "contributions": [
+      {
+        "agentId": "zoning-interpreter",
+        "finding": "Property is zoned RS6 (Residential Single-Family). ADUs up to 800 sq ft are permitted as accessory structures.",
+        "confidence": 0.95,
+        "citations": [
+          {
+            "id": "cite-001",
+            "source": "Milwaukee Zoning Code",
+            "section": "§295-505-2",
+            "title": "Accessory Dwelling Units in Residential Districts",
+            "url": "https://city.milwaukee.gov/zoning/295-505-2"
+          }
+        ]
+      },
+      {
+        "agentId": "incentives-navigator",
+        "finding": "Property qualifies for STRONG Homes Loan program offering up to $60,000 at 0% interest for ADU construction.",
+        "confidence": 0.92,
+        "citations": [
+          {
+            "id": "cite-002",
+            "source": "STRONG Homes Program",
+            "section": "Eligibility Guidelines",
+            "title": "ADU Construction Financing",
+            "url": "https://city.milwaukee.gov/strong-homes"
+          }
+        ]
+      },
+      {
+        "agentId": "design-advisor",
+        "finding": "No Architectural Review Board approval required. Property is not in a historic district or design overlay zone.",
+        "confidence": 0.98,
+        "citations": [
+          {
+            "id": "cite-003",
+            "source": "City of Milwaukee",
+            "section": "Historic Preservation",
+            "title": "District Boundary Map",
+            "url": "https://city.milwaukee.gov/historic-districts"
+          }
+        ]
+      },
+      {
+        "agentId": "feasibility-analyst",
+        "finding": "Project is highly feasible. Estimated cost $85,000-$120,000 with potential rental income of $1,200-$1,500/month. ROI timeline: 6-8 years.",
+        "confidence": 0.85,
+        "citations": [
+          {
+            "id": "cite-004",
+            "source": "Milwaukee ADU Cost Study",
+            "section": "2024 Report",
+            "title": "Average Construction Costs",
+            "url": null
+          }
+        ]
+      },
+      {
+        "agentId": "permit-pathfinder",
+        "finding": "Required permits: Building Permit, Electrical Permit, Plumbing Permit. Estimated timeline: 4-6 weeks for approval. Total fees: approximately $1,800.",
+        "confidence": 0.90,
+        "citations": [
+          {
+            "id": "cite-005",
+            "source": "DNS Permit Office",
+            "section": "Fee Schedule 2024",
+            "title": "Residential Construction Permits",
+            "url": "https://city.milwaukee.gov/permits/fees"
+          }
+        ]
+      }
+    ],
+    "summary": "Yes, you can build an ADU on your property. Your RS6 zoning allows ADUs up to 800 sq ft, and you may qualify for $60,000 in 0% financing through the STRONG Homes program."
+  }
+}

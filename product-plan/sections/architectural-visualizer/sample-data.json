@@ -1,0 +1,129 @@
+{
+  "_meta": {
+    "models": {
+      "visualization": "An AI-generated architectural preview showing what a building could look like on a specific parcel.",
+      "buildingPreset": "Predefined building parameters users can select from to guide visualization generation.",
+      "zoningConstraints": "The zoning rules that apply to a parcel, used to ensure generated designs are compliant.",
+      "complianceCheck": "Verification that a generated design meets specific zoning requirements."
+    },
+    "relationships": [
+      "Each Visualization is tied to a specific parcel and includes ZoningConstraints",
+      "BuildingPresets are used to configure the parameters for a Visualization",
+      "ComplianceChecks verify the Visualization meets the ZoningConstraints"
+    ]
+  },
+  "buildingTypes": [
+    { "id": "adu", "label": "ADU", "description": "Accessory Dwelling Unit" },
+    { "id": "duplex", "label": "Duplex", "description": "Two-family residence" },
+    { "id": "mixed-use", "label": "Mixed-Use", "description": "Commercial ground floor with residential above" },
+    { "id": "single-family", "label": "Single-Family", "description": "Traditional single-family home" },
+    { "id": "townhouse", "label": "Townhouse", "description": "Multi-story attached residence" },
+    { "id": "apartment", "label": "Apartment", "description": "Multi-unit residential building" }
+  ],
+  "buildingStyles": [
+    { "id": "cream-city-brick", "label": "Cream City Brick", "description": "Milwaukee's signature yellow-cream brick" },
+    { "id": "modern", "label": "Modern", "description": "Contemporary clean lines and large windows" },
+    { "id": "industrial", "label": "Industrial", "description": "Exposed materials, metal accents" },
+    { "id": "victorian", "label": "Victorian", "description": "Ornate details, wrap-around porches" },
+    { "id": "craftsman", "label": "Craftsman", "description": "Low-pitched roofs, covered porches" },
+    { "id": "contemporary", "label": "Contemporary", "description": "Current trends, mixed materials" }
+  ],
+  "storyOptions": [
+    { "value": 1, "label": "1 Story" },
+    { "value": 2, "label": "2 Stories" },
+    { "value": 3, "label": "3 Stories" },
+    { "value": 4, "label": "4 Stories" },
+    { "value": 5, "label": "5 Stories" },
+    { "value": 6, "label": "6 Stories" }
+  ],
+  "visualizationDemo": {
+    "id": "viz-001",
+    "parcelId": "parcel-fratney",
+    "address": "2847 N. Fratney St",
+    "neighborhood": "Riverwest",
+    "prompt": "Show me what a small apartment for my mom would look like in my backyard",
+    "status": "completed",
+    "generatedAt": "2024-01-15T10:35:00Z",
+    "parameters": {
+      "buildingType": "adu",
+      "style": "cream-city-brick",
+      "stories": 1,
+      "squareFootage": 640,
+      "features": ["covered entry porch", "pitched roof", "white trim"]
+    },
+    "beforeImageUrl": "/images/before-fratney.jpg",
+    "afterImageUrl": "/images/after-fratney-adu.jpg",
+    "zoningConstraints": {
+      "zoningDistrict": "RS6",
+      "maxHeight": 25,
+      "maxHeightUnit": "feet",
+      "rearSetback": 15,
+      "sideSetback": 5,
+      "frontSetback": 25,
+      "setbackUnit": "feet",
+      "maxLotCoverage": 40,
+      "maxFootprint": 800,
+      "footprintUnit": "sq ft",
+      "designOverlay": null,
+      "historicDistrict": false
+    },
+    "complianceChecks": [
+      {
+        "id": "check-height",
+        "label": "Height",
+        "requirement": "Max 25 ft",
+        "actual": "18 ft",
+        "isCompliant": true
+      },
+      {
+        "id": "check-rear-setback",
+        "label": "Rear Setback",
+        "requirement": "Min 15 ft",
+        "actual": "15 ft",
+        "isCompliant": true
+      },
+      {
+        "id": "check-footprint",
+        "label": "Footprint",
+        "requirement": "Max 800 sq ft",
+        "actual": "640 sq ft",
+        "isCompliant": true
+      },
+      {
+        "id": "check-lot-coverage",
+        "label": "Lot Coverage",
+        "requirement": "Max 40%",
+        "actual": "32%",
+        "isCompliant": true
+      }
+    ],
+    "voiceNarration": "I've created a preview of your ADU. It's an 18-foot tall Cream City Brick cottage that fits within your zoning limits. The design includes a covered entry porch and matches the character of your neighborhood."
+  },
+  "generationStates": {
+    "idle": {
+      "message": "Describe what you'd like to visualize",
+      "icon": "sparkles"
+    },
+    "analyzing": {
+      "message": "Understanding your request...",
+      "icon": "brain"
+    },
+    "fetching": {
+      "message": "Checking zoning constraints...",
+      "icon": "map"
+    },
+    "generating": {
+      "message": "Creating your visualization...",
+      "icon": "paintbrush",
+      "progress": 65
+    },
+    "completed": {
+      "message": "Your visualization is ready",
+      "icon": "check"
+    },
+    "error": {
+      "message": "Something went wrong. Please try again.",
+      "icon": "alert"
+    }
+  }
+}
