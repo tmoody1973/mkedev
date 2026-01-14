@@ -421,4 +421,119 @@ MILWAUKEE_LANDMARKS: { artMuseum, fiservForum, cityHall, ... }
 
 ---
 
+## 2026-01-14 - Zoning Interpreter Agent & File Search RAG
+
+### Completed
+- [x] Gemini File Search Stores setup and migration
+- [x] Upload 12 Milwaukee Zoning Code PDFs to persistent store
+- [x] Zoning Interpreter Agent with Gemini function calling
+- [x] Fix ESRI URL and spatial reference for zoning queries
+- [x] RAG V2 with automatic store discovery and fallback
+
+### File Search Stores Migration
+
+**Problem:** Legacy RAG used direct file uploads which expired after 48 hours.
+
+**Solution:** Migrated to Gemini File Search Stores for persistent document storage.
+
+**Setup Script:** `apps/web/scripts/setup-file-search-stores.ts`
+- Fixed monorepo path resolution: `path.resolve(__dirname, "../../..")`
+- Used correct API endpoint: `uploadToFileSearchStore` (not `uploadFile`)
+- Added long-running operation polling for upload completion
+
+**Documents Uploaded:**
+```
+Store: fileSearchStores/mkedevzoningcodes-nynmfrg2yrl7
+Documents: 12 (CH295-sub1 through sub11 + CH295table)
+Status: Active
+```
+
+**Sync Action Added:** `syncStoresFromGemini` registers external stores in Convex
+
+### Zoning Interpreter Agent
+
+**Location:** `apps/web/convex/agents/zoning.ts`
+
+**Architecture:**
+- Gemini function calling with 4 tools
+- MAX_TOOL_CALLS = 10 for complex queries
+- System prompt with Milwaukee-specific instructions
+
+**Tools Implemented:**
+
+| Tool | Implementation | Purpose |
+|------|---------------|---------|
+| `geocode_address` | Mapbox Geocoding API | Address → Coordinates |
+| `query_zoning_at_point` | Milwaukee ESRI REST | Coordinates → Zoning District |
+| `calculate_parking` | Local calculation | Parking requirements by use type |
+| `query_zoning_code` | RAG V2 (File Search) | Search zoning code documents |
+
+### ESRI Integration Fix
+
+**Problem:** Zoning queries failing with "unsuccessful tunnel" and empty results.
+
+**Root Causes:**
+1. Wrong URL: Used `gis.milwaukee.gov` instead of `milwaukeemaps.milwaukee.gov`
+2. Missing spatial reference: Needed `inSR=4326` for WGS84 coordinates
+
+**Fix Applied in `tools.ts`:**
+```typescript
+// Before (broken)
+const ESRI_BASE = "https://gis.milwaukee.gov/arcgis/rest/services";
+const url = `${ESRI_BASE}/.../query?geometry=${lng},${lat}&...`;
+
+// After (working)
+const ESRI_BASE = "https://milwaukeemaps.milwaukee.gov/arcgis/rest/services";
+const url = `${ESRI_BASE}/.../query?geometry=${lng},${lat}&inSR=4326&...`;
+```
+
+**Field Names:** Also fixed to use correct case (`Zoning` not `ZONING`)
+
+### Test Results
+
+```
+✅ Geocoding: "500 N Water St" → { lng: -87.908, lat: 43.036 }
+✅ Zoning Query: { district: "C9F(A)", category: "DOWNTOWN", type: "OFFICE AND SERVICE" }
+✅ RAG Query: Returns detailed zoning info with code citations
+✅ Full Agent: Multi-tool workflow with parking calculations
+```
+
+**Example Agent Response:**
+```
+"How many parking spaces for a 5000 sq ft restaurant at 500 N Water St?"
+
+→ Tools used: geocode_address, query_zoning_at_point, calculate_parking, query_zoning_code (3x)
+→ Answer: 0 motor vehicle (downtown), 4 bicycle (2 short-term + 2 long-term)
+→ Code references: Section 295-403, Section 295-404, Table 295-404-1
+```
+
+### Key Files Created/Modified
+
+**New Files:**
+- `apps/web/convex/agents/zoning.ts` - Agent with function calling
+- `apps/web/convex/agents/tools.ts` - Tool implementations
+- `apps/web/convex/ingestion/fileSearchStores.ts` - Store management
+- `apps/web/convex/ingestion/ragV2.ts` - File Search RAG
+- `apps/web/convex/ingestion/types.ts` - Shared types
+- `apps/web/scripts/setup-file-search-stores.ts` - Upload script
+
+**Schema Updates:**
+- `fileSearchStores` table - Store metadata
+- `storeDocuments` table - Document tracking
+
+### Lessons Learned
+
+1. **Always verify external API URLs** - Different Milwaukee GIS servers exist
+2. **Spatial references matter** - ESRI needs explicit `inSR` for WGS84 coordinates
+3. **File Search Stores persist** - No more 48-hour expiration for RAG documents
+4. **Function calling is powerful** - Gemini handles multi-step workflows well
+
+### Next Up
+- [ ] Voice interface with Gemini Live API
+- [ ] CopilotKit generative UI cards
+- [ ] Conversation history persistence
+- [ ] Area Plan Advisor agent
+
+---
+
 *Log entries below will be added as development progresses*
