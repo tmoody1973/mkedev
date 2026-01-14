@@ -17,11 +17,12 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 
 ### Key Features
 
-- **Voice-First Interface** - Real-time bidirectional voice conversations powered by Gemini Live API
-- **Interactive Map** - Mapbox GL JS with 7 Milwaukee ESRI data layers (zoning, parcels, TIF, opportunity zones, historic districts, ARB, city-owned)
-- **AI Chat** - Context-aware conversations about zoning, permits, and development opportunities
-- **High-Performance Tiles** - PMTiles served from Cloudflare R2 for instant map rendering
-- **Accessibility** - WCAG 2.1 AA compliant, fully navigable by voice
+- **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG
+- **Interactive 3D Map** - Mapbox GL JS with 2D/3D toggle and 7 Milwaukee ESRI data layers
+- **File Search RAG** - 12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores
+- **Real-Time Geocoding** - Address to zoning lookup via Mapbox + Milwaukee ESRI integration
+- **High-Performance Tiles** - PMTiles (313,000+ features) for instant map rendering
+- **Voice-First Interface** - Real-time voice conversations via Gemini Live API (in progress)
 
 ### Target Users
 
@@ -118,18 +119,21 @@ mkedev/
 │   │   │   │   ├── map/        # Map and layer components
 │   │   │   │   ├── shell/      # App shell and header
 │   │   │   │   └── ui/         # RetroUI components
-│   │   │   ├── contexts/       # React contexts
-│   │   │   └── providers/      # App providers
-│   │   └── convex/             # Convex schema & functions
-│   └── agents/                 # Google ADK agents (Week 2)
+│   │   │   ├── contexts/       # React contexts (MapContext with 3D support)
+│   │   │   └── hooks/          # Custom hooks (useZoningAgent)
+│   │   ├── convex/             # Convex schema & functions
+│   │   │   ├── agents/         # Zoning Interpreter Agent
+│   │   │   └── ingestion/      # RAG & File Search Stores
+│   │   └── scripts/            # Setup scripts
+│   └── agents/                 # Google ADK agents (standalone)
 ├── packages/
 │   └── tile-builder/           # ESRI → PMTiles pipeline
 ├── agent-os/                   # Specs and documentation
 │   ├── product/                # Mission, roadmap, tech stack
 │   └── specs/                  # Feature specifications
 └── data/                       # PDF documents for RAG
-    ├── zoning-code-pdfs/       # Milwaukee Zoning Code
-    └── plans/                  # City plans
+    ├── zoning-code-pdfs/       # Milwaukee Zoning Code (12 PDFs)
+    └── plans/                  # City area plans
 ```
 
 ---
@@ -149,6 +153,40 @@ MKE.dev integrates 7 Milwaukee GIS data layers:
 | City-Owned | ESRI MapServer | Municipal properties |
 
 Layers are served via PMTiles for optimal performance (313,000+ features).
+
+---
+
+## Zoning Interpreter Agent
+
+The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning requirements through natural conversation.
+
+### Agent Tools
+
+| Tool | Description |
+|------|-------------|
+| `geocode_address` | Convert street addresses to coordinates via Mapbox |
+| `query_zoning_at_point` | Get zoning district + overlays from Milwaukee ESRI |
+| `calculate_parking` | Calculate required parking spaces by use type |
+| `query_zoning_code` | RAG search against 12 zoning code PDFs |
+
+### Example Queries
+
+```
+"What zoning district is 500 N Water St in?"
+→ C9F(A) - Downtown Office and Service
+
+"How many parking spaces for a 5000 sq ft restaurant at that address?"
+→ 0 required (downtown), 4 bicycle spaces required
+
+"What are the setback requirements for RS6 residential?"
+→ Front: Average, Side: 3-6 ft, Rear: 20 ft (with code citations)
+```
+
+### RAG Document Corpus
+
+12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores:
+- CH295 Subchapters 1-11 (General, Residential, Commercial, Downtown, Industrial, Special, Overlay, Site Development, Parking, Signs, Administration)
+- CH295 Use Tables
 
 ---
 
@@ -183,10 +221,13 @@ Layers are served via PMTiles for optimal performance (313,000+ features).
 - [x] PMTiles pipeline
 
 ### Week 2: Voice & AI (In Progress)
+- [x] **Zoning Interpreter Agent** - Gemini function calling with 4 tools
+- [x] **File Search RAG** - 12 zoning PDFs in persistent stores
+- [x] **ESRI Integration** - Fixed geocoding + zoning lookup
+- [x] **3D Map Visualization** - Zoning extrusions with category colors
 - [ ] Gemini Live API integration
 - [ ] Voice activity detection
 - [ ] CopilotKit generative UI
-- [ ] Zoning Interpreter agent
 - [ ] Conversation history
 
 ### Week 3: Advanced Agents
@@ -209,6 +250,14 @@ Layers are served via PMTiles for optimal performance (313,000+ features).
 pnpm dev                  # Start Next.js dev server
 pnpm lint                 # Run ESLint
 pnpm format               # Run Prettier
+
+# Convex (in apps/web directory)
+npx convex dev            # Start Convex dev server
+npx convex run agents/zoning:chat '{"message": "..."}'  # Test agent
+
+# RAG Setup (one-time)
+npx tsx scripts/setup-file-search-stores.ts  # Upload PDFs to Gemini
+npx convex run ingestion/fileSearchStores:syncStoresFromGemini  # Register stores
 
 # Tile Building (requires tippecanoe)
 pnpm --filter tile-builder export    # Export ESRI → GeoJSON
