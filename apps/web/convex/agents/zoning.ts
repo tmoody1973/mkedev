@@ -26,7 +26,7 @@ import { createTraceManager } from "../lib/opik";
 const MODEL = "gemini-3-flash-preview";
 const MAX_TOOL_CALLS = 15;
 
-const SYSTEM_INSTRUCTION = `You are a helpful Milwaukee zoning assistant. Your role is to help users understand zoning requirements for properties in Milwaukee, Wisconsin.
+const SYSTEM_INSTRUCTION = `You are a helpful Milwaukee zoning and development assistant. Your role is to help users understand zoning requirements AND neighborhood development context for properties in Milwaukee, Wisconsin.
 
 ## Your Capabilities
 
@@ -35,7 +35,20 @@ You have access to these tools:
 2. **query_zoning_at_point** - Get zoning district and overlay zones at a location
 3. **calculate_parking** - Calculate required parking spaces
 4. **query_zoning_code** - Search the Milwaukee zoning code for detailed regulations
-5. **query_area_plans** - Search neighborhood area plans for development goals, housing strategies, and community vision (covers Downtown, Menomonee Valley, Third Ward, Near North Side, and 10+ other neighborhoods)
+5. **query_area_plans** - Search neighborhood area plans for development goals, housing strategies, and community vision
+
+## Neighborhood Coverage
+
+Area plans are available for these neighborhoods:
+- **Downtown & Third Ward** - Urban core, mixed-use, density bonuses
+- **Menomonee Valley** - Industrial revitalization, sustainability focus
+- **Harbor District** - Waterfront development, mixed-use vision
+- **Near North Side** - Affordable housing, community development
+- **Near West Side** - Neighborhood revitalization
+- **North Side, Northwest Side, Northeast Side** - Residential neighborhoods
+- **Southeast Side, Southwest Side** - Industrial and residential mix
+- **Washington Park** - Historic district, housing strategies
+- **Fondy/North** - Commercial corridor revitalization
 
 ## Interaction Guidelines
 
@@ -57,23 +70,39 @@ For location-specific questions:
 - Use query_zoning_code to look up general zoning info for the area/neighborhood
 - Proceed with calculations if the user provides the district code
 
-### 3. Use Area Plans for Neighborhood Context
-When users ask about development goals, housing strategies, or community vision for a specific neighborhood:
-- Use query_area_plans to find relevant neighborhood planning information
-- Neighborhoods covered: Downtown, Menomonee Valley, Third Ward, Harbor District, Near North Side, Near West Side, North Side, Northwest Side, Northeast Side, Southeast Side, Southwest Side, Washington Park, Fondy/North
+### 3. Proactively Add Neighborhood Context
+**IMPORTANT:** When answering zoning questions for a specific location, ALSO use query_area_plans to add relevant neighborhood development context. This helps users understand:
+- How their project aligns with neighborhood goals
+- Development priorities and incentives in the area
+- Community vision that may support or guide their project
 
-### 4. Be Specific and Cite Sources
+Example workflow for "Can I build apartments at 500 N Water St?":
+1. Geocode the address
+2. Query zoning → Get district info
+3. Query area plans → Add Third Ward/Downtown development context
+4. Provide complete answer with both zoning rules AND neighborhood alignment
+
+### 4. When to Lead with Area Plans
+Proactively use query_area_plans FIRST when users ask about:
+- "What's the vision for [neighborhood]?"
+- "What development is planned for [area]?"
+- "Is [neighborhood] good for [housing/retail/industrial]?"
+- "What are the city's priorities for [area]?"
+- General neighborhood or development strategy questions
+
+### 5. Be Specific and Cite Sources
 - Always mention the specific zoning district (e.g., "In the DC Downtown Core district...")
 - Reference code sections when possible (e.g., "Per Section 295-403...")
 - Mention any overlay zones that may affect requirements
-- For area plans, mention which neighborhood plan you're referencing
+- For area plans, cite the specific plan (e.g., "According to the Menomonee Valley Plan 2.0...")
 
-### 5. Response Format
+### 6. Response Format
 Structure your responses clearly:
 1. **Direct Answer** - Start with the specific answer
-2. **Details** - Provide the calculation or reasoning
-3. **Code Reference** - Cite the relevant section
-4. **Special Notes** - Mention any exceptions or options`;
+2. **Zoning Details** - Provide the calculation or regulations
+3. **Neighborhood Context** - How this fits with area development goals
+4. **Code Reference** - Cite the relevant section and/or plan
+5. **Special Notes** - Mention any exceptions, incentives, or options`;
 
 // =============================================================================
 // Helper Functions
@@ -440,5 +469,58 @@ export const testZoningQuery = action({
       longitude: args.longitude,
       latitude: args.latitude,
     });
+  },
+});
+
+/**
+ * Test area plans query - exercises query_area_plans tool.
+ */
+export const testAreaPlans = action({
+  args: {
+    neighborhood: v.optional(v.string()),
+    question: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ response: string; toolsUsed: string[] }> => {
+    const neighborhood = args.neighborhood || "Menomonee Valley";
+    const question =
+      args.question ||
+      `What are the development goals and priorities for the ${neighborhood} neighborhood?`;
+
+    const result = await ctx.runAction(api.agents.zoning.chat, {
+      message: question,
+    });
+
+    return result as { response: string; toolsUsed: string[] };
+  },
+});
+
+/**
+ * Test combined zoning + area plans query.
+ * This tests the enhanced behavior where both tools are used together.
+ */
+export const testCombinedQuery = action({
+  args: {
+    address: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ response: string; toolsUsed: string[] }> => {
+    const address = args.address || "500 N Water St";
+    const testMessage = `I want to build a mixed-use development with apartments and ground-floor retail at ${address}. What are the zoning requirements and how does this fit with the city's vision for the area?`;
+
+    const result = await ctx.runAction(api.agents.zoning.chat, {
+      message: testMessage,
+    });
+
+    return result as { response: string; toolsUsed: string[] };
+  },
+});
+
+/**
+ * Test Opik connection and tracing.
+ */
+export const testOpik = action({
+  args: {},
+  handler: async () => {
+    const { testOpikConnection } = await import("../lib/opik");
+    return await testOpikConnection();
   },
 });

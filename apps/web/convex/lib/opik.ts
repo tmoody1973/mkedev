@@ -9,7 +9,7 @@
  * @see https://www.comet.com/docs/opik
  */
 
-import { Opik, flushAll, type Trace, type Span } from "opik";
+import { Opik, type Trace, type Span } from "opik";
 
 // =============================================================================
 // Configuration
@@ -47,6 +47,7 @@ export interface TraceInput {
   input: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   tags?: string[];
+  threadId?: string; // For grouping conversation turns
 }
 
 export interface SpanInput {
@@ -97,12 +98,15 @@ export class OpikTraceManager {
     this.projectName = config.projectName || PROJECT_NAME;
 
     if (this.enabled && config.apiKey) {
+      console.log(`[Opik] Initializing client for project: ${this.projectName}`);
       this.client = new Opik({
         apiKey: config.apiKey,
         apiUrl: config.apiUrl,
         projectName: this.projectName,
         workspaceName: config.workspaceName,
       });
+    } else {
+      console.log("[Opik] Tracing disabled - no API key configured");
     }
   }
 
@@ -115,7 +119,14 @@ export class OpikTraceManager {
     }
 
     try {
-      this.trace = this.client.trace({
+      // Build trace config with optional threadId for conversations
+      const traceConfig: {
+        name: string;
+        input: Record<string, unknown>;
+        metadata: Record<string, unknown>;
+        tags: string[];
+        threadId?: string;
+      } = {
         name: input.name,
         input: input.input,
         metadata: {
@@ -124,8 +135,16 @@ export class OpikTraceManager {
           timestamp: new Date().toISOString(),
         },
         tags: input.tags || [],
-      });
+      };
 
+      // Add threadId for conversation grouping if provided
+      if (input.threadId) {
+        traceConfig.threadId = input.threadId;
+      }
+
+      this.trace = this.client.trace(traceConfig);
+
+      console.log(`[Opik] Started trace: ${input.name} (${this.trace.data.id})${input.threadId ? ` thread: ${input.threadId}` : ""}`);
       return this.trace.data.id;
     } catch (error) {
       console.warn("[Opik] Failed to start trace:", error);
@@ -263,12 +282,14 @@ export class OpikTraceManager {
    * Call this before the Convex action completes.
    */
   async flush(): Promise<void> {
-    if (!this.enabled) {
+    if (!this.enabled || !this.client) {
       return;
     }
 
     try {
-      await flushAll();
+      console.log("[Opik] Flushing traces to server...");
+      await this.client.flush();
+      console.log("[Opik] Flush complete");
     } catch (error) {
       console.warn("[Opik] Failed to flush:", error);
     }
@@ -349,5 +370,64 @@ export async function withTrace<T>(
       error: error instanceof Error ? error.message : String(error),
     });
     throw error;
+  }
+}
+
+/**
+ * Simple test function to verify Opik SDK is working.
+ * Returns diagnostic information about the connection.
+ */
+export async function testOpikConnection(): Promise<{
+  enabled: boolean;
+  projectName: string;
+  traceId: string;
+  flushed: boolean;
+  error?: string;
+}> {
+  const config = getOpikConfig();
+  const result = {
+    enabled: isOpikEnabled(),
+    projectName: config.projectName || PROJECT_NAME,
+    traceId: "none",
+    flushed: false,
+    error: undefined as string | undefined,
+  };
+
+  if (!result.enabled) {
+    result.error = "OPIK_API_KEY not set";
+    return result;
+  }
+
+  try {
+    const client = new Opik({
+      apiKey: config.apiKey,
+      apiUrl: config.apiUrl,
+      projectName: result.projectName,
+      workspaceName: config.workspaceName,
+    });
+
+    console.log("[Opik Test] Creating test trace...");
+    const trace = client.trace({
+      name: "opik-connection-test",
+      input: { test: true, timestamp: new Date().toISOString() },
+      output: { status: "success", message: "Connection test passed" },
+      tags: ["test", "connection-check"],
+    });
+
+    result.traceId = trace.data.id;
+    console.log(`[Opik Test] Trace created: ${result.traceId}`);
+
+    trace.end();
+    console.log("[Opik Test] Trace ended, flushing...");
+
+    await client.flush();
+    result.flushed = true;
+    console.log("[Opik Test] Flush complete");
+
+    return result;
+  } catch (error) {
+    result.error = error instanceof Error ? error.message : String(error);
+    console.error("[Opik Test] Error:", result.error);
+    return result;
   }
 }
