@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import { SignedIn, SignedOut, useAuth } from '@clerk/nextjs'
 import { AppShell } from '@/components/shell'
-import { MapContainer, type ParcelData } from '@/components/map'
+import type { ParcelData } from '@/components/map'
 import { ChatPanel, ConversationSidebar, type ChatMessage, type GenerativeCard } from '@/components/chat'
 import { useZoningAgent } from '@/hooks/useZoningAgent'
 import { useConversations } from '@/hooks/useConversations'
@@ -11,6 +11,12 @@ import { useMap } from '@/contexts/MapContext'
 import { ZoneInfoCard, ParcelCard } from '@/components/copilot'
 import { LandingPage } from '@/components/landing'
 import dynamic from 'next/dynamic'
+
+// Dynamic import for MapContainer (client-side only - mapbox-gl needs DOM APIs)
+const MapContainer = dynamic(
+  () => import('@/components/map').then(mod => mod.MapContainer),
+  { ssr: false }
+)
 
 // Dynamic import for PDF viewer (client-side only - PDF.js needs DOM APIs)
 const PDFViewerModal = dynamic(

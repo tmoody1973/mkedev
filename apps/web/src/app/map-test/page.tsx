@@ -1,7 +1,13 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { MapProvider } from '@/contexts/MapContext'
-import { MapContainer } from '@/components/map'
+
+// Dynamically import MapContainer to avoid SSR issues with mapbox-gl
+const MapContainer = dynamic(
+  () => import('@/components/map').then((mod) => mod.MapContainer),
+  { ssr: false }
+)
 
 export default function MapTestPage() {
   return (
