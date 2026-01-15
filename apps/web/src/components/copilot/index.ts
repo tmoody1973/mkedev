@@ -8,4 +8,6 @@
 export { ZoneInfoCard } from "./ZoneInfoCard";
 export { FormActionCard } from "./FormActionCard";
 export { ParcelCard } from "./ParcelCard";
-export { CopilotActions } from "./CopilotActions";
+
+// Note: CopilotActions must be imported directly from "./CopilotActions"
+// to avoid SSR issues with @copilotkit/react-core
