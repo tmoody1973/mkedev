@@ -391,10 +391,10 @@ function MessageBubble({ message, formatTimestamp, renderCard, onCitationClick }
 
                   return (
                     <button
+                      type="button"
                       onClick={() => onCitationClick?.(syntheticCitation)}
                       className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:text-sky-700 dark:hover:text-sky-300 cursor-pointer"
                       title={`View: ${localDoc.title}`}
-                      {...props}
                     >
                       {children}
                     </button>

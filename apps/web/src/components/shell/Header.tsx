@@ -29,12 +29,8 @@ export interface HeaderProps {
   onSidebarToggle?: () => void
   /** Whether to show the sidebar toggle button */
   showSidebarToggle?: boolean
-  /** Callback when address search is submitted (with text) */
-  onAddressSearch?: (address: string) => void
   /** Callback when address is selected from autocomplete (with coordinates) */
   onAddressSelect?: (coordinates: [number, number], address: string) => void
-  /** Whether address search is in progress */
-  isSearching?: boolean
 }
 
 /**
@@ -54,7 +50,6 @@ export function Header({
   isSidebarOpen = false,
   onSidebarToggle,
   showSidebarToggle = false,
-  onAddressSearch,
   onAddressSelect,
 }: HeaderProps) {
   return (

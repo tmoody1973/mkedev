@@ -41,7 +41,7 @@
     "next": "16.1.1",
     "next-themes": "^0.4.6",
     "opik": "^1.9.82",
-    "pmtiles": "^3.0.0",
+    "pmtiles": "^3.0.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",

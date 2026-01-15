@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode } from 'react'
+import { type ReactNode, useState, useEffect } from 'react'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { MapProvider } from '@/contexts/MapContext'
 import { CopilotKit } from '@copilotkit/react-core'
@@ -23,6 +23,13 @@ const COPILOTKIT_API_KEY = process.env.NEXT_PUBLIC_COPILOTKIT_API_KEY
  * to ensure authentication is available throughout the app.
  */
 export function AppProviders({ children }: AppProvidersProps) {
+  // Track if we're mounted on the client to avoid SSR issues with CopilotKit
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   // Content with map provider
   const content = <MapProvider>{children}</MapProvider>
 
@@ -33,7 +40,7 @@ export function AppProviders({ children }: AppProvidersProps) {
       enableSystem
       disableTransitionOnChange
     >
-      {COPILOTKIT_API_KEY ? (
+      {isMounted && COPILOTKIT_API_KEY ? (
         <CopilotKit
           publicApiKey={COPILOTKIT_API_KEY}
           showDevConsole={process.env.NODE_ENV === 'development'}

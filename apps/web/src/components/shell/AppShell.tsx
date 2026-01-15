@@ -27,12 +27,8 @@ export interface AppShellProps {
   onLogoClick?: () => void
   /** Initial map visibility state for mobile */
   initialMapVisible?: boolean
-  /** Callback when address search is submitted */
-  onAddressSearch?: (address: string) => void
   /** Callback when address is selected from autocomplete */
   onAddressSelect?: (coordinates: [number, number], address: string) => void
-  /** Whether address search is in progress */
-  isSearching?: boolean
 }
 
 /**
@@ -54,9 +50,7 @@ export function AppShell({
   onLayersClick,
   onLogoClick,
   initialMapVisible = false,
-  onAddressSearch,
   onAddressSelect,
-  isSearching = false,
 }: AppShellProps) {
   const [isMapVisible, setIsMapVisible] = useState(initialMapVisible)
   const { is3DMode, toggle3DMode } = useMap()
@@ -84,9 +78,7 @@ export function AppShell({
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={onSidebarToggle}
         showSidebarToggle={!!sidebar}
-        onAddressSearch={onAddressSearch}
         onAddressSelect={onAddressSelect}
-        isSearching={isSearching}
       />
 
       {/* Main Content: Split View */}

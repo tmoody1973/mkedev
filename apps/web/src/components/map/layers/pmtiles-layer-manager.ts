@@ -17,12 +17,7 @@
 import mapboxgl from 'mapbox-gl'
 import { PmTilesSource } from 'mapbox-pmtiles'
 import type { LayerType } from './layer-config'
-import {
-  ZONING_CATEGORY_COLORS,
-  ZONE_BASE_HEIGHTS,
-  ZONE_3D_OPACITY,
-  ZONE_3D_NEUTRAL_COLOR,
-} from './layer-config'
+import { ZONING_CATEGORY_COLORS } from './layer-config'
 
 // PMTiles source type needs to be registered once
 let sourceTypeRegistered = false
@@ -123,33 +118,6 @@ const ZONING_COLOR_EXPRESSION: mapboxgl.Expression = [
     'DX', ZONING_CATEGORY_COLORS['mixed-use'],
     ZONING_CATEGORY_COLORS.special,
   ],
-]
-
-/**
- * Zoning height expression for 3D extrusion based on zone category
- */
-const ZONING_HEIGHT_EXPRESSION: mapboxgl.Expression = [
-  'match',
-  ['slice', ['get', 'Zoning'], 0, 2],
-  // Residential districts
-  'RS', ZONE_BASE_HEIGHTS.residential,
-  'RT', ZONE_BASE_HEIGHTS.residential,
-  'RM', ZONE_BASE_HEIGHTS.residential,
-  'RO', ZONE_BASE_HEIGHTS.residential,
-  // Commercial districts
-  'NS', ZONE_BASE_HEIGHTS.commercial,
-  'LB', ZONE_BASE_HEIGHTS.commercial,
-  'RB', ZONE_BASE_HEIGHTS.commercial,
-  'CS', ZONE_BASE_HEIGHTS.commercial,
-  // Industrial districts
-  'IM', ZONE_BASE_HEIGHTS.industrial,
-  'IH', ZONE_BASE_HEIGHTS.industrial,
-  'IL', ZONE_BASE_HEIGHTS.industrial,
-  // Mixed-use districts
-  'MX', ZONE_BASE_HEIGHTS['mixed-use'],
-  'DX', ZONE_BASE_HEIGHTS['mixed-use'],
-  // Default to special
-  ZONE_BASE_HEIGHTS.special,
 ]
 
 /**

@@ -13,6 +13,7 @@
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
+    "next": "^15.0.0",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
@@ -30,5 +31,13 @@
   },
   "dependencies": {
     "pmtiles": "^3.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "mapbox-pmtiles": "npm:mapbox-pmtiles@1.0.54"
+    },
+    "patchedDependencies": {
+      "mapbox-pmtiles@1.0.54": "patches/mapbox-pmtiles@1.0.54.patch"
+    }
   }
 }

@@ -41,8 +41,6 @@ export default function Home() {
   const [_selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  // Address search state
-  const [isAddressSearching, setIsAddressSearching] = useState(false)
   // Track last processed message to avoid duplicate map movements
   const lastProcessedMessageRef = useRef<string | null>(null)
 
@@ -166,52 +164,6 @@ export default function Home() {
       }
     }
   }, [agentMessages, flyTo])
-
-  /**
-   * Handle address search from the header search bar.
-   * Uses Mapbox Geocoding API to find coordinates, then flies the map there.
-   */
-  const handleAddressSearch = useCallback(
-    async (address: string) => {
-      setIsAddressSearching(true)
-      try {
-        // Add Milwaukee, WI context for better results
-        const searchQuery = address.toLowerCase().includes('milwaukee')
-          ? address
-          : `${address}, Milwaukee, WI`
-
-        const response = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?` +
-            new URLSearchParams({
-              access_token: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
-              limit: '1',
-              types: 'address,poi',
-              bbox: '-88.1,42.8,-87.8,43.2', // Milwaukee bounding box
-            })
-        )
-
-        const data = await response.json()
-
-        if (data.features && data.features.length > 0) {
-          const [lng, lat] = data.features[0].center
-          // Fly to the location
-          flyTo([lng, lat], 17, { pitch: 45, duration: 2000 })
-          // Also send a message to the chat to get zoning info
-          sendMessage(`Tell me about the property at ${data.features[0].place_name}`)
-        } else {
-          // If no results, still ask the agent (it has its own geocoding)
-          sendMessage(`Tell me about the property at ${address}`)
-        }
-      } catch (error) {
-        console.error('Address search failed:', error)
-        // Fallback to agent geocoding
-        sendMessage(`Tell me about the property at ${address}`)
-      } finally {
-        setIsAddressSearching(false)
-      }
-    },
-    [flyTo, sendMessage]
-  )
 
   /**
    * Handle address selected from autocomplete dropdown.
@@ -629,9 +581,7 @@ export default function Home() {
           onLogoClick={handleLogoClick}
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={handleSidebarToggle}
-          onAddressSearch={handleAddressSearch}
           onAddressSelect={handleAddressSelect}
-          isSearching={isAddressSearching}
           sidebar={
             <ConversationSidebar
               conversations={conversations}

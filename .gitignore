@@ -47,3 +47,4 @@ apps/web/public/tiles/
 
 # Playwright MCP screenshots (temporary)
 .playwright-mcp/
+.vercel

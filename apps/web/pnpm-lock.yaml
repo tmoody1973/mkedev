@@ -56,6 +56,9 @@ importers:
       mapbox-gl-arcgis-featureserver:
         specifier: ^0.0.8
         version: 0.0.8
+      mapbox-pmtiles:
+        specifier: ^1.0.54
+        version: 1.0.54
       next:
         specifier: 16.1.1
         version: 16.1.1(@babel/core@7.28.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -65,6 +68,9 @@ importers:
       opik:
         specifier: ^1.9.82
         version: 1.9.82(zod@3.25.76)
+      pmtiles:
+        specifier: ^3.0.6
+        version: 3.0.6
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -2343,6 +2349,12 @@ packages:
   '@types/katex@0.16.8':
     resolution: {integrity: sha512-trgaNyfU+Xh2Tc+ABIb44a5AYUpicB3uwirOioeOkNPPbmgRNtcWyDeeFRzjPZENO9Vq8gvVqfhaaXWLlevVwg==}
 
+  '@types/leaflet@1.9.21':
+    resolution: {integrity: sha512-TbAd9DaPGSnzp6QvtYngntMZgcRk+igFELwR2N99XZn7RXUdKgsXMR+28bUO0rPsWp8MIu/f47luLIQuSLYv/w==}
+
+  '@types/mapbox-gl@2.7.21':
+    resolution: {integrity: sha512-Dx9MuF2kKgT/N22LsMUB4b3acFZh9clVqz9zv1fomoiPoBrJolwYxpWA/9LPO/2N0xWbKi4V+pkjTaFkkx/4wA==}
+
   '@types/mapbox-gl@3.4.1':
     resolution: {integrity: sha512-NsGKKtgW93B+UaLPti6B7NwlxYlES5DpV5Gzj9F75rK5ALKsqSk15CiEHbOnTr09RGbr6ZYiCdI+59NNNcAImg==}
 
@@ -2360,6 +2372,9 @@ packages:
 
   '@types/node@20.19.29':
     resolution: {integrity: sha512-YrT9ArrGaHForBaCNwFjoqJWmn8G1Pr7+BH/vwyLHciA9qT/wSiuOhxGCT50JA5xLvFBd6PIiGkE3afxcPE1nw==}
+
+  '@types/node@20.19.30':
+    resolution: {integrity: sha512-WJtwWJu7UdlvzEAUm484QNg5eAoq5QR08KDNx7g45Usrs2NtOPiX8ugDqmKdXkyL03rBqU5dYNYVQetEpBHq2g==}
 
   '@types/pbf@3.0.5':
     resolution: {integrity: sha512-j3pOPiEcWZ34R6a6mN07mUkM4o4Lwf6hPNt8eilOeZhTFbxFXmKhvXl9Y28jotFPaI1bpPDJsbCprUoNke6OrA==}
@@ -3645,6 +3660,9 @@ packages:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
     engines: {node: ^12.20 || >= 14.13}
 
+  fflate@0.8.2:
+    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
+
   file-entry-cache@8.0.0:
     resolution: {integrity: sha512-XXTUwCvisa5oacNGRP9SfNtYBNAMi+RPwBFmblZEF7N7swHYQS6/Zfk7SRwx4D5j3CH211YNRco1DEMNVfZCnQ==}
     engines: {node: '>=16.0.0'}
@@ -4520,6 +4538,10 @@ packages:
   mapbox-gl@3.17.0:
     resolution: {integrity: sha512-nCrDKRlr5di6xUksUDslNWwxroJ5yv1hT8pyVFtcpWJOOKsYQxF/wOFTMie8oxMnXeFkrz1Tl1TwA1XN1yX0KA==}
 
+  mapbox-pmtiles@1.0.54:
+    resolution: {integrity: sha512-X/BF+ZNX7Jtw38rzVzJRkL8kECia2dV+HXPy6NhQjAyxXmLhMcfg5QZtMtkaNIxQRqYhEvK3Zk2E2JTiH6cJ1Q==}
+    engines: {node: '>=18.x.x <=22.x.x', npm: '>=10.0.0'}
+
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
@@ -5133,6 +5155,12 @@ packages:
 
   pkg-types@1.3.1:
     resolution: {integrity: sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ==}
+
+  pmtiles@3.0.6:
+    resolution: {integrity: sha512-IdeMETd5lBIDVTLul1HFl0Q7l4KLJjzdxgcp+sN7pYvbipaV7o/0u0HiV06kaFCD0IGEN8KtUHyFZpY30WMflw==}
+
+  pmtiles@3.2.1:
+    resolution: {integrity: sha512-3R4fBwwoli5mw7a6t1IGwOtfmcSAODq6Okz0zkXhS1zi9sz1ssjjIfslwPvcWw5TNhdjNBUg9fgfPLeqZlH6ng==}
 
   points-on-curve@0.2.0:
     resolution: {integrity: sha512-0mYKnYYe9ZcqMCWhUjItv/oHjvgEsfKvnUTg8sAtnHr3GVy7rGkXCb6d5cSyqrWqL4k81b9CPg3urd+T7aop3A==}
@@ -8440,6 +8468,14 @@ snapshots:
 
   '@types/katex@0.16.8': {}
 
+  '@types/leaflet@1.9.21':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
+  '@types/mapbox-gl@2.7.21':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
   '@types/mapbox-gl@3.4.1':
     dependencies:
       '@types/geojson': 7946.0.16
@@ -8460,6 +8496,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/node@20.19.30':
+    dependencies:
+      undici-types: 6.21.0
+
   '@types/pbf@3.0.5': {}
 
   '@types/prop-types@15.7.15': {}
@@ -8475,7 +8515,7 @@ snapshots:
   '@types/request@2.48.13':
     dependencies:
       '@types/caseless': 0.12.5
-      '@types/node': 20.19.29
+      '@types/node': 20.19.30
       '@types/tough-cookie': 4.0.5
       form-data: 2.5.5
 
@@ -10003,6 +10043,8 @@ snapshots:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
 
+  fflate@0.8.2: {}
+
   file-entry-cache@8.0.0:
     dependencies:
       flat-cache: 4.0.1
@@ -11020,6 +11062,12 @@ snapshots:
       supercluster: 8.0.1
       tinyqueue: 3.0.0
 
+  mapbox-pmtiles@1.0.54:
+    dependencies:
+      '@types/mapbox-gl': 2.7.21
+      mapbox-gl: 3.17.0
+      pmtiles: 3.2.1
+
   markdown-table@3.0.4: {}
 
   marked@12.0.2: {}
@@ -11976,6 +12024,16 @@ snapshots:
       mlly: 1.8.0
       pathe: 2.0.3
 
+  pmtiles@3.0.6:
+    dependencies:
+      '@types/leaflet': 1.9.21
+      fflate: 0.8.2
+
+  pmtiles@3.2.1:
+    dependencies:
+      '@types/leaflet': 1.9.21
+      fflate: 0.8.2
+
   points-on-curve@0.2.0: {}
 
   points-on-path@0.2.1:
@@ -12052,7 +12110,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 20.19.29
+      '@types/node': 20.19.30
       long: 5.3.2
 
   protocol-buffers-schema@3.6.0: {}
