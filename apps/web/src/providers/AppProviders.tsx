@@ -1,10 +1,15 @@
 'use client'
 
 import { type ReactNode, useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { MapProvider } from '@/contexts/MapContext'
-import { CopilotKit } from '@copilotkit/react-core'
-import '@copilotkit/react-ui/styles.css'
+
+// Dynamically import CopilotKit to avoid SSR issues
+const CopilotKit = dynamic(
+  () => import('@copilotkit/react-core').then((mod) => mod.CopilotKit),
+  { ssr: false }
+)
 
 interface AppProvidersProps {
   children: ReactNode

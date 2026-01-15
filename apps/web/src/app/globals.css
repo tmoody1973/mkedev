@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@copilotkit/react-ui/styles.css";
 @plugin "@tailwindcss/typography";
 
 /* =============================================================================
