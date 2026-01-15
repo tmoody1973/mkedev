@@ -23,8 +23,10 @@ import { createTraceManager } from "../lib/opik";
 // Configuration
 // =============================================================================
 
-const MODEL = "gemini-3-flash-preview";
+const PRIMARY_MODEL = "gemini-3-flash-preview";
+const FALLBACK_MODEL = "gemini-2.5-flash";
 const MAX_TOOL_CALLS = 15;
+const MAX_RETRIES = 2;
 
 const SYSTEM_INSTRUCTION = `You are a helpful Milwaukee zoning and development assistant. Your role is to help users understand zoning requirements AND neighborhood development context for properties in Milwaukee, Wisconsin.
 
@@ -102,7 +104,28 @@ Structure your responses clearly:
 2. **Zoning Details** - Provide the calculation or regulations
 3. **Neighborhood Context** - How this fits with area development goals
 4. **Code Reference** - Cite the relevant section and/or plan
-5. **Special Notes** - Mention any exceptions, incentives, or options`;
+5. **Special Notes** - Mention any exceptions, incentives, or options
+
+### 7. Citation Format
+When citing sources from documents, use numbered brackets like [1], [2], etc. This creates clickable citations that users can click to view the source document.
+
+**Format:**
+"In commercial districts, restaurants require 1 parking space per 300 sq ft [1]. Properties in the Downtown Overlay may qualify for reductions up to 50% [2]."
+
+**Guidelines:**
+- Use sequential numbers starting from [1]
+- Place citation at the end of the relevant sentence or clause
+- The same source can be cited multiple times with the same number
+- Citations are automatically linked to source PDFs
+
+**Document Names:**
+- **Zoning Code**: "Milwaukee Zoning Code Chapter 295, Subchapter X" (e.g., Subchapter 5 for Residential)
+- **Area Plans**: Use exact plan names (e.g., "Menomonee Valley Plan 2.0", "Milwaukee Downtown Plan")
+
+For general city resources, mention:
+- Milwaukee city website: city.milwaukee.gov
+- Zoning maps: maps.milwaukee.gov
+- Property lookup: assessments.milwaukee.gov`;
 
 // =============================================================================
 // Helper Functions
@@ -136,17 +159,121 @@ interface RAGResult {
   error?: { message?: string };
 }
 
+// Gemini API response type
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> };
+    finishReason?: string;
+    safetyRatings?: Array<{ category: string; probability: string }>;
+  }>;
+  promptFeedback?: {
+    blockReason?: string;
+    safetyRatings?: Array<{ category: string; probability: string }>;
+  };
+  usageMetadata?: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
+  };
+}
+
+/**
+ * Make a Gemini API call with retry and model fallback logic.
+ */
+async function callGeminiWithRetry(
+  apiKey: string,
+  requestBody: Record<string, unknown>,
+  primaryModel: string,
+  fallbackModel: string,
+  maxRetries: number
+): Promise<{ response: GeminiResponse; modelUsed: string }> {
+  const models = [primaryModel, fallbackModel];
+
+  for (const model of models) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Gemini API error (${model}, attempt ${attempt}):`, response.status, errorText);
+
+          // If rate limited or server error, retry
+          if (response.status >= 500 || response.status === 429) {
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              continue;
+            }
+          }
+
+          // For other errors, try fallback model
+          break;
+        }
+
+        const result = await response.json();
+
+        // Check if we got a valid response with content
+        if (result.candidates?.[0]?.content?.parts?.length > 0) {
+          return { response: result, modelUsed: model };
+        }
+
+        // Check for blocking
+        const blockReason = result.promptFeedback?.blockReason || result.candidates?.[0]?.finishReason;
+        if (blockReason === "SAFETY" || blockReason === "BLOCKED") {
+          console.error(`Response blocked (${model}):`, blockReason);
+          break; // Try fallback model
+        }
+
+        // Empty response - retry
+        console.warn(`Empty response from ${model}, attempt ${attempt}`);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+      } catch (error) {
+        console.error(`Network error (${model}, attempt ${attempt}):`, error);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+      }
+    }
+  }
+
+  throw new Error("Failed to get valid response from Gemini after all retries and fallback attempts");
+}
+
 // =============================================================================
 // Agent Actions
 // =============================================================================
 
 /**
+ * Tool result for generative UI rendering.
+ */
+export interface ToolResult {
+  name: string;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
+  timestamp: number;
+}
+
+/**
  * Chat with the Zoning Interpreter Agent.
  * Instrumented with Opik tracing for observability.
+ * Returns tool results for generative UI card rendering.
+ * Emits real-time status updates via sessionId for frontend display.
  */
 export const chat = action({
   args: {
     message: v.string(),
+    sessionId: v.optional(v.string()), // Session ID for real-time status updates
     conversationHistory: v.optional(
       v.array(
         v.object({
@@ -159,9 +286,18 @@ export const chat = action({
   handler: async (ctx, args): Promise<{
     response: string;
     toolsUsed: string[];
+    toolResults: ToolResult[];
+    sessionId: string;
   }> => {
     const apiKey = getGeminiApiKey();
     const toolsUsed: string[] = [];
+    const toolResults: ToolResult[] = [];
+
+    // Generate or use provided session ID for status tracking
+    const sessionId = args.sessionId || `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+    // Start agent session for real-time status updates
+    await ctx.runMutation(api.agents.status.startSession, { sessionId });
 
     // Initialize Opik tracing
     const tracer = createTraceManager();
@@ -170,10 +306,11 @@ export const chat = action({
       input: {
         message: args.message,
         historyLength: args.conversationHistory?.length || 0,
+        sessionId,
       },
       tags: ["zoning-agent", "gemini", "milwaukee"],
       metadata: {
-        model: MODEL,
+        model: PRIMARY_MODEL,
         maxToolCalls: MAX_TOOL_CALLS,
       },
     });
@@ -208,7 +345,7 @@ export const chat = action({
         const llmSpanId = tracer.startSpan({
           name: `llm-call-${iteration}`,
           input: {
-            model: MODEL,
+            model: PRIMARY_MODEL,
             messageCount: contents.length,
             iteration,
           },
@@ -218,50 +355,46 @@ export const chat = action({
           },
         });
 
-        // Call Gemini API
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-              contents,
-              tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
-              generationConfig: {
-                temperature: 0.3,
-                maxOutputTokens: 2048,
-              },
-            }),
-          }
-        );
+        // Call Gemini API with retry and fallback
+        const requestBody = {
+          systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+          contents,
+          tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048,
+          },
+        };
 
-        if (!response.ok) {
-          const errorText = await response.text();
+        let result: GeminiResponse;
+        let modelUsed: string;
+
+        try {
+          const geminiResult = await callGeminiWithRetry(
+            apiKey,
+            requestBody,
+            PRIMARY_MODEL,
+            FALLBACK_MODEL,
+            MAX_RETRIES
+          );
+          result = geminiResult.response;
+          modelUsed = geminiResult.modelUsed;
+        } catch (retryError) {
           tracer.endSpan(llmSpanId, {
-            output: { error: errorText, status: response.status },
+            output: { error: retryError instanceof Error ? retryError.message : "Unknown error" },
           });
-          throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+          throw retryError;
         }
 
-        const result = await response.json();
-        const candidate = result.candidates?.[0];
-
-        // Extract token usage if available
+        const candidate = result.candidates![0];
         const usageMetadata = result.usageMetadata;
-
-        if (!candidate?.content?.parts) {
-          tracer.endSpan(llmSpanId, {
-            output: { error: "Empty response" },
-          });
-          throw new Error("Empty response from Gemini");
-        }
 
         // End LLM span with token usage
         tracer.endSpan(llmSpanId, {
           output: {
-            hasFunctionCalls: candidate.content.parts.some((p: { functionCall?: unknown }) => p.functionCall),
-            partsCount: candidate.content.parts.length,
+            hasFunctionCalls: candidate.content!.parts!.some((p) => p.functionCall),
+            partsCount: candidate.content!.parts!.length,
+            modelUsed,
           },
           usage: usageMetadata
             ? {
@@ -270,20 +403,24 @@ export const chat = action({
                 totalTokens: usageMetadata.totalTokenCount,
               }
             : undefined,
-          model: MODEL,
+          model: modelUsed,
           provider: "google",
         });
 
       // Check for function calls
-      const functionCalls = candidate.content.parts.filter(
-        (p: { functionCall?: unknown }) => p.functionCall
+      const functionCalls = candidate.content!.parts!.filter(
+        (p) => p.functionCall
       );
 
       if (functionCalls.length > 0) {
         // Add model response to history
         contents.push({
           role: "model",
-          parts: candidate.content.parts,
+          parts: candidate.content!.parts as Array<
+            | { text: string }
+            | { functionCall: { name: string; args: Record<string, unknown> } }
+            | { functionResponse: { name: string; response: Record<string, unknown> } }
+          >,
         });
 
         // Execute function calls and add responses
@@ -292,74 +429,120 @@ export const chat = action({
         }> = [];
 
         for (const part of functionCalls) {
-          const { name, args: fnArgs } = part.functionCall;
+          const { name, args: fnArgs } = part.functionCall!;
           toolsUsed.push(name);
+
+          // Update status: starting tool execution
+          await ctx.runMutation(api.agents.status.startTool, {
+            sessionId,
+            toolName: name,
+            toolArgs: fnArgs,
+          });
 
           // Execute tool inline to avoid type issues
           let toolResult: Record<string, unknown>;
+          let toolSuccess = true;
           const toolStartTime = Date.now();
 
-          switch (name) {
-            case "geocode_address":
-              toolResult = await geocodeAddress(fnArgs as Parameters<typeof geocodeAddress>[0]);
-              break;
+          try {
+            switch (name) {
+              case "geocode_address":
+                toolResult = await geocodeAddress(fnArgs as Parameters<typeof geocodeAddress>[0]);
+                toolSuccess = !!(toolResult as { coordinates?: unknown }).coordinates;
+                break;
 
-            case "query_zoning_at_point":
-              toolResult = await queryZoningAtPoint(fnArgs as Parameters<typeof queryZoningAtPoint>[0]);
-              break;
+              case "query_zoning_at_point":
+                toolResult = await queryZoningAtPoint(fnArgs as Parameters<typeof queryZoningAtPoint>[0]);
+                toolSuccess = !!(toolResult as { zoningDistrict?: unknown }).zoningDistrict;
+                break;
 
-            case "calculate_parking":
-              toolResult = calculateParking(fnArgs as Parameters<typeof calculateParking>[0]);
-              break;
+              case "calculate_parking":
+                toolResult = calculateParking(fnArgs as Parameters<typeof calculateParking>[0]);
+                toolSuccess = !!(toolResult as { requiredSpaces?: unknown }).requiredSpaces;
+                break;
 
-            case "query_zoning_code": {
-              // Use RAG V2 (File Search Stores with fallback to legacy)
-              const ragResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
-                question: (fnArgs as { question: string }).question,
-                category: "zoning-codes",
-              }) as RAGResult;
+              case "query_zoning_code": {
+                // Use RAG V2 (File Search Stores with fallback to legacy)
+                const ragResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+                  question: (fnArgs as { question: string }).question,
+                  category: "zoning-codes",
+                }) as RAGResult;
 
-              if (ragResult.success && ragResult.response) {
-                toolResult = {
-                  success: true,
-                  answer: ragResult.response.answer,
-                  confidence: ragResult.response.confidence,
-                  citations: ragResult.response.citations,
-                };
-              } else {
-                toolResult = { success: false, error: ragResult.error?.message || "RAG query failed" };
+                if (ragResult.success && ragResult.response) {
+                  // Format citations for Gemini to use
+                  const citations = ragResult.response.citations || [];
+                  const citationGuide = citations.length > 0
+                    ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
+                        `[${i + 1}] ${c.sourceName}`
+                      ).join('\n')}`
+                    : '';
+
+                  toolResult = {
+                    success: true,
+                    answer: ragResult.response.answer + citationGuide,
+                    confidence: ragResult.response.confidence,
+                    citations,
+                    citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
+                  };
+                  toolSuccess = true;
+                } else {
+                  toolResult = { success: false, error: ragResult.error?.message || "RAG query failed" };
+                  toolSuccess = false;
+                }
+                break;
               }
-              break;
-            }
 
-            case "query_area_plans": {
-              // Query area plans for neighborhood development information
-              const areaArgs = fnArgs as { question: string; neighborhood?: string };
-              const enhancedQuestion = areaArgs.neighborhood
-                ? `Regarding the ${areaArgs.neighborhood} neighborhood: ${areaArgs.question}`
-                : areaArgs.question;
+              case "query_area_plans": {
+                // Query area plans for neighborhood development information
+                const areaArgs = fnArgs as { question: string; neighborhood?: string };
+                const enhancedQuestion = areaArgs.neighborhood
+                  ? `Regarding the ${areaArgs.neighborhood} neighborhood: ${areaArgs.question}`
+                  : areaArgs.question;
 
-              const areaPlanResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
-                question: enhancedQuestion,
-                category: "area-plans",
-              }) as RAGResult;
+                const areaPlanResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+                  question: enhancedQuestion,
+                  category: "area-plans",
+                }) as RAGResult;
 
-              if (areaPlanResult.success && areaPlanResult.response) {
-                toolResult = {
-                  success: true,
-                  answer: areaPlanResult.response.answer,
-                  confidence: areaPlanResult.response.confidence,
-                  citations: areaPlanResult.response.citations,
-                };
-              } else {
-                toolResult = { success: false, error: areaPlanResult.error?.message || "Area plans query failed" };
+                if (areaPlanResult.success && areaPlanResult.response) {
+                  // Format citations for Gemini to use
+                  const citations = areaPlanResult.response.citations || [];
+                  const citationGuide = citations.length > 0
+                    ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
+                        `[${i + 1}] ${c.sourceName}`
+                      ).join('\n')}`
+                    : '';
+
+                  toolResult = {
+                    success: true,
+                    answer: areaPlanResult.response.answer + citationGuide,
+                    confidence: areaPlanResult.response.confidence,
+                    citations,
+                    citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
+                  };
+                  toolSuccess = true;
+                } else {
+                  toolResult = { success: false, error: areaPlanResult.error?.message || "Area plans query failed" };
+                  toolSuccess = false;
+                }
+                break;
               }
-              break;
-            }
 
-            default:
-              toolResult = { error: `Unknown tool: ${name}` };
+              default:
+                toolResult = { error: `Unknown tool: ${name}` };
+                toolSuccess = false;
+            }
+          } catch (toolError) {
+            toolResult = { error: toolError instanceof Error ? toolError.message : "Tool execution failed" };
+            toolSuccess = false;
           }
+
+          // Update status: tool completed
+          await ctx.runMutation(api.agents.status.completeTool, {
+            sessionId,
+            toolName: name,
+            success: toolSuccess,
+          });
 
           // Log tool execution to Opik
           const toolDuration = Date.now() - toolStartTime;
@@ -367,6 +550,14 @@ export const chat = action({
             { name, args: fnArgs as Record<string, unknown> },
             { result: toolResult, durationMs: toolDuration }
           );
+
+          // Store tool result for generative UI rendering
+          toolResults.push({
+            name,
+            args: fnArgs as Record<string, unknown>,
+            result: toolResult,
+            timestamp: Date.now(),
+          });
 
           functionResponses.push({
             functionResponse: {
@@ -387,17 +578,24 @@ export const chat = action({
       }
 
         // No function calls - return text response
-        const textParts = candidate.content.parts.filter(
-          (p: { text?: string }) => p.text
+        const textParts = candidate.content!.parts!.filter(
+          (p) => p.text
         );
 
         if (textParts.length > 0) {
-          const finalResponse = textParts.map((p: { text: string }) => p.text).join("\n");
+          // Update status: generating response
+          await ctx.runMutation(api.agents.status.generatingResponse, { sessionId });
+
+          const finalResponse = textParts.map((p) => p.text!).join("\n");
+
+          // Mark session as complete
+          await ctx.runMutation(api.agents.status.completeSession, { sessionId });
 
           // End trace with successful response
           await tracer.endTrace({
             response: finalResponse,
             toolsUsed,
+            toolResultsCount: toolResults.length,
             iterations: iteration,
             success: true,
           });
@@ -405,6 +603,8 @@ export const chat = action({
           return {
             response: finalResponse,
             toolsUsed,
+            toolResults,
+            sessionId,
           };
         }
 
@@ -413,6 +613,12 @@ export const chat = action({
 
       throw new Error("Max tool calls exceeded");
     } catch (error) {
+      // Mark session as errored
+      await ctx.runMutation(api.agents.status.errorSession, {
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
       // End trace with error
       await tracer.endTrace({
         error: error instanceof Error ? error.message : String(error),

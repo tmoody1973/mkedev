@@ -14,6 +14,7 @@ import {
   type LayerClickEvent,
   type ParcelData,
 } from './esri-layer-manager'
+import { add3DBuildings, remove3DBuildings } from './3d-buildings'
 // PMTiles is dynamically imported only when needed
 const isPMTilesConfigured = () => !!process.env.NEXT_PUBLIC_PMTILES_URL
 const getPMTilesUrl = () => process.env.NEXT_PUBLIC_PMTILES_URL
@@ -209,6 +210,10 @@ export function useESRILayers(): UseESRILayersResult {
           await manager.initializeLayers(layerVisibilityRef.current as Record<LayerType, boolean>)
         }
 
+        // Add 3D buildings layer (Mapbox composite source)
+        // This adds light gray extruded buildings for visual context
+        add3DBuildings(map as MapboxMap)
+
         setIsLoading(false)
       } catch (err) {
         const errorMessage =
@@ -223,6 +228,11 @@ export function useESRILayers(): UseESRILayersResult {
 
     // Cleanup on unmount
     return () => {
+      // Remove 3D buildings layer
+      if (map) {
+        remove3DBuildings(map as MapboxMap)
+      }
+
       if (layerManagerRef.current) {
         layerManagerRef.current.destroy()
         layerManagerRef.current = null

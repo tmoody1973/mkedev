@@ -10,7 +10,7 @@
 
 import { v } from "convex/values";
 import { action, internalAction } from "../_generated/server";
-import { internal } from "../_generated/api";
+// import { internal } from "../_generated/api";
 
 // =============================================================================
 // Types
@@ -251,7 +251,7 @@ export const uploadPdfFromBase64 = action({
       v.literal("guides")
     ),
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (_ctx, args): Promise<{
     success: boolean;
     fileUri?: string;
     fileName?: string;

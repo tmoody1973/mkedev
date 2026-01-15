@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* =============================================================================
    MKE.dev Design System - Tailwind CSS v4 Configuration

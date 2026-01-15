@@ -5,7 +5,23 @@ import { AppShell } from '@/components/shell'
 import { MapContainer, type ParcelData } from '@/components/map'
 import { ChatPanel, type ChatMessage, type GenerativeCard } from '@/components/chat'
 import { useZoningAgent } from '@/hooks/useZoningAgent'
-import { ZoneInfoCard } from '@/components/copilot/ZoneInfoCard'
+import { ZoneInfoCard, ParcelCard } from '@/components/copilot'
+import dynamic from 'next/dynamic'
+
+// Dynamic import for PDF viewer (client-side only - PDF.js needs DOM APIs)
+const PDFViewerModal = dynamic(
+  () => import('@/components/ui/PDFViewerModal').then(mod => mod.PDFViewerModal),
+  { ssr: false }
+)
+import { matchDocumentUrl } from '@/lib/documentUrls'
+
+// PDF viewer modal state type
+interface PDFModalState {
+  isOpen: boolean
+  pdfUrl: string
+  title: string
+  initialPage: number
+}
 
 /**
  * Main application page with chat-first layout.
@@ -15,12 +31,30 @@ import { ZoneInfoCard } from '@/components/copilot/ZoneInfoCard'
  */
 export default function Home() {
   const [isVoiceActive, setIsVoiceActive] = useState(false)
-  // Layer panel state - will be used in Task Group 7 for LayerPanel integration
-  const [_isLayersPanelOpen, setIsLayersPanelOpen] = useState(false)
+  // Layer panel state - controlled by header button
+  const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false)
   const [_selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
 
+  // PDF viewer modal state
+  const [pdfModal, setPdfModal] = useState<PDFModalState>({
+    isOpen: false,
+    pdfUrl: '',
+    title: '',
+    initialPage: 1,
+  })
+
+  // Open PDF in modal viewer
+  const openPdfViewer = useCallback((url: string, title: string, page: number = 1) => {
+    setPdfModal({ isOpen: true, pdfUrl: url, title, initialPage: page })
+  }, [])
+
+  // Close PDF modal
+  const closePdfViewer = useCallback(() => {
+    setPdfModal(prev => ({ ...prev, isOpen: false }))
+  }, [])
+
   // Use the Zoning Agent for chat
-  const { messages: agentMessages, isLoading, sendMessage, clearMessages } = useZoningAgent()
+  const { messages: agentMessages, isLoading, agentStatus, sendMessage, clearMessages } = useZoningAgent()
 
   // Convert agent messages to ChatMessage format
   const messages: ChatMessage[] = useMemo(() => {
@@ -144,11 +178,18 @@ export default function Home() {
           citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
         };
         const isAreaPlan = card.type === 'area-plan-context';
+
+        // Match citations to downloadable PDFs
+        const citationsWithUrls = data.citations?.map(c => {
+          const docInfo = matchDocumentUrl(c.sourceName || c.sourceId || '');
+          return { ...c, docInfo };
+        }) || [];
+
         return (
-          <div className={`p-4 border-2 border-dashed ${isAreaPlan ? 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20' : 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'} rounded-lg`}>
+          <div className={`p-4 border-2 ${isAreaPlan ? 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20' : 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'} rounded-lg`}>
             <div className="flex items-center gap-2 mb-2">
               <span className={`text-xs font-medium uppercase tracking-wide ${isAreaPlan ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                {isAreaPlan ? 'Area Plan Context' : 'Zoning Code Reference'}
+                {isAreaPlan ? 'Area Plan Reference' : 'Zoning Code Reference'}
               </span>
               {data.confidence && (
                 <span className="text-xs text-stone-500 dark:text-stone-400">
@@ -156,12 +197,81 @@ export default function Home() {
                 </span>
               )}
             </div>
-            {data.citations && data.citations.length > 0 && (
-              <div className="mt-2 text-xs text-stone-500 dark:text-stone-400">
-                Sources: {data.citations.map(c => c.sourceName).join(', ')}
+
+            {/* Viewable source documents */}
+            {citationsWithUrls.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <span className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide">
+                  Source Documents:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {citationsWithUrls.map((c, i) => (
+                    c.docInfo ? (
+                      <button
+                        key={i}
+                        onClick={() => openPdfViewer(c.docInfo!.url, c.docInfo!.title, 1)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border-2 transition-colors cursor-pointer ${
+                          isAreaPlan
+                            ? 'border-sky-400 dark:border-sky-600 bg-white dark:bg-sky-900 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-800'
+                            : 'border-amber-400 dark:border-amber-600 bg-white dark:bg-amber-900 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800'
+                        }`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View: {c.docInfo.title}
+                      </button>
+                    ) : (
+                      <span key={i} className="text-xs text-stone-400 dark:text-stone-500">
+                        {c.sourceName}
+                      </span>
+                    )
+                  ))}
+                </div>
               </div>
             )}
           </div>
+        );
+      }
+
+      case 'parcel-info': {
+        const data = card.data as {
+          address?: string;
+          neighborhood?: string;
+          coordinates?: { latitude: number; longitude: number };
+          zoningDistrict?: string;
+          zoningCategory?: string;
+          zoningType?: string;
+          zoningDescription?: string;
+          overlayZones?: string[];
+          areaPlanName?: string;
+          areaPlanContext?: string;
+          developmentGoals?: string[];
+          maxHeight?: string;
+          minSetbacks?: string;
+          parkingRequired?: string;
+          permittedUses?: string[];
+        };
+        return (
+          <ParcelCard
+            address={data.address || 'Unknown Address'}
+            neighborhood={data.neighborhood}
+            coordinates={data.coordinates}
+            zoningDistrict={data.zoningDistrict}
+            zoningCategory={data.zoningCategory}
+            zoningType={data.zoningType}
+            zoningDescription={data.zoningDescription}
+            overlayZones={data.overlayZones}
+            areaPlanName={data.areaPlanName}
+            areaPlanContext={data.areaPlanContext}
+            developmentGoals={data.developmentGoals}
+            maxHeight={data.maxHeight}
+            minSetbacks={data.minSetbacks}
+            parkingRequired={data.parkingRequired}
+            permittedUses={data.permittedUses}
+            status="complete"
+          />
         );
       }
 
@@ -171,9 +281,11 @@ export default function Home() {
   }, [])
 
   return (
+    <>
     <AppShell
       isVoiceActive={isVoiceActive}
       onVoiceToggle={handleVoiceToggle}
+      isLayersPanelOpen={isLayersPanelOpen}
       onLayersClick={handleLayersClick}
       onLogoClick={handleLogoClick}
       chatPanel={
@@ -182,6 +294,7 @@ export default function Home() {
           onSendMessage={handleSendMessage}
           onVoiceInput={handleVoiceInput}
           isLoading={isLoading}
+          agentStatus={agentStatus}
           placeholder="Ask about zoning, permits, or any property in Milwaukee..."
           renderCard={renderCard}
         />
@@ -191,8 +304,19 @@ export default function Home() {
           onParcelSelect={handleParcelSelect}
           onParcelClear={handleParcelClear}
           onParcelAsk={handleParcelAsk}
+          showLayerPanel={isLayersPanelOpen}
         />
       }
     />
+
+    {/* PDF Viewer Modal */}
+    <PDFViewerModal
+      isOpen={pdfModal.isOpen}
+      onClose={closePdfViewer}
+      pdfUrl={pdfModal.pdfUrl}
+      title={pdfModal.title}
+      initialPage={pdfModal.initialPage}
+    />
+    </>
   )
 }

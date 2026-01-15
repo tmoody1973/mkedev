@@ -29,6 +29,7 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 | Priority | Feature | Description | Dependencies |
 |----------|---------|-------------|--------------|
 | P0 | Gemini Live API | Real-time bidirectional voice interface | App Shell |
+| P0 | Live Tool Bridge | Tool-based architecture bridging Live to File Search ([arch](../../docs/architecture/gemini-live-file-search-integration.md)) | Gemini Live, RAG |
 | P0 | Voice Activity Detection | Automatic microphone management | Gemini Live |
 | P0 | Mapbox Spatial Tools | Agent tools for geocoding, POI search, isochrone, directions | Mapbox Integration |
 | P0 | Forms Integration | Actionable permit/application forms with download links | Document Ingestion |
@@ -37,6 +38,7 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 | P0 | Design Advisor Agent | Agent for design guidelines + vision integration | Nano Banana |
 | P0 | VisionCard Component | Generative UI for architectural previews | CopilotKit |
 | P0 | ZoneInfoCard Component | Generative UI for zoning summaries | CopilotKit |
+| P0 | Clickable Citations | Inline [N] citations with PDF viewer modal ([spec](../specs/2026-01-15-citation-links/spec.md)) | RAG, Document Corpus |
 | P1 | VoiceIndicator | Visual feedback during voice interaction | Gemini Live |
 | P1 | IsochroneCard Component | Generative UI for accessibility/reachability analysis | Mapbox Spatial Tools |
 
@@ -161,7 +163,11 @@ Foundation
     │       │       ├── Directions (travel time/distance)
     │       │       └── Static Maps (visual context)
     │       └── Conversational Interface
-    │           ├── Gemini Live (Voice)
+    │           ├── Gemini Live (Voice) [spec](../specs/2026-01-15-gemini-live-voice/spec.md)
+    │           │   ├── useGeminiLive Hook (WebSocket + audio)
+    │           │   ├── VoiceChat Component (UI)
+    │           │   ├── executeLiveTool Action (Convex)
+    │           │   └── Tool Bridge → File Search RAG
     │           └── CopilotKit (Generative UI)
     │               └── FormActionCard (form downloads + walkthrough)
     │
@@ -213,3 +219,39 @@ Opik/Comet
 | Document corpus gaps | Medium | Medium | Clear "no data" messaging |
 | Hallucination in responses | Medium | High | Strict RAG grounding, source citations |
 | Accessibility compliance | Low | High | Test with actual users, WAVE audits |
+
+---
+
+## Technical Architecture Notes
+
+### Gemini Live + File Search Integration
+
+**Problem**: Gemini Live API does not natively support File Search. Our RAG documents (zoning codes, area plans) are stored in Gemini File Search Stores.
+
+**Solution**: Tool-based bridge architecture. Gemini Live supports function calling—we define tools that invoke our existing Convex RAG pipeline.
+
+```
+User Voice → Gemini Live → functionCall: search_zoning_docs
+                              ↓
+                      Convex Backend (executeLiveTool)
+                              ↓
+                      ragV2.queryDocuments → File Search API
+                              ↓
+                      Tool Result → Gemini Live → Voice Response
+```
+
+**Key Components**:
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `liveSession.ts` | `convex/agents/` | Convex action executing Live tools |
+| `useGeminiLive.ts` | `src/hooks/` | React hook for WebSocket + audio |
+| `VoiceChat.tsx` | `src/components/voice/` | Voice UI component |
+
+**Tools Available in Live Sessions**:
+- `search_zoning_docs` → queries zoning-codes File Search Store
+- `search_area_plans` → queries area-plans File Search Store
+- `geocode_address` → existing geocoding tool
+- `query_zoning_at_point` → existing ESRI query tool
+- `calculate_parking` → existing parking calculator
+
+**Full Architecture**: See [gemini-live-file-search-integration.md](../../docs/architecture/gemini-live-file-search-integration.md)

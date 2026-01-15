@@ -7,4 +7,5 @@
 
 export { ZoneInfoCard } from "./ZoneInfoCard";
 export { FormActionCard } from "./FormActionCard";
+export { ParcelCard } from "./ParcelCard";
 export { CopilotActions } from "./CopilotActions";

@@ -1,8 +1,19 @@
 'use client'
 
 import { useState, useRef, useEffect, type ReactNode, type FormEvent } from 'react'
-import { Send, Mic, MessageCircle } from 'lucide-react'
+import { Send, Mic, MessageCircle, MapPin, FileSearch, Calculator, BookOpen, CheckCircle2, Loader2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
+import dynamic from 'next/dynamic'
+import { CitationText, SourcesFooter } from './CitationText'
+import { enhanceCitations, hasCitationMarkers, type EnhancedCitation, type RawCitation } from '@/lib/citations'
+
+// Dynamic import to avoid SSR issues with react-pdf (uses DOMMatrix)
+const PDFViewerModal = dynamic(
+  () => import('../ui/PDFViewerModal').then((mod) => mod.PDFViewerModal),
+  { ssr: false }
+)
 
 /**
  * Generative card type for rendering UI components within messages.
@@ -11,6 +22,7 @@ import { cn } from '@/lib/utils'
 export interface GenerativeCard {
   type:
     | 'zone-info'
+    | 'parcel-info'
     | 'parcel-analysis'
     | 'incentives-summary'
     | 'area-plan-context'
@@ -18,6 +30,18 @@ export interface GenerativeCard {
     | 'code-citation'
     | 'opportunity-list'
   data: unknown
+}
+
+/**
+ * Agent status for real-time activity display.
+ */
+export interface AgentStatus {
+  status: 'idle' | 'thinking' | 'executing_tool' | 'generating_response' | 'complete' | 'error';
+  currentTool?: string;
+  currentToolArgs?: Record<string, unknown>;
+  toolsCompleted: Array<{ name: string; success: boolean; timestamp: number }>;
+  statusMessage?: string;
+  error?: string;
 }
 
 /**
@@ -31,6 +55,8 @@ export interface ChatMessage {
   timestamp: Date
   inputMode?: 'text' | 'voice'
   cards?: GenerativeCard[]
+  /** Raw citations from RAG response (groundingMetadata) */
+  citations?: RawCitation[]
 }
 
 export interface ChatPanelProps {
@@ -42,6 +68,8 @@ export interface ChatPanelProps {
   onVoiceInput?: () => void
   /** Whether the assistant is currently responding */
   isLoading?: boolean
+  /** Real-time agent status for activity display */
+  agentStatus?: AgentStatus | null
   /** Placeholder text for the input field */
   placeholder?: string
   /** Optional render function for generative cards */
@@ -62,12 +90,30 @@ export function ChatPanel({
   onSendMessage,
   onVoiceInput,
   isLoading = false,
+  agentStatus,
   placeholder = 'Ask about zoning, permits, or any property in Milwaukee...',
   renderCard,
 }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // PDF Viewer modal state
+  const [pdfViewerState, setPdfViewerState] = useState<{
+    isOpen: boolean
+    citation: EnhancedCitation | null
+  }>({
+    isOpen: false,
+    citation: null,
+  })
+
+  const handleCitationClick = (citation: EnhancedCitation) => {
+    setPdfViewerState({ isOpen: true, citation })
+  }
+
+  const closePdfViewer = () => {
+    setPdfViewerState({ isOpen: false, citation: null })
+  }
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -98,12 +144,12 @@ export function ChatPanel({
 
   return (
     <div
-      className="flex flex-col h-full bg-stone-50 dark:bg-stone-950"
+      className="flex flex-col h-full min-h-0 bg-stone-50 dark:bg-stone-950"
       data-testid="chat-panel"
     >
       {/* Messages Area */}
       <div
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
         role="log"
         aria-label="Chat messages"
         aria-live="polite"
@@ -118,13 +164,14 @@ export function ChatPanel({
                 message={message}
                 formatTimestamp={formatTimestamp}
                 renderCard={renderCard}
+                onCitationClick={handleCitationClick}
               />
             ))}
           </>
         )}
 
-        {/* Loading indicator */}
-        {isLoading && <LoadingIndicator />}
+        {/* Loading indicator with agent status */}
+        {isLoading && <AgentStatusIndicator status={agentStatus} />}
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />
@@ -200,6 +247,17 @@ export function ChatPanel({
           </button>
         </div>
       </form>
+
+      {/* PDF Viewer Modal */}
+      {pdfViewerState.citation && (
+        <PDFViewerModal
+          isOpen={pdfViewerState.isOpen}
+          onClose={closePdfViewer}
+          pdfUrl={pdfViewerState.citation.documentUrl}
+          title={pdfViewerState.citation.title}
+          initialPage={pdfViewerState.citation.pageNumber}
+        />
+      )}
     </div>
   )
 }
@@ -252,11 +310,20 @@ interface MessageBubbleProps {
   message: ChatMessage
   formatTimestamp: (date: Date) => string
   renderCard?: (card: GenerativeCard) => ReactNode
+  onCitationClick?: (citation: EnhancedCitation) => void
 }
 
-function MessageBubble({ message, formatTimestamp, renderCard }: MessageBubbleProps) {
+function MessageBubble({ message, formatTimestamp, renderCard, onCitationClick }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
+
+  // Enhance citations with URLs for display
+  const enhancedCitations = message.citations
+    ? enhanceCitations(message.citations)
+    : []
+
+  // Check if content has citation markers
+  const contentHasCitations = hasCitationMarkers(message.content)
 
   return (
     <div
@@ -273,7 +340,65 @@ function MessageBubble({ message, formatTimestamp, renderCard }: MessageBubblePr
         )}
       >
         {/* Message content */}
-        <p className="font-sans text-sm whitespace-pre-wrap">{message.content}</p>
+        <div className={cn(
+          'font-sans text-sm prose prose-sm max-w-none',
+          // Light mode prose colors
+          'prose-headings:text-stone-900 prose-p:text-stone-800 prose-strong:text-stone-900',
+          'prose-li:text-stone-800 prose-ul:text-stone-800 prose-ol:text-stone-800',
+          // Link styling
+          'prose-a:text-sky-600 prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-sky-700',
+          'dark:prose-a:text-sky-400 dark:hover:prose-a:text-sky-300',
+          // Table styling
+          'prose-table:border-collapse prose-table:w-full prose-table:text-xs',
+          'prose-th:border prose-th:border-stone-300 prose-th:bg-stone-100 prose-th:px-2 prose-th:py-1 prose-th:text-left prose-th:font-semibold',
+          'prose-td:border prose-td:border-stone-300 prose-td:px-2 prose-td:py-1',
+          // Dark mode prose colors
+          'dark:prose-invert dark:prose-headings:text-stone-100 dark:prose-p:text-stone-200',
+          'dark:prose-strong:text-stone-100 dark:prose-li:text-stone-200',
+          'dark:prose-th:border-stone-600 dark:prose-th:bg-stone-700 dark:prose-td:border-stone-600',
+          // User messages (white text on sky background)
+          isUser && 'prose-headings:text-white prose-p:text-white prose-strong:text-white prose-li:text-white prose-a:text-white prose-a:underline dark:prose-headings:text-white dark:prose-p:text-white prose-th:bg-sky-600 prose-th:border-sky-400 prose-td:border-sky-400',
+          // Compact spacing
+          'prose-headings:mt-3 prose-headings:mb-2 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5'
+        )}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              // Custom link component - opens external links in new tab
+              a: ({ href, children, ...props }) => {
+                const isExternal = href?.startsWith('http') || href?.startsWith('https');
+                return (
+                  <a
+                    href={href}
+                    target={isExternal ? '_blank' : undefined}
+                    rel={isExternal ? 'noopener noreferrer' : undefined}
+                    className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:text-sky-700 dark:hover:text-sky-300"
+                    {...props}
+                  >
+                    {children}
+                  </a>
+                );
+              },
+              // Custom paragraph component to handle citation markers
+              p: ({ children }) => {
+                if (contentHasCitations && enhancedCitations.length > 0 && typeof children === 'string' && hasCitationMarkers(children)) {
+                  return (
+                    <p className="my-1">
+                      <CitationText
+                        text={children}
+                        citations={enhancedCitations}
+                        onCitationClick={(c) => onCitationClick?.(c)}
+                      />
+                    </p>
+                  );
+                }
+                return <p className="my-1">{children}</p>;
+              },
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </div>
 
         {/* Generative UI cards */}
         {message.cards && message.cards.length > 0 && (
@@ -288,6 +413,14 @@ function MessageBubble({ message, formatTimestamp, renderCard }: MessageBubblePr
               </div>
             ))}
           </div>
+        )}
+
+        {/* Citation sources footer */}
+        {!isUser && enhancedCitations.length > 0 && (
+          <SourcesFooter
+            citations={enhancedCitations}
+            onSourceClick={(c) => onCitationClick?.(c)}
+          />
         )}
 
         {/* Timestamp */}
@@ -324,36 +457,161 @@ function CardPlaceholder({ type }: { type: string }) {
 }
 
 /**
- * Loading indicator with animated bouncing dots.
+ * Get icon for a tool name.
  */
-function LoadingIndicator() {
+function getToolIcon(toolName: string) {
+  switch (toolName) {
+    case 'geocode_address':
+      return <MapPin className="w-4 h-4" />;
+    case 'query_zoning_at_point':
+      return <FileSearch className="w-4 h-4" />;
+    case 'calculate_parking':
+      return <Calculator className="w-4 h-4" />;
+    case 'query_zoning_code':
+    case 'query_area_plans':
+      return <BookOpen className="w-4 h-4" />;
+    default:
+      return <Loader2 className="w-4 h-4 animate-spin" />;
+  }
+}
+
+/**
+ * Agent status indicator showing real-time activity.
+ */
+function AgentStatusIndicator({ status }: { status?: AgentStatus | null }) {
+  // Fallback to simple dots if no status
+  if (!status) {
+    return (
+      <div className="flex justify-start" data-testid="loading-indicator">
+        <div
+          className={cn(
+            'p-4 rounded-lg border-2 border-black dark:border-white',
+            'bg-white dark:bg-stone-800',
+            'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]'
+          )}
+          role="status"
+          aria-label="Assistant is thinking"
+        >
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 text-sky-500 animate-spin" />
+            <span className="text-sm text-stone-600 dark:text-stone-400">Thinking...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex justify-start" data-testid="loading-indicator">
+    <div className="flex justify-start" data-testid="agent-status-indicator">
       <div
         className={cn(
           'p-4 rounded-lg border-2 border-black dark:border-white',
           'bg-white dark:bg-stone-800',
-          'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]'
+          'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]',
+          'min-w-[280px] max-w-[400px]'
         )}
         role="status"
-        aria-label="Assistant is typing"
+        aria-label="Agent activity status"
       >
-        <div className="flex space-x-2">
-          <div
-            className="w-2 h-2 bg-sky-500 rounded-full animate-bounce"
-            style={{ animationDelay: '0ms' }}
-          />
-          <div
-            className="w-2 h-2 bg-sky-500 rounded-full animate-bounce"
-            style={{ animationDelay: '100ms' }}
-          />
-          <div
-            className="w-2 h-2 bg-sky-500 rounded-full animate-bounce"
-            style={{ animationDelay: '200ms' }}
-          />
+        {/* Current activity */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className={cn(
+            'w-8 h-8 rounded-full flex items-center justify-center',
+            status.status === 'executing_tool' && 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+            status.status === 'thinking' && 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400',
+            status.status === 'generating_response' && 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+            status.status === 'error' && 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+          )}>
+            {status.status === 'executing_tool' && status.currentTool ? (
+              getToolIcon(status.currentTool)
+            ) : status.status === 'generating_response' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
+              {status.statusMessage || 'Processing...'}
+            </p>
+            {status.status === 'executing_tool' && status.currentTool && (
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                {getToolLabel(status.currentTool)}
+              </p>
+            )}
+          </div>
         </div>
-        <span className="sr-only">Assistant is typing a response</span>
+
+        {/* Completed tools */}
+        {status.toolsCompleted.length > 0 && (
+          <div className="border-t border-stone-200 dark:border-stone-700 pt-2 mt-2">
+            <div className="flex flex-wrap gap-1.5">
+              {status.toolsCompleted.map((tool, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 rounded-full text-xs',
+                    tool.success
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                  )}
+                >
+                  {tool.success ? (
+                    <CheckCircle2 className="w-3 h-3" />
+                  ) : (
+                    <span className="w-3 h-3 text-center">!</span>
+                  )}
+                  <span>{getToolShortLabel(tool.name)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <span className="sr-only">
+          Agent is {status.statusMessage}. {status.toolsCompleted.length} tools completed.
+        </span>
       </div>
     </div>
-  )
+  );
+}
+
+/**
+ * Get human-readable label for a tool.
+ */
+function getToolLabel(toolName: string): string {
+  switch (toolName) {
+    case 'geocode_address':
+      return 'Address Lookup';
+    case 'query_zoning_at_point':
+      return 'Zoning Database';
+    case 'calculate_parking':
+      return 'Parking Calculator';
+    case 'query_zoning_code':
+      return 'Zoning Code Search';
+    case 'query_area_plans':
+      return 'Area Plans Search';
+    default:
+      return toolName;
+  }
+}
+
+/**
+ * Get short label for completed tool chips.
+ */
+function getToolShortLabel(toolName: string): string {
+  switch (toolName) {
+    case 'geocode_address':
+      return 'Geocode';
+    case 'query_zoning_at_point':
+      return 'Zoning';
+    case 'calculate_parking':
+      return 'Parking';
+    case 'query_zoning_code':
+      return 'Code';
+    case 'query_area_plans':
+      return 'Plans';
+    default:
+      return toolName;
+  }
 }

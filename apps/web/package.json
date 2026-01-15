@@ -14,7 +14,10 @@
     "test:coverage": "vitest run --coverage",
     "upload-docs": "tsx scripts/upload-documents.ts",
     "upload-docs:status": "tsx scripts/upload-documents.ts --status",
-    "upload-docs:zoning": "tsx scripts/upload-documents.ts --zoning"
+    "upload-docs:zoning": "tsx scripts/upload-documents.ts --zoning",
+    "upload-file-search": "tsx scripts/upload-to-file-search.ts",
+    "upload-file-search:status": "tsx scripts/upload-to-file-search.ts --status",
+    "upload-file-search:reset": "tsx scripts/upload-to-file-search.ts --reset"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.7",
@@ -40,6 +43,9 @@
     "pmtiles": "^3.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "react-pdf": "^10.3.0",
+    "remark-gfm": "^4.0.1",
     "svix": "^1.84.1",
     "tailwind-merge": "^3.4.0",
     "zod": "^3.25.76"
@@ -47,6 +53,7 @@
   "devDependencies": {
     "@google/adk-devtools": "^0.2.2",
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

@@ -298,7 +298,7 @@ export class PMTilesLayerManager {
     for (const [layerId, style] of Object.entries(LAYER_STYLES)) {
       const visible = initialVisibility[layerId as LayerType] ?? false
       this.layerVisibility.set(layerId as LayerType, visible)
-      this.layerOpacity.set(layerId as LayerType, (style.paint as mapboxgl.FillPaint)['fill-opacity'] as number || 1)
+      this.layerOpacity.set(layerId as LayerType, ((style.paint as mapboxgl.FillPaint | undefined)?.['fill-opacity'] as number) || 1)
 
       this.map.addLayer({
         id: `pmtiles-${layerId}`,
@@ -322,39 +322,36 @@ export class PMTilesLayerManager {
    * Set visibility for a layer
    */
   setLayerVisibility(layerId: LayerType, visible: boolean): void {
-    // For zoning in 3D mode, control both 2D and 3D layers together
-    if (layerId === 'zoning' && this.is3DMode) {
-      const mapLayerId3D = 'pmtiles-zoning-3d'
-      if (this.map.getLayer(mapLayerId3D)) {
-        this.map.setLayoutProperty(mapLayerId3D, 'visibility', visible ? 'visible' : 'none')
-      }
-    }
+    // Track the desired visibility state
+    this.layerVisibility.set(layerId, visible)
 
     const mapLayerId = `pmtiles-${layerId}`
     if (this.map.getLayer(mapLayerId)) {
-      // In Option D, 2D zoning layer stays visible in 3D mode (shows ground colors)
       this.map.setLayoutProperty(mapLayerId, 'visibility', visible ? 'visible' : 'none')
-      this.layerVisibility.set(layerId, visible)
     }
   }
 
   /**
    * Set opacity for a layer
-   * Handles fill-extrusion-opacity for 3D zoning layer
-   * In Option D, both 2D and 3D layers are visible, so update both
+   * In 3D mode: parcels stay transparent, zoning uses reduced opacity for tinting
    */
   setLayerOpacity(layerId: LayerType, opacity: number): void {
     this.layerOpacity.set(layerId, opacity)
 
-    // For zoning in 3D mode, update both layers
-    if (layerId === 'zoning' && this.is3DMode) {
-      const mapLayerId3D = 'pmtiles-zoning-3d'
-      if (this.map.getLayer(mapLayerId3D)) {
-        this.map.setPaintProperty(mapLayerId3D, 'fill-extrusion-opacity', opacity * ZONE_3D_OPACITY)
-      }
+    // In 3D mode, parcels should stay transparent
+    if (layerId === 'parcels' && this.is3DMode) {
+      return
     }
 
-    // Always update 2D layer (visible in both 2D and 3D modes in Option D)
+    // In 3D mode, zoning uses reduced opacity for tinting effect
+    if (layerId === 'zoning' && this.is3DMode) {
+      const mapLayerId = 'pmtiles-zoning'
+      if (this.map.getLayer(mapLayerId)) {
+        this.map.setPaintProperty(mapLayerId, 'fill-opacity', opacity * 0.4)
+      }
+      return
+    }
+
     const mapLayerId = `pmtiles-${layerId}`
     if (this.map.getLayer(mapLayerId)) {
       this.map.setPaintProperty(mapLayerId, 'fill-opacity', opacity)
@@ -362,52 +359,61 @@ export class PMTilesLayerManager {
   }
 
   /**
-   * Toggle zoning layer between 2D (fill) and 3D (fill-extrusion) mode
-   * Option D: Keep 2D zone colors on ground, use neutral color for 3D extrusions
+   * Toggle between 2D and 3D mode
+   * In 3D mode: Show Mapbox 3D buildings with zone color overlay tinting them
+   * In 2D mode: Show flat zoning colors and normal parcel styling
    */
   setZoning3DMode(enabled: boolean): void {
     if (this.is3DMode === enabled) return
     this.is3DMode = enabled
 
     const zoningVisible = this.layerVisibility.get('zoning') ?? true
+    const parcelsVisible = this.layerVisibility.get('parcels') ?? true
     const zoningOpacity = this.layerOpacity.get('zoning') ?? 0.5
 
     if (enabled) {
-      // Keep 2D zoning layer visible (shows zone colors on ground)
-      // Don't hide it - this is Option D
-
-      // Add 3D zoning layer with neutral color if it doesn't exist
-      if (!this.map.getLayer('pmtiles-zoning-3d')) {
-        this.map.addLayer({
-          id: 'pmtiles-zoning-3d',
-          type: 'fill-extrusion',
-          source: this.sourceId,
-          'source-layer': SOURCE_LAYER_IDS.zoning,
-          paint: {
-            // Neutral color for clean architectural look
-            'fill-extrusion-color': ZONE_3D_NEUTRAL_COLOR,
-            'fill-extrusion-opacity': zoningOpacity * ZONE_3D_OPACITY,
-            'fill-extrusion-height': ZONING_HEIGHT_EXPRESSION,
-            'fill-extrusion-base': 0,
-          },
-          layout: {
-            visibility: zoningVisible ? 'visible' : 'none',
-          },
-          minzoom: 10,
-          maxzoom: 22,
-        })
-      } else {
-        // Layer exists, just update visibility and opacity
-        this.map.setLayoutProperty('pmtiles-zoning-3d', 'visibility', zoningVisible ? 'visible' : 'none')
-        this.map.setPaintProperty('pmtiles-zoning-3d', 'fill-extrusion-opacity', zoningOpacity * ZONE_3D_OPACITY)
+      // 3D mode: Keep zoning as flat colored overlay to tint the 3D buildings
+      // Reduce opacity so it tints without obscuring
+      const zoningLayerId = 'pmtiles-zoning'
+      if (this.map.getLayer(zoningLayerId)) {
+        if (zoningVisible) {
+          this.map.setLayoutProperty(zoningLayerId, 'visibility', 'visible')
+          // Lower opacity to create a tint effect on buildings
+          this.map.setPaintProperty(zoningLayerId, 'fill-opacity', zoningOpacity * 0.4)
+        }
       }
-    } else {
-      // Hide 3D zoning layer
+
+      // Hide any 3D zoning extrusion layer
       if (this.map.getLayer('pmtiles-zoning-3d')) {
         this.map.setLayoutProperty('pmtiles-zoning-3d', 'visibility', 'none')
       }
 
-      // 2D zoning layer stays visible (already visible, no change needed)
+      // 3D mode: Make parcels transparent but keep outlines visible
+      const parcelsLayerId = 'pmtiles-parcels'
+      if (this.map.getLayer(parcelsLayerId)) {
+        this.map.setPaintProperty(parcelsLayerId, 'fill-opacity', 0)
+        this.map.setPaintProperty(parcelsLayerId, 'fill-outline-color', '#333333')
+      }
+    } else {
+      // 2D mode: Show flat zoning colors at normal opacity
+      const zoningLayerId = 'pmtiles-zoning'
+      if (this.map.getLayer(zoningLayerId) && zoningVisible) {
+        this.map.setLayoutProperty(zoningLayerId, 'visibility', 'visible')
+        this.map.setPaintProperty(zoningLayerId, 'fill-opacity', zoningOpacity)
+      }
+
+      // 2D mode: Hide 3D zoning layer
+      if (this.map.getLayer('pmtiles-zoning-3d')) {
+        this.map.setLayoutProperty('pmtiles-zoning-3d', 'visibility', 'none')
+      }
+
+      // 2D mode: Restore parcel fill opacity
+      const parcelsLayerId = 'pmtiles-parcels'
+      if (this.map.getLayer(parcelsLayerId) && parcelsVisible) {
+        const originalOpacity = this.layerOpacity.get('parcels') ?? 0.1
+        this.map.setPaintProperty(parcelsLayerId, 'fill-opacity', originalOpacity)
+        this.map.setPaintProperty(parcelsLayerId, 'fill-outline-color', '#44403C')
+      }
     }
   }
 
@@ -478,22 +484,38 @@ export class PMTilesLayerManager {
    * Cleanup
    */
   destroy(): void {
-    // Remove 3D zoning layer if it exists
-    if (this.map.getLayer('pmtiles-zoning-3d')) {
-      this.map.removeLayer('pmtiles-zoning-3d')
+    // Guard against map being undefined or style not loaded during cleanup
+    // The map.style can be undefined during component unmount, causing getLayer to throw
+    if (!this.map || typeof this.map.getLayer !== 'function') {
+      return
     }
 
-    // Remove standard layers
-    for (const layerId of Object.keys(LAYER_STYLES)) {
-      const mapLayerId = `pmtiles-${layerId}`
-      if (this.map.getLayer(mapLayerId)) {
-        this.map.removeLayer(mapLayerId)
+    try {
+      // Check if the map style is loaded - getLayer throws if style is undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!(this.map as any).style) {
+        return
       }
-    }
 
-    // Remove source
-    if (this.map.getSource(this.sourceId)) {
-      this.map.removeSource(this.sourceId)
+      // Remove 3D zoning layer if it exists
+      if (this.map.getLayer('pmtiles-zoning-3d')) {
+        this.map.removeLayer('pmtiles-zoning-3d')
+      }
+
+      // Remove standard layers
+      for (const layerId of Object.keys(LAYER_STYLES)) {
+        const mapLayerId = `pmtiles-${layerId}`
+        if (this.map.getLayer(mapLayerId)) {
+          this.map.removeLayer(mapLayerId)
+        }
+      }
+
+      // Remove source
+      if (this.map.getSource(this.sourceId)) {
+        this.map.removeSource(this.sourceId)
+      }
+    } catch {
+      // Map may be in an invalid state during cleanup, ignore errors
     }
   }
 }

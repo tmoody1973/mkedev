@@ -12,6 +12,8 @@ export interface HeaderProps {
   is3DMode?: boolean
   /** Callback when 3D toggle is clicked */
   on3DToggle?: () => void
+  /** Whether the layers panel is open */
+  isLayersPanelOpen?: boolean
   /** Callback when map layers button is clicked */
   onLayersClick?: () => void
   /** Callback when logo is clicked */
@@ -31,6 +33,7 @@ export function Header({
   onVoiceToggle,
   is3DMode = false,
   on3DToggle,
+  isLayersPanelOpen = false,
   onLayersClick,
   onLogoClick,
   onMapToggle,
@@ -101,15 +104,20 @@ export function Header({
         {/* Map Layers */}
         <button
           onClick={onLayersClick}
-          className="
+          className={`
             flex items-center justify-center w-12 h-12 rounded-lg border-2 border-black
-            bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300
             shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]
             hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
             active:translate-y-2 active:shadow-none
             transition-all duration-100
-          "
+            ${
+              isLayersPanelOpen
+                ? 'bg-sky-500 text-white'
+                : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300'
+            }
+          `}
           aria-label="Toggle map layers panel"
+          aria-pressed={isLayersPanelOpen}
         >
           <Layers className="w-6 h-6" />
         </button>

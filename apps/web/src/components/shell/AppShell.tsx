@@ -13,6 +13,8 @@ export interface AppShellProps {
   isVoiceActive?: boolean
   /** Callback when voice toggle is clicked */
   onVoiceToggle?: () => void
+  /** Whether the layers panel is open */
+  isLayersPanelOpen?: boolean
   /** Callback when map layers button is clicked */
   onLayersClick?: () => void
   /** Callback when logo is clicked */
@@ -33,6 +35,7 @@ export function AppShell({
   mapPanel,
   isVoiceActive = false,
   onVoiceToggle,
+  isLayersPanelOpen = false,
   onLayersClick,
   onLogoClick,
   initialMapVisible = false,
@@ -55,6 +58,7 @@ export function AppShell({
         onVoiceToggle={onVoiceToggle}
         is3DMode={is3DMode}
         on3DToggle={toggle3DMode}
+        isLayersPanelOpen={isLayersPanelOpen}
         onLayersClick={onLayersClick}
         onLogoClick={onLogoClick}
         onMapToggle={handleMapToggle}
@@ -62,10 +66,10 @@ export function AppShell({
       />
 
       {/* Main Content: Split View */}
-      <main className="flex flex-1 overflow-hidden relative">
+      <main className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* Chat Panel - 40% on desktop, full width on mobile */}
         <div
-          className="w-full md:w-2/5 lg:w-[40%] flex flex-col border-r-0 md:border-r-2 border-black dark:border-stone-700"
+          className="w-full md:w-2/5 lg:w-[40%] h-full min-h-0 flex flex-col border-r-0 md:border-r-2 border-black dark:border-stone-700"
           data-testid="chat-panel-container"
         >
           {chatPanel}

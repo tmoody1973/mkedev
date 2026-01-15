@@ -191,7 +191,7 @@ export const ingestUrl = action({
       const sourceDomain = urlObj.hostname;
 
       // Create content preview (first 500 characters)
-      const contentPreview = content.slice(0, 500);
+      void content.slice(0, 500); // Preview not used but kept for potential future use
 
       // Store in Convex documents table via internal mutation
       const documentId = await ctx.runMutation(
@@ -289,12 +289,8 @@ export const batchIngestUrls = action({
           continue;
         }
 
-        const wordCount = content
-          .split(/\s+/)
-          .filter((word) => word.length > 0).length;
         const urlObj = new URL(source.url);
         const sourceDomain = urlObj.hostname;
-        const contentPreview = content.slice(0, 500);
 
         await ctx.runMutation(internal.ingestion.documents.createDocument, {
           sourceId: `web-${sourceDomain}-${Date.now()}`,
@@ -376,12 +372,8 @@ export const refreshWebSources = internalAction({
           continue;
         }
 
-        const wordCount = content
-          .split(/\s+/)
-          .filter((word) => word.length > 0).length;
         const urlObj = new URL(source.source);
         const sourceDomain = urlObj.hostname;
-        const contentPreview = content.slice(0, 500);
 
         // Upsert document (update if exists, create if not)
         await ctx.runMutation(internal.ingestion.documents.upsertDocument, {

@@ -299,4 +299,34 @@ export default defineSchema({
     .index("by_sourceId", ["sourceId"])
     .index("by_status", ["status"])
     .index("by_storeId_status", ["storeId", "status"]),
+
+  // ---------------------------------------------------------------------------
+  // Agent Sessions - Real-time agent activity tracking
+  // ---------------------------------------------------------------------------
+  agentSessions: defineTable({
+    sessionId: v.string(), // Unique session ID for this agent run
+    status: v.union(
+      v.literal("idle"),
+      v.literal("thinking"),
+      v.literal("executing_tool"),
+      v.literal("generating_response"),
+      v.literal("complete"),
+      v.literal("error")
+    ),
+    currentTool: v.optional(v.string()), // Tool currently being executed
+    currentToolArgs: v.optional(v.any()), // Args for display (e.g., address being geocoded)
+    toolsCompleted: v.array(
+      v.object({
+        name: v.string(),
+        success: v.boolean(),
+        timestamp: v.number(),
+      })
+    ),
+    statusMessage: v.optional(v.string()), // Human-readable status message
+    error: v.optional(v.string()),
+    startedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_updatedAt", ["updatedAt"]),
 });

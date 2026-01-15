@@ -12,7 +12,7 @@
 
 import { v } from "convex/values";
 import { action, mutation, query } from "../_generated/server";
-import { api, internal } from "../_generated/api";
+import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 
 // =============================================================================
@@ -240,6 +240,30 @@ export const updateDocumentStatus = mutation({
     }
 
     await ctx.db.patch(args.documentId, updates);
+  },
+});
+
+/**
+ * Delete a store document record.
+ */
+export const deleteDocumentRecord = mutation({
+  args: {
+    documentId: v.id("storeDocuments"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.documentId);
+  },
+});
+
+/**
+ * Delete a store record.
+ */
+export const deleteStoreRecord = mutation({
+  args: {
+    storeId: v.id("fileSearchStores"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.storeId);
   },
 });
 

@@ -51,3 +51,15 @@ export type {
 // Components
 export { ZoningTooltip } from './ZoningTooltip'
 export { ESRILayerLoader } from './ESRILayerLoader'
+
+// 3D Buildings
+export {
+  BUILDINGS_3D_LAYER_ID,
+  BUILDINGS_3D_COLOR,
+  BUILDINGS_3D_OPACITY,
+  add3DBuildings,
+  remove3DBuildings,
+  has3DBuildings,
+  set3DBuildingsVisibility,
+  set3DBuildingsOpacity,
+} from './3d-buildings'

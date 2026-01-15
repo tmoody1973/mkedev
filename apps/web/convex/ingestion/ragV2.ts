@@ -19,10 +19,71 @@ import type { GroundedResponse, RAGResult, Citation } from "./types";
 // Configuration
 // =============================================================================
 
-const DEFAULT_MODEL = "gemini-3-flash-preview";
+const PRIMARY_MODEL = "gemini-3-flash-preview";
+const FALLBACK_MODEL = "gemini-2.5-flash";
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_OUTPUT_TOKENS = 2048;
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+/**
+ * Make a Gemini API call with retry and model fallback.
+ */
+async function callGeminiWithFallback(
+  apiKey: string,
+  requestBody: Record<string, unknown>,
+  primaryModel: string,
+  fallbackModel: string
+): Promise<{ response: Record<string, unknown>; modelUsed: string }> {
+  const models = [primaryModel, fallbackModel];
+  const maxRetries = 2;
+
+  for (const model of models) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(
+          `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`Gemini API error (${model}, attempt ${attempt}):`, response.status);
+          if (response.status >= 500 || response.status === 429) {
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              continue;
+            }
+          }
+          break;
+        }
+
+        const result = await response.json();
+        const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (responseText) {
+          return { response: result, modelUsed: model };
+        }
+
+        console.warn(`Empty response from ${model}, attempt ${attempt}`);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+      } catch (error) {
+        console.error(`Network error (${model}, attempt ${attempt}):`, error);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+      }
+    }
+  }
+
+  throw new Error("Failed to get valid response from Gemini after retries");
+}
 
 // =============================================================================
 // System Prompts
@@ -31,19 +92,31 @@ const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const ZONING_SYSTEM_PROMPT = `You are an expert assistant for the Milwaukee Zoning Code (Chapter 295). Your role is to:
 
 1. Answer questions accurately based on the official zoning code documents provided
-2. Cite specific sections, subchapters, and page references when available
+2. ALWAYS use [1], [2], etc. citation markers to reference your sources inline
 3. Clarify zoning terminology and explain technical concepts in plain language
 4. Note when information may need verification with the city or a professional
 
+IMPORTANT - Citation Format:
+- Use numbered brackets like [1], [2] immediately after facts from sources
+- Example: "Restaurants require 1 space per 100 sq ft [1]. Downtown districts may reduce this by 50% [2]."
+- Place citations at the end of the relevant sentence, before the period
+
 When answering:
 - Be specific about which zoning district(s) apply
-- Reference the relevant subchapter (e.g., "Subchapter 2 - Residential Districts")
+- Reference the relevant subchapter (e.g., "Subchapter 2 - Residential Districts") [1]
 - Mention any conditional uses or special requirements
 - If a question cannot be fully answered from the documents, say so clearly
 
 Format responses to be clear and actionable for developers, property owners, and residents.`;
 
-const GENERAL_SYSTEM_PROMPT = `You are a helpful assistant for Milwaukee civic planning and development. Answer questions based on the official documents provided, citing sources when possible. Be accurate and note when information may need professional verification.`;
+const GENERAL_SYSTEM_PROMPT = `You are a helpful assistant for Milwaukee civic planning and development.
+
+IMPORTANT - Citation Format:
+- ALWAYS use numbered brackets like [1], [2] to cite your sources inline
+- Example: "The Near West Side plan emphasizes mixed-use development [1]."
+- Place citations at the end of the relevant sentence
+
+Answer questions based on the official documents provided. Be accurate and note when information may need professional verification.`;
 
 // =============================================================================
 // Helpers
@@ -59,18 +132,26 @@ function getGeminiApiKey(): string {
 
 /**
  * Extract citations from grounding metadata in response.
+ * Handles File Search Store format with retrievedContext.
  */
 function extractCitationsFromGrounding(
   groundingMetadata: {
     groundingChunks?: Array<{
       retrievedContext?: {
         uri?: string;
+        title?: string;          // File ID (e.g., "tbdlh4mvlmpr")
+        text?: string;           // Retrieved text content
+        fileSearchStore?: string; // Store name
+      };
+      web?: {
+        uri?: string;
         title?: string;
       };
     }>;
     groundingSupports?: Array<{
-      segment?: { text?: string };
+      segment?: { text?: string; startIndex?: number; endIndex?: number };
       groundingChunkIndices?: number[];
+      confidenceScores?: number[];
     }>;
   } | undefined
 ): Citation[] {
@@ -81,17 +162,50 @@ function extractCitationsFromGrounding(
   const citations: Citation[] = [];
   const seen = new Set<string>();
 
+  // Process groundingChunks
   for (const chunk of groundingMetadata.groundingChunks) {
-    const uri = chunk.retrievedContext?.uri;
-    const title = chunk.retrievedContext?.title;
+    // Check retrievedContext format (File Search)
+    if (chunk.retrievedContext) {
+      const fileId = chunk.retrievedContext.title; // File ID like "tbdlh4mvlmpr"
+      const storeName = chunk.retrievedContext.fileSearchStore;
+      const text = chunk.retrievedContext.text;
 
-    if (uri && !seen.has(uri)) {
-      seen.add(uri);
-      citations.push({
-        sourceId: uri,
-        sourceName: title || uri,
-        excerpt: "",
-      });
+      // Use store name as source identifier
+      const sourceId = storeName || fileId || "unknown";
+
+      if (!seen.has(sourceId)) {
+        seen.add(sourceId);
+
+        // Determine source name from store or file ID
+        let sourceName = "Milwaukee Zoning Code";
+        if (storeName?.includes("zoningcodes")) {
+          sourceName = "Milwaukee Zoning Code Chapter 295";
+        } else if (storeName?.includes("areaplans")) {
+          sourceName = "Milwaukee Area Plans";
+        } else if (storeName?.includes("policies")) {
+          sourceName = "Milwaukee Policy Documents";
+        }
+
+        citations.push({
+          sourceId,
+          sourceName,
+          excerpt: text?.substring(0, 200) || "",
+        });
+      }
+    }
+    // Check web format (Google Search grounding)
+    else if (chunk.web) {
+      const uri = chunk.web.uri;
+      const title = chunk.web.title;
+
+      if (uri && !seen.has(uri)) {
+        seen.add(uri);
+        citations.push({
+          sourceId: uri,
+          sourceName: title || uri,
+          excerpt: "",
+        });
+      }
     }
   }
 
@@ -157,7 +271,7 @@ export const queryWithFileSearch = action({
   handler: async (ctx, args): Promise<RAGResult> => {
     const startTime = Date.now();
     const apiKey = getGeminiApiKey();
-    const modelId = args.modelId ?? DEFAULT_MODEL;
+    const modelId = args.modelId ?? PRIMARY_MODEL;
     const temperature = args.temperature ?? DEFAULT_TEMPERATURE;
     const maxOutputTokens = args.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
 
@@ -223,54 +337,65 @@ export const queryWithFileSearch = action({
         },
       };
 
-      // Add metadata filter if provided
+      // Add metadata filter if provided (disabled for now as we use separate stores per category)
       if (args.metadataFilter) {
         fileSearchTool.fileSearch.metadataFilter = args.metadataFilter;
-      } else if (args.category) {
-        // Auto-filter by category
-        fileSearchTool.fileSearch.metadataFilter = `category="${args.category}"`;
       }
+      // Note: We don't auto-filter by category since we're using category-specific stores
 
-      // Call Gemini with File Search tool
-      const response = await fetch(
-        `${GEMINI_API_BASE}/models/${modelId}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: systemPrompt }],
-            },
-            contents: [
-              {
-                parts: [{ text: args.question }],
-              },
-            ],
-            tools: [fileSearchTool],
-            generationConfig: {
-              temperature,
-              maxOutputTokens,
-              topK: 40,
-              topP: 0.95,
-            },
-          }),
+      // Build request body for Gemini
+      const requestBody = {
+        systemInstruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: [
+          {
+            parts: [{ text: args.question }],
+          },
+        ],
+        tools: [fileSearchTool],
+        generationConfig: {
+          temperature,
+          maxOutputTokens,
+          topK: 40,
+          topP: 0.95,
+        },
+      };
+
+      console.log("RAG Request - stores:", storeNames);
+      console.log("RAG Request - fileSearchTool:", JSON.stringify(fileSearchTool));
+
+      // Call Gemini with File Search tool (with retry and fallback)
+      let result: Record<string, unknown>;
+      try {
+        const geminiResult = await callGeminiWithFallback(
+          apiKey,
+          requestBody,
+          modelId,
+          FALLBACK_MODEL
+        );
+        result = geminiResult.response;
+        console.log("RAG Response - model used:", geminiResult.modelUsed);
+        // Log full response to see all available fields
+        const resultKeys = Object.keys(result);
+        console.log("RAG Response - top level keys:", resultKeys.join(", "));
+        if ((result as { candidates?: unknown[] }).candidates) {
+          const cand = (result as { candidates: unknown[] }).candidates[0];
+          if (cand && typeof cand === "object") {
+            console.log("RAG Response - candidate keys:", Object.keys(cand).join(", "));
+          }
         }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
+      } catch (error) {
         return {
           success: false,
           error: {
             code: "API_ERROR",
-            message: `Gemini API error: ${response.status}`,
-            details: errorText,
+            message: error instanceof Error ? error.message : "Gemini API error after retries",
           },
         };
       }
 
-      const result = await response.json();
-      const candidate = result.candidates?.[0];
+      const candidate = (result as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; groundingMetadata?: unknown }> }).candidates?.[0];
       const responseText = candidate?.content?.parts?.[0]?.text ?? "";
 
       if (!responseText) {
@@ -278,15 +403,53 @@ export const queryWithFileSearch = action({
           success: false,
           error: {
             code: "API_ERROR",
-            message: "Empty response from Gemini",
+            message: "Empty response from Gemini after retries",
           },
         };
       }
 
       // Extract grounding information
-      const groundingMetadata = candidate?.groundingMetadata;
-      const citations = extractCitationsFromGrounding(groundingMetadata);
+      const groundingMetadata = candidate?.groundingMetadata as {
+        groundingChunks?: Array<{
+          retrievedContext?: {
+            uri?: string;
+            title?: string;          // File ID
+            text?: string;           // Retrieved text
+            fileSearchStore?: string; // Store name
+          };
+          web?: {
+            uri?: string;
+            title?: string;
+          };
+        }>;
+        groundingSupports?: Array<{
+          segment?: { text?: string; startIndex?: number; endIndex?: number };
+          groundingChunkIndices?: number[];
+          confidenceScores?: number[];
+        }>;
+      } | undefined;
+
+      // Log grounding metadata for debugging
+      console.log("RAG grounding metadata:", JSON.stringify(groundingMetadata, null, 2));
+      console.log("RAG candidate keys:", candidate ? Object.keys(candidate) : "no candidate");
+      console.log("RAG full candidate:", JSON.stringify(candidate, null, 2).substring(0, 2000));
+
+      let citations = extractCitationsFromGrounding(groundingMetadata);
       const confidence = calculateConfidenceFromGrounding(groundingMetadata);
+
+      // If no grounding citations, create fallback citations from the category
+      if (citations.length === 0 && args.category) {
+        console.log("No grounding citations found, using fallback citations for category:", args.category);
+        if (args.category === "zoning-codes") {
+          citations = [
+            { sourceId: "ch295", sourceName: "Milwaukee Zoning Code Chapter 295", excerpt: "" },
+          ];
+        } else if (args.category === "area-plans") {
+          citations = [
+            { sourceId: "area-plans", sourceName: "Milwaukee Area Plans", excerpt: "" },
+          ];
+        }
+      }
 
       const processingTimeMs = Date.now() - startTime;
 
@@ -403,5 +566,65 @@ export const testQuery = action({
       question: testQuestion,
       category: "zoning-codes",
     });
+  },
+});
+
+/**
+ * Debug action to inspect raw Gemini response structure.
+ */
+export const debugRawResponse = action({
+  args: {
+    question: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<Record<string, unknown>> => {
+    const apiKey = getGeminiApiKey();
+    type Store = { name: string; category: string; status: string };
+    const stores: Store[] = await ctx.runQuery(api.ingestion.fileSearchStores.listStores, {});
+
+    const storeNames: string[] = stores
+      .filter((s) => s.status === "active" && s.category === "zoning-codes")
+      .map((s) => s.name);
+
+    const requestBody: Record<string, unknown> = {
+      contents: [{ parts: [{ text: args.question ?? "What is RS6 zoning?" }] }],
+      tools: [{ fileSearch: { fileSearchStoreNames: storeNames } }],
+    };
+
+    const response: Response = await fetch(
+      `${GEMINI_API_BASE}/models/${PRIMARY_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!response.ok) {
+      return { error: `API error: ${response.status}` };
+    }
+
+    const result = await response.json() as Record<string, unknown>;
+    const candidates = result.candidates as Array<Record<string, unknown>> | undefined;
+    const candidate = candidates?.[0] as Record<string, unknown> | undefined;
+
+    // Check all possible locations for grounding data
+    const groundingMetadata = candidate?.["groundingMetadata"];
+    const citationMetadata = candidate?.["citationMetadata"];
+    const providerMetadata = (candidate?.["providerMetadata"] as Record<string, Record<string, unknown>>)?.["google"]?.["groundingMetadata"];
+    const fileSearchEntries = result["fileSearchEntries"] || candidate?.["fileSearchEntries"];
+
+    return {
+      topLevelKeys: Object.keys(result),
+      candidateKeys: candidate ? Object.keys(candidate) : [],
+      groundingMetadata: groundingMetadata ?? "not present",
+      citationMetadata: citationMetadata ?? "not present",
+      providerMetadata: providerMetadata ?? "not present",
+      fileSearchEntries: fileSearchEntries ?? "not present",
+      hasGroundingChunks: !!(groundingMetadata as Record<string, unknown>)?.groundingChunks,
+      modelVersion: result.modelVersion,
+      usageMetadata: result.usageMetadata,
+      responseText: (candidate?.content as Record<string, unknown[]>)?.parts?.[0] ?
+        JSON.stringify((candidate?.content as Record<string, unknown[]>).parts[0]).substring(0, 500) : "no text",
+    };
   },
 });
