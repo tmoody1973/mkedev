@@ -15,7 +15,7 @@
  */
 
 import mapboxgl from 'mapbox-gl'
-import { PmTilesSource } from 'mapbox-pmtiles'
+import { PmTilesSource } from '@/lib/mapbox-pmtiles-wrapper'
 import type { LayerType } from './layer-config'
 import { ZONING_CATEGORY_COLORS } from './layer-config'
 
