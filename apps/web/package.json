@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.7",
+    "@copilotkit/react-core": "^1.51.1",
+    "@copilotkit/react-ui": "^1.51.1",
     "@google/adk": "^0.2.2",
     "@google/generative-ai": "^0.24.1",
     "@mendable/firecrawl-js": "^4.10.0",

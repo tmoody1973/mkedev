@@ -3,20 +3,29 @@
 import { type ReactNode } from 'react'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { MapProvider } from '@/contexts/MapContext'
+import { CopilotKit } from '@copilotkit/react-core'
+import '@copilotkit/react-ui/styles.css'
 
 interface AppProvidersProps {
   children: ReactNode
 }
 
+// CopilotKit API key (optional - only needed for cloud runtime features)
+const COPILOTKIT_API_KEY = process.env.NEXT_PUBLIC_COPILOTKIT_API_KEY
+
 /**
  * Client-side providers wrapper that includes:
  * - ThemeProvider for dark mode support
  * - MapProvider for map state management
+ * - CopilotKit for generative UI (optional, wraps only if API key provided)
  *
  * Note: ClerkConvexProvider is wrapped around this in the layout
  * to ensure authentication is available throughout the app.
  */
 export function AppProviders({ children }: AppProvidersProps) {
+  // Content with map provider
+  const content = <MapProvider>{children}</MapProvider>
+
   return (
     <ThemeProvider
       attribute="class"
@@ -24,7 +33,16 @@ export function AppProviders({ children }: AppProvidersProps) {
       enableSystem
       disableTransitionOnChange
     >
-      <MapProvider>{children}</MapProvider>
+      {COPILOTKIT_API_KEY ? (
+        <CopilotKit
+          publicApiKey={COPILOTKIT_API_KEY}
+          showDevConsole={process.env.NODE_ENV === 'development'}
+        >
+          {content}
+        </CopilotKit>
+      ) : (
+        content
+      )}
     </ThemeProvider>
   )
 }
