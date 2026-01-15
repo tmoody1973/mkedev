@@ -48,7 +48,15 @@ function findLabelLayerId(map: MapboxMap): string | undefined {
  * Check if 3D buildings layer already exists
  */
 export function has3DBuildings(map: MapboxMap): boolean {
-  return !!map.getLayer(BUILDINGS_3D_LAYER_ID)
+  // Guard against invalid/destroyed map instances
+  if (!map || typeof map.getLayer !== 'function') {
+    return false
+  }
+  try {
+    return !!map.getLayer(BUILDINGS_3D_LAYER_ID)
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -59,6 +67,11 @@ export function has3DBuildings(map: MapboxMap): boolean {
  * @returns true if layer was added, false if it already existed or failed
  */
 export function add3DBuildings(map: MapboxMap): boolean {
+  // Guard against invalid map
+  if (!map || typeof map.getLayer !== 'function') {
+    return false
+  }
+
   // Don't add if already exists
   if (has3DBuildings(map)) {
     return false
@@ -130,6 +143,11 @@ export function add3DBuildings(map: MapboxMap): boolean {
  * @param map - Mapbox GL map instance
  */
 export function remove3DBuildings(map: MapboxMap): void {
+  // Guard against invalid map
+  if (!map || typeof map.removeLayer !== 'function') {
+    return
+  }
+
   if (has3DBuildings(map)) {
     try {
       map.removeLayer(BUILDINGS_3D_LAYER_ID)

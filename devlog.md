@@ -612,4 +612,141 @@ await tracer.endTrace({ response: "...", success: true });
 
 ---
 
+## 2026-01-15 - File Search Stores Upload & Citation Extraction
+
+### Completed
+- [x] Upload 27 PDF documents to Gemini File Search Stores
+- [x] Fix upload script with correct API endpoints
+- [x] Fix grounding metadata extraction for citations
+- [x] Add citation UI components (CitationText, PDFViewerModal)
+- [x] Add document URL mapping for local PDF viewing
+
+### File Search Stores Setup
+
+**Problem:** File Search Stores existed in Convex but had no documents - the legacy Gemini Files API was being used instead.
+
+**Solution:** Rewrote upload script to use correct two-step approach:
+1. Upload file to Gemini Files API (resumable upload)
+2. Wait for file processing (poll until ACTIVE)
+3. Import into File Search Store
+
+**Script:** `apps/web/scripts/upload-to-file-search.ts`
+
+```bash
+pnpm upload-file-search           # Upload all documents
+pnpm upload-file-search:status    # Check store status
+pnpm upload-file-search:reset     # Delete store records
+```
+
+**Documents Uploaded:**
+| Category | Documents | Store |
+|----------|-----------|-------|
+| zoning-codes | 12 | `fileSearchStores/mkedevzoningcodes-51m0bamz6gth` |
+| area-plans | 13 | `fileSearchStores/mkedevareaplans-espdo1ktw7fd` |
+| policies | 2 | `fileSearchStores/mkedevpolicies-oe5qvxtk947k` |
+
+### Grounding Metadata Fix
+
+**Problem:** Citations returning as fallback even though File Search was working.
+
+**Investigation:** Created debug action to inspect raw Gemini response:
+```typescript
+export const debugRawResponse = action({...})
+```
+
+**Discovery:** Grounding metadata structure was different than expected:
+```javascript
+// Expected
+groundingChunks[].retrievedContext.uri
+groundingChunks[].retrievedContext.title
+
+// Actual (File Search format)
+groundingChunks[].retrievedContext.fileSearchStore
+groundingChunks[].retrievedContext.title (file ID)
+groundingChunks[].retrievedContext.text (content)
+```
+
+**Fix Applied in `ragV2.ts`:**
+- Updated `extractCitationsFromGrounding()` to handle File Search format
+- Extract source name from `fileSearchStore` field
+- Map store names to human-readable names (e.g., "Milwaukee Zoning Code Chapter 295")
+- Include excerpt from retrieved text
+
+### Citation UI Components
+
+**CitationText.tsx**
+- Parses `[1]`, `[2]` citation markers from response text
+- Renders clickable links that open PDF viewer
+- Uses `documentUrls.ts` to map source IDs to PDF URLs
+
+**PDFViewerModal.tsx**
+- Modal dialog with embedded PDF viewer (react-pdf)
+- Page navigation and zoom controls
+- Opens PDFs from `/public/docs/` folder
+
+**documentUrls.ts**
+- Maps RAG source IDs to local PDF URLs
+- Supports both zoning codes and area plans
+- Fuzzy matching for various citation formats
+
+### Test Results
+
+```
+Dev Environment:
+✅ File Search Stores: 3 active stores with 27 documents
+✅ RAG queries: Using gemini-3-flash-preview with File Search tool
+✅ Grounding metadata: Now extracting citations correctly
+✅ Citation format: { sourceId, sourceName, excerpt }
+```
+
+**Example Response:**
+```json
+{
+  "citations": [{
+    "sourceId": "fileSearchStores/mkedevzoningcodes-51m0bamz6gth",
+    "sourceName": "Milwaukee Zoning Code Chapter 295",
+    "excerpt": "$N=$ Prohibited Use..."
+  }],
+  "confidence": 0.5,
+  "processingTimeMs": 17741
+}
+```
+
+### Key Files Modified/Created
+
+**New Files:**
+- `apps/web/scripts/upload-to-file-search.ts` - Upload CLI
+- `apps/web/src/components/chat/CitationText.tsx` - Citation renderer
+- `apps/web/src/components/ui/PDFViewerModal.tsx` - PDF viewer
+- `apps/web/src/lib/documentUrls.ts` - URL mapping
+- `apps/web/src/lib/citations.ts` - Citation parsing
+- `apps/web/public/docs/` - 27 PDF documents
+
+**Modified Files:**
+- `apps/web/convex/ingestion/ragV2.ts` - Grounding metadata extraction
+- `apps/web/convex/ingestion/fileSearchStores.ts` - Delete mutations
+- `apps/web/src/hooks/useZoningAgent.ts` - Citation extraction from tool results
+- `apps/web/package.json` - Upload scripts
+
+### Lessons Learned
+
+1. **File Search API format differs from docs** - The REST endpoint structure wasn't clearly documented; had to discover via trial and error
+2. **Grounding metadata varies by source type** - File Search uses `fileSearchStore` field, not `uri`
+3. **Debug actions are essential** - Created `debugRawResponse` to inspect actual API responses
+4. **Two Convex deployments** - dev and prod use different databases; stores needed in both
+
+### Notes
+
+- Production deployment may need store records synced (currently in dev only)
+- Large PDF warning from GitHub (57.65 MB) - consider Git LFS
+- Inline citations `[1.2]`, `[1.4]` come from Gemini's grounding, not our markers
+
+### Next Up
+- [ ] Voice interface with Gemini Live API
+- [ ] CopilotKit generative UI cards
+- [ ] Sync File Search Stores to production
+- [ ] Add page-level citations (specific PDF pages)
+
+---
+
 *Log entries below will be added as development progresses*

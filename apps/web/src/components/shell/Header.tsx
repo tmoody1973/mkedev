@@ -1,6 +1,6 @@
 'use client'
 
-import { Mic, MicOff, Layers, Map, Box } from 'lucide-react'
+import { Mic, MicOff, Layers, Map, Box, History } from 'lucide-react'
 import { UserMenu } from '@/components/user-menu'
 
 export interface HeaderProps {
@@ -22,6 +22,12 @@ export interface HeaderProps {
   onMapToggle?: () => void
   /** Whether map is visible (mobile) */
   isMapVisible?: boolean
+  /** Whether the sidebar is open */
+  isSidebarOpen?: boolean
+  /** Callback when sidebar toggle is clicked */
+  onSidebarToggle?: () => void
+  /** Whether to show the sidebar toggle button */
+  showSidebarToggle?: boolean
 }
 
 /**
@@ -38,20 +44,53 @@ export function Header({
   onLogoClick,
   onMapToggle,
   isMapVisible = false,
+  isSidebarOpen = false,
+  onSidebarToggle,
+  showSidebarToggle = false,
 }: HeaderProps) {
   return (
     <header
       className="flex items-center justify-between h-16 px-4 border-b-2 border-black dark:border-stone-700 bg-white dark:bg-stone-900"
       data-testid="app-header"
     >
-      {/* Logo */}
-      <button
-        onClick={onLogoClick}
-        className="font-head text-2xl font-bold text-stone-900 dark:text-stone-50 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
-        aria-label="MKE.dev home"
-      >
-        MKE.dev
-      </button>
+      {/* Logo and History Toggle */}
+      <div className="flex items-center gap-3">
+        {/* Chat History Toggle */}
+        {showSidebarToggle && (
+          <button
+            onClick={onSidebarToggle}
+            className={`
+              flex items-center justify-center w-10 h-10 rounded-lg border-2 border-black
+              shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,0.2)]
+              hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+              active:translate-y-1 active:shadow-none
+              transition-all duration-100
+              ${
+                isSidebarOpen
+                  ? 'bg-sky-500 text-white'
+                  : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300'
+              }
+            `}
+            aria-label={isSidebarOpen ? 'Hide chat history' : 'Show chat history'}
+            aria-pressed={isSidebarOpen}
+          >
+            <History className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Logo */}
+        <button
+          onClick={onLogoClick}
+          className="hover:opacity-80 transition-opacity"
+          aria-label="MKE.dev home"
+        >
+          <img
+            src="/mkedev-logo-nolabel.svg"
+            alt="MKE.dev"
+            className="h-10 w-auto dark:invert"
+          />
+        </button>
+      </div>
 
       {/* Center Controls */}
       <div className="flex items-center gap-2">

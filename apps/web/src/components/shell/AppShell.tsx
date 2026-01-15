@@ -9,6 +9,12 @@ export interface AppShellProps {
   chatPanel: ReactNode
   /** Content for the map panel (right side on desktop) */
   mapPanel: ReactNode
+  /** Optional sidebar for conversation history */
+  sidebar?: ReactNode
+  /** Whether the sidebar is visible */
+  isSidebarOpen?: boolean
+  /** Callback to toggle sidebar */
+  onSidebarToggle?: () => void
   /** Whether voice mode is active */
   isVoiceActive?: boolean
   /** Callback when voice toggle is clicked */
@@ -33,6 +39,9 @@ export interface AppShellProps {
 export function AppShell({
   chatPanel,
   mapPanel,
+  sidebar,
+  isSidebarOpen = false,
+  onSidebarToggle,
   isVoiceActive = false,
   onVoiceToggle,
   isLayersPanelOpen = false,
@@ -63,10 +72,16 @@ export function AppShell({
         onLogoClick={onLogoClick}
         onMapToggle={handleMapToggle}
         isMapVisible={isMapVisible}
+        isSidebarOpen={isSidebarOpen}
+        onSidebarToggle={onSidebarToggle}
+        showSidebarToggle={!!sidebar}
       />
 
       {/* Main Content: Split View */}
       <main className="flex flex-1 min-h-0 overflow-hidden relative">
+        {/* Conversation Sidebar */}
+        {sidebar}
+
         {/* Chat Panel - 40% on desktop, full width on mobile */}
         <div
           className="w-full md:w-2/5 lg:w-[40%] h-full min-h-0 flex flex-col border-r-0 md:border-r-2 border-black dark:border-stone-700"

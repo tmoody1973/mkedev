@@ -156,6 +156,7 @@ export default defineSchema({
         v.object({
           type: v.union(
             v.literal("zone-info"),
+            v.literal("parcel-info"),
             v.literal("parcel-analysis"),
             v.literal("incentives-summary"),
             v.literal("area-plan-context"),

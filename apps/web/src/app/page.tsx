@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useCallback, useMemo, type ReactNode } from 'react'
+import { useState, useCallback, useMemo, useEffect, type ReactNode } from 'react'
+import { SignedIn, SignedOut, useAuth } from '@clerk/nextjs'
 import { AppShell } from '@/components/shell'
 import { MapContainer, type ParcelData } from '@/components/map'
-import { ChatPanel, type ChatMessage, type GenerativeCard } from '@/components/chat'
+import { ChatPanel, ConversationSidebar, type ChatMessage, type GenerativeCard } from '@/components/chat'
 import { useZoningAgent } from '@/hooks/useZoningAgent'
+import { useConversations } from '@/hooks/useConversations'
 import { ZoneInfoCard, ParcelCard } from '@/components/copilot'
+import { LandingPage } from '@/components/landing'
 import dynamic from 'next/dynamic'
 
 // Dynamic import for PDF viewer (client-side only - PDF.js needs DOM APIs)
@@ -30,10 +33,13 @@ interface PDFModalState {
  * Now powered by the Zoning Interpreter Agent with Gemini 3!
  */
 export default function Home() {
+  const { isLoaded: isAuthLoaded } = useAuth()
   const [isVoiceActive, setIsVoiceActive] = useState(false)
   // Layer panel state - controlled by header button
   const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false)
   const [_selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
+  // Sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // PDF viewer modal state
   const [pdfModal, setPdfModal] = useState<PDFModalState>({
@@ -56,17 +62,63 @@ export default function Home() {
   // Use the Zoning Agent for chat
   const { messages: agentMessages, isLoading, agentStatus, sendMessage, clearMessages } = useZoningAgent()
 
-  // Convert agent messages to ChatMessage format
+  // Conversation persistence
+  const {
+    conversations,
+    currentConversation,
+    currentConversationId,
+    isLoadingList,
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    isSearching,
+    selectConversation,
+    addMessage: persistMessage,
+    toggleStarred,
+    deleteConversation,
+    startNewConversation,
+  } = useConversations()
+
+  // Convert agent messages to ChatMessage format, or load from persisted conversation
   const messages: ChatMessage[] = useMemo(() => {
+    // If viewing a persisted conversation, show its messages
+    if (currentConversation && currentConversation.messages.length > 0) {
+      return currentConversation.messages.map((msg) => ({
+        id: msg._id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: new Date(msg.timestamp),
+        inputMode: (msg.inputMode || 'text') as 'text' | 'voice',
+        cards: msg.cards as GenerativeCard[] | undefined,
+      }))
+    }
+    // Otherwise show current agent session messages
     return agentMessages.map((msg) => ({
       id: msg.id,
       role: msg.role,
       content: msg.content,
       timestamp: msg.timestamp,
       inputMode: 'text' as const,
-      cards: msg.cards, // Pass through generative UI cards
+      cards: msg.cards,
     }))
-  }, [agentMessages])
+  }, [agentMessages, currentConversation])
+
+  // Persist messages when agent responds
+  useEffect(() => {
+    const lastAgentMsg = agentMessages[agentMessages.length - 1]
+    const secondLastMsg = agentMessages[agentMessages.length - 2]
+
+    // When we have a new assistant message, persist both user and assistant messages
+    if (lastAgentMsg?.role === 'assistant' && secondLastMsg?.role === 'user') {
+      // Persist user message
+      persistMessage('user', secondLastMsg.content, { inputMode: 'text' })
+      // Persist assistant message with cards
+      persistMessage('assistant', lastAgentMsg.content, {
+        inputMode: 'text',
+        cards: lastAgentMsg.cards,
+      })
+    }
+  }, [agentMessages.length]) // Only run when message count changes
 
   const handleVoiceToggle = useCallback(() => {
     setIsVoiceActive((prev) => !prev)
@@ -76,11 +128,48 @@ export default function Home() {
     setIsLayersPanelOpen((prev) => !prev)
   }, [])
 
+  const handleSidebarToggle = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev)
+  }, [])
+
   const handleLogoClick = useCallback(() => {
-    // Reset to home state
+    // Reset to home state - start new conversation
     clearMessages()
+    startNewConversation()
     setSelectedParcel(null)
-  }, [clearMessages])
+  }, [clearMessages, startNewConversation])
+
+  const handleNewConversation = useCallback(() => {
+    clearMessages()
+    startNewConversation()
+    setIsSidebarOpen(false) // Close sidebar on mobile after selecting
+  }, [clearMessages, startNewConversation])
+
+  const handleSelectConversation = useCallback((id: typeof currentConversationId) => {
+    selectConversation(id)
+    clearMessages() // Clear agent messages when loading persisted conversation
+    setIsSidebarOpen(false) // Close sidebar on mobile
+  }, [selectConversation, clearMessages])
+
+  const handleToggleStarred = useCallback(async (id: typeof currentConversationId) => {
+    if (id) {
+      // Temporarily select to toggle, then restore
+      const previousId = currentConversationId
+      selectConversation(id)
+      await toggleStarred()
+      if (previousId !== id) {
+        selectConversation(previousId)
+      }
+    }
+  }, [currentConversationId, selectConversation, toggleStarred])
+
+  const handleDeleteConversation = useCallback(async (id: typeof currentConversationId) => {
+    if (id) {
+      selectConversation(id)
+      await deleteConversation()
+      clearMessages()
+    }
+  }, [selectConversation, deleteConversation, clearMessages])
 
   const handleSendMessage = useCallback((content: string) => {
     sendMessage(content)
@@ -278,45 +367,91 @@ export default function Home() {
       default:
         return null;
     }
-  }, [])
+  }, [openPdfViewer])
+
+  // Show loading skeleton while auth state is being determined
+  // This prevents hydration mismatch between server and client
+  if (!isAuthLoaded) {
+    return (
+      <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src="/mkedev-logo-nolabel.svg"
+            alt="MKE.dev"
+            className="h-16 w-auto dark:invert animate-pulse"
+          />
+          <div className="w-48 h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
+            <div className="h-full bg-sky-500 rounded-full animate-[loading_1s_ease-in-out_infinite]" style={{ width: '40%' }} />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
-    <AppShell
-      isVoiceActive={isVoiceActive}
-      onVoiceToggle={handleVoiceToggle}
-      isLayersPanelOpen={isLayersPanelOpen}
-      onLayersClick={handleLayersClick}
-      onLogoClick={handleLogoClick}
-      chatPanel={
-        <ChatPanel
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          onVoiceInput={handleVoiceInput}
-          isLoading={isLoading}
-          agentStatus={agentStatus}
-          placeholder="Ask about zoning, permits, or any property in Milwaukee..."
-          renderCard={renderCard}
-        />
-      }
-      mapPanel={
-        <MapContainer
-          onParcelSelect={handleParcelSelect}
-          onParcelClear={handleParcelClear}
-          onParcelAsk={handleParcelAsk}
-          showLayerPanel={isLayersPanelOpen}
-        />
-      }
-    />
+      {/* Landing page for unauthenticated users */}
+      <SignedOut>
+        <LandingPage />
+      </SignedOut>
 
-    {/* PDF Viewer Modal */}
-    <PDFViewerModal
-      isOpen={pdfModal.isOpen}
-      onClose={closePdfViewer}
-      pdfUrl={pdfModal.pdfUrl}
-      title={pdfModal.title}
-      initialPage={pdfModal.initialPage}
-    />
+      {/* Main app for authenticated users */}
+      <SignedIn>
+        <AppShell
+          isVoiceActive={isVoiceActive}
+          onVoiceToggle={handleVoiceToggle}
+          isLayersPanelOpen={isLayersPanelOpen}
+          onLayersClick={handleLayersClick}
+          onLogoClick={handleLogoClick}
+          isSidebarOpen={isSidebarOpen}
+          onSidebarToggle={handleSidebarToggle}
+          sidebar={
+            <ConversationSidebar
+              conversations={conversations}
+              currentConversationId={currentConversationId}
+              searchQuery={searchQuery}
+              searchResults={searchResults}
+              isSearching={isSearching}
+              isOpen={isSidebarOpen}
+              isLoading={isLoadingList}
+              onSearchChange={setSearchQuery}
+              onSelectConversation={handleSelectConversation}
+              onNewConversation={handleNewConversation}
+              onToggleStarred={handleToggleStarred}
+              onDelete={handleDeleteConversation}
+              onClose={handleSidebarToggle}
+            />
+          }
+          chatPanel={
+            <ChatPanel
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              onVoiceInput={handleVoiceInput}
+              isLoading={isLoading}
+              agentStatus={agentStatus}
+              placeholder="Ask about zoning, permits, or any property in Milwaukee..."
+              renderCard={renderCard}
+            />
+          }
+          mapPanel={
+            <MapContainer
+              onParcelSelect={handleParcelSelect}
+              onParcelClear={handleParcelClear}
+              onParcelAsk={handleParcelAsk}
+              showLayerPanel={isLayersPanelOpen}
+            />
+          }
+        />
+
+        {/* PDF Viewer Modal */}
+        <PDFViewerModal
+          isOpen={pdfModal.isOpen}
+          onClose={closePdfViewer}
+          pdfUrl={pdfModal.pdfUrl}
+          title={pdfModal.title}
+          initialPage={pdfModal.initialPage}
+        />
+      </SignedIn>
     </>
   )
 }

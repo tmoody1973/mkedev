@@ -11,7 +11,9 @@
 import type * as agents_status from "../agents/status.js";
 import type * as agents_tools from "../agents/tools.js";
 import type * as agents_zoning from "../agents/zoning.js";
+import type * as conversations from "../conversations.js";
 import type * as crons from "../crons.js";
+import type * as http from "../http.js";
 import type * as ingestion_corpusConfig from "../ingestion/corpusConfig.js";
 import type * as ingestion_documents from "../ingestion/documents.js";
 import type * as ingestion_fileSearchStores from "../ingestion/fileSearchStores.js";
@@ -35,7 +37,9 @@ declare const fullApi: ApiFromModules<{
   "agents/status": typeof agents_status;
   "agents/tools": typeof agents_tools;
   "agents/zoning": typeof agents_zoning;
+  conversations: typeof conversations;
   crons: typeof crons;
+  http: typeof http;
   "ingestion/corpusConfig": typeof ingestion_corpusConfig;
   "ingestion/documents": typeof ingestion_documents;
   "ingestion/fileSearchStores": typeof ingestion_fileSearchStores;

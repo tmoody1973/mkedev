@@ -5,6 +5,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
  * All other routes will be protected and require sign-in.
  */
 const isPublicRoute = createRouteMatcher([
+  "/",           // Landing page is public
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",

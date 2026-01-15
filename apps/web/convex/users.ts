@@ -200,3 +200,50 @@ export const deleteByClerkId = mutation({
     return user._id;
   },
 });
+
+/**
+ * Delete all user data (conversations, messages) when account is deleted.
+ * Called by Clerk webhook on user.deleted event.
+ */
+export const deleteUserData = internalMutation({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    // Get all user's conversations
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    let messageCount = 0;
+
+    // Delete all messages in each conversation
+    for (const conv of conversations) {
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversationId", (q) => q.eq("conversationId", conv._id))
+        .collect();
+
+      for (const msg of messages) {
+        await ctx.db.delete(msg._id);
+        messageCount++;
+      }
+
+      // Delete the conversation
+      await ctx.db.delete(conv._id);
+    }
+
+    // Also delete user record if it exists
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.userId))
+      .unique();
+
+    if (user) {
+      await ctx.db.delete(user._id);
+    }
+
+    console.log(
+      `Deleted ${conversations.length} conversations and ${messageCount} messages for user ${args.userId}`
+    );
+  },
+});

@@ -120,15 +120,16 @@ const DEFAULT_LAYER_OPACITY: LayerOpacity = {
 // =============================================================================
 
 /**
- * Get initial 3D mode from localStorage (SSR-safe)
+ * Read 3D mode from localStorage (client-side only)
+ * Returns null if not available or on server
  */
-function getInitial3DMode(): boolean {
-  if (typeof window === 'undefined') return false
+function read3DModeFromStorage(): boolean | null {
+  if (typeof window === 'undefined') return null
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY_3D_MODE)
     return stored === 'true'
   } catch {
-    return false
+    return null
   }
 }
 
@@ -163,7 +164,16 @@ export function MapProvider({
     useState<LayerOpacity>(initialLayerOpacity)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
-  const [is3DMode, setIs3DModeState] = useState<boolean>(getInitial3DMode)
+  // Always start with false to match server render, sync from localStorage after hydration
+  const [is3DMode, setIs3DModeState] = useState<boolean>(false)
+
+  // Sync 3D mode from localStorage after hydration (avoids hydration mismatch)
+  useEffect(() => {
+    const stored = read3DModeFromStorage()
+    if (stored !== null) {
+      setIs3DModeState(stored)
+    }
+  }, [])
 
   const setMap = useCallback((map: MapboxMap | null) => {
     mapRef.current = map
