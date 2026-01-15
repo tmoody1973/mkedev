@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mapbox": {
+      "type": "http",
+      "url": "https://mcp.mapbox.com/mcp",
+      "headers": {
+        "Authorization": "Bearer pk.eyJ1IjoidG1vb2R5MTk3MyIsImEiOiJjbWpoOG83YW8xYXNsM2VxM2VhODVhamg3In0.vCGSQQd4gwn_tos4S0MYeA"
+      }
+    }
+  }
+}

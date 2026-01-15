@@ -15,7 +15,13 @@ export function UserMenu() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useClerk();
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Prevent hydration mismatch by waiting for client mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -63,8 +69,8 @@ export function UserMenu() {
     return fullName || user.emailAddresses[0]?.emailAddress || "User";
   };
 
-  // Loading state
-  if (!isLoaded) {
+  // Loading state - show skeleton until mounted and loaded to prevent hydration mismatch
+  if (!isMounted || !isLoaded) {
     return (
       <div className="w-10 h-10 border-2 border-black dark:border-white bg-stone-100 dark:bg-stone-800 animate-pulse" />
     );

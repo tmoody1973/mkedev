@@ -536,4 +536,80 @@ const url = `${ESRI_BASE}/.../query?geometry=${lng},${lat}&inSR=4326&...`;
 
 ---
 
+## 2026-01-14 - Opik LLM Observability Integration
+
+### Completed
+- [x] Install `opik` TypeScript SDK
+- [x] Create OpikTraceManager utility for Convex actions
+- [x] Instrument Zoning Interpreter Agent with tracing
+- [x] Add environment variables documentation
+- [x] Update CLAUDE.md with Opik usage guidelines
+
+### Implementation Summary
+
+**Opik Utility Module:** `apps/web/convex/lib/opik.ts`
+
+Created a trace manager class that provides:
+- `startTrace()` - Begin a new trace for agent interactions
+- `startSpan()` / `endSpan()` - Track individual LLM calls with token usage
+- `logToolExecution()` - Log tool calls with timing
+- `endTrace()` - Complete trace with final output
+- `addScore()` - Add feedback scores for evaluation
+- `flush()` - Ensure all data is sent before action completes
+
+**Zoning Agent Integration:** `apps/web/convex/agents/zoning.ts`
+
+The `chat` action now traces:
+- Full conversation lifecycle (input message, output response)
+- Each LLM call iteration with token usage metrics
+- All tool executions (geocode, zoning query, parking calc, RAG)
+- Success/failure status with error details
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| Auto-disable | If `OPIK_API_KEY` not set, tracing silently disabled |
+| Token tracking | Captures prompt/completion/total tokens per call |
+| Tool timing | Records duration of each tool execution |
+| Error capture | Logs errors with trace context |
+| Hierarchical | Spans nest under traces automatically |
+
+### Environment Variables
+
+```bash
+OPIK_API_KEY=...              # Required to enable tracing
+OPIK_WORKSPACE=...            # Optional workspace name
+OPIK_PROJECT_NAME=mkedev-civic-ai  # Project in Opik dashboard
+```
+
+### Usage Pattern
+
+```typescript
+import { createTraceManager } from "../lib/opik";
+
+const tracer = createTraceManager();
+tracer.startTrace({ name: "agent", input: {...}, tags: [...] });
+
+// Track LLM calls
+const spanId = tracer.startSpan({ name: "llm-call", input: {...} });
+// ... make LLM call ...
+tracer.endSpan(spanId, { output: {...}, usage: {...} });
+
+// Track tools
+tracer.logToolExecution({ name: "tool", args: {...} }, { result: {...} });
+
+// Complete trace
+await tracer.endTrace({ response: "...", success: true });
+```
+
+### Next Up
+- [ ] Set up Opik account and get API key
+- [ ] Test tracing with live queries
+- [ ] Add evaluation metrics (hallucination, relevance)
+- [ ] Voice interface with Gemini Live API
+- [ ] CopilotKit generative UI cards
+
+---
+
 *Log entries below will be added as development progresses*

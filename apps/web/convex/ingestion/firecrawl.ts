@@ -197,14 +197,12 @@ export const ingestUrl = action({
       const documentId = await ctx.runMutation(
         internal.ingestion.documents.createDocument,
         {
+          sourceId: `web-${sourceDomain}-${Date.now()}`,
           title,
           category: args.category,
           sourceUrl: args.url,
           sourceDomain,
-          content,
-          contentPreview,
-          wordCount,
-          status: "active",
+          sourceType: "web",
         }
       );
 
@@ -299,14 +297,12 @@ export const batchIngestUrls = action({
         const contentPreview = content.slice(0, 500);
 
         await ctx.runMutation(internal.ingestion.documents.createDocument, {
+          sourceId: `web-${sourceDomain}-${Date.now()}`,
           title: source.title,
           category: source.category,
           sourceUrl: source.url,
           sourceDomain,
-          content,
-          contentPreview,
-          wordCount,
-          status: "active",
+          sourceType: "web",
         });
 
         results.push({
@@ -389,14 +385,12 @@ export const refreshWebSources = internalAction({
 
         // Upsert document (update if exists, create if not)
         await ctx.runMutation(internal.ingestion.documents.upsertDocument, {
+          sourceId: source.id,
           title: source.title,
           category: source.category,
           sourceUrl: source.source,
           sourceDomain,
-          content,
-          contentPreview,
-          wordCount,
-          status: "active",
+          sourceType: "web",
         });
 
         refreshed++;

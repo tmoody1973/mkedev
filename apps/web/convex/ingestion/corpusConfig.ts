@@ -206,6 +206,139 @@ export const PDF_SOURCES: CorpusSource[] = [
     autoRefresh: false,
     priority: 1,
   },
+  // Neighborhood Area Plans
+  {
+    id: "fondy-north-plan",
+    title: "Fondy and North Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/Fondy-and-North1222021REDUCED.pdf",
+    description:
+      "Area plan for the Fondy and North neighborhoods covering land use, housing, and economic development",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "harbor-district-plan",
+    title: "Harbor District Water and Land Use Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/HarborDistrictWaterandLandUsePlanREDUCEDDecember2017.pdf",
+    description:
+      "Comprehensive plan for Milwaukee's Harbor District including waterfront development and land use",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "menomonee-valley-plan",
+    title: "Menomonee Valley Plan 2.0",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/MenomoneeValleyPlan2.0_Final---Amendment-Notes.pdf",
+    description:
+      "Updated plan for the Menomonee Valley industrial corridor and mixed-use development",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "near-north-plan",
+    title: "Near North Side Comprehensive Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/NearNorthPlan-w-CTC.pdf",
+    description:
+      "Comprehensive neighborhood plan for Milwaukee's Near North Side",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "near-west-plan",
+    title: "Near West Side Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/NearWestPlan.pdf",
+    description:
+      "Area plan for Milwaukee's Near West Side neighborhood",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "northeast-side-plan",
+    title: "Northeast Side Comprehensive Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/NESplan.pdf",
+    description:
+      "Comprehensive plan for Milwaukee's Northeast Side neighborhoods",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "north-side-plan",
+    title: "North Side Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/NSPlan.pdf",
+    description:
+      "Area plan for Milwaukee's North Side neighborhoods",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "northwest-side-plan",
+    title: "Northwest Side Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/NWSPlan.pdf",
+    description:
+      "Area plan for Milwaukee's Northwest Side neighborhoods",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "southeast-side-plan",
+    title: "Southeast Side Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/SEPlan.pdf",
+    description:
+      "Area plan for Milwaukee's Southeast Side neighborhoods including Bay View",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "southwest-side-plan",
+    title: "Southwest Side Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/SWPlan.pdf",
+    description:
+      "Area plan for Milwaukee's Southwest Side neighborhoods",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "third-ward-plan",
+    title: "Third Ward/Walker's Point Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/TWPlan.pdf",
+    description:
+      "Area plan for Milwaukee's Historic Third Ward and Walker's Point neighborhoods",
+    autoRefresh: false,
+    priority: 2,
+  },
+  {
+    id: "washington-park-plan",
+    title: "Washington Park Area Plan",
+    category: "area-plans",
+    method: "gemini-file-search",
+    source: "data/plans/WPPlan.pdf",
+    description:
+      "Area plan for the Washington Park neighborhood and surrounding areas",
+    autoRefresh: false,
+    priority: 2,
+  },
 ];
 
 // =============================================================================

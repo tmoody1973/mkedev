@@ -45,7 +45,7 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 | Priority | Feature | Description | Dependencies |
 |----------|---------|-------------|--------------|
 | P0 | Incentives Navigator Agent | Agent for TIF, OZ, and other incentives | Document Ingestion |
-| P0 | Feasibility Analyst Agent | Meta-agent orchestrating all other agents | All agents |
+| P0 | Orchestrator Agent | Meta-agent for complex multi-domain queries ([spec](../specs/2026-01-15-orchestrator-agent/spec.md)) | All agents |
 | P0 | Additional Map Layers | TIF, Opportunity Zones, Historic Districts, etc. | Mapbox |
 | P0 | Opik Evaluation Pipeline | RAG accuracy and hallucination testing | Opik Integration |
 | P1 | Prompt Optimization | Agent Optimizer cycle on Zoning Interpreter | Opik Evaluation |
@@ -75,8 +75,14 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 | P0 | Rate Limiting | Protect APIs from abuse |
 | P0 | Security Audit | Review auth, data access, API keys |
 | P0 | Performance Optimization | Lazy loading, caching, bundle optimization |
+| P0 | Orchestrator Agent Phase 1 | Basic multi-agent orchestration with sequential execution ([spec](../specs/2026-01-15-orchestrator-agent/spec.md)) |
+| P0 | Memory Layer Phase 1 | Supermemory setup, basic save/recall, project memory ([spec](../specs/2026-01-15-memory-layer/spec.md)) |
+| P1 | Orchestrator Agent Phase 2 | Parallel task execution, result caching |
+| P1 | Memory Layer Phase 2 | Auto-learning, user profile injection, preference learning |
 | P1 | Monitoring & Alerts | Opik production monitoring, error alerting |
 | P1 | Analytics | User behavior tracking (privacy-respecting) |
+| P2 | Orchestrator Agent Phase 3 | Iterative refinement, user clarification, explanation mode |
+| P2 | Memory Layer Phase 3 | User memory management UI, privacy controls, memory indicators |
 | P2 | Offline Support | Basic functionality when network is unavailable |
 
 ---
@@ -167,19 +173,28 @@ Document Ingestion (Gemini File Search)
         └── Form-aware RAG responses
     │
     └── Agent System (Google ADK)
-        ├── Zoning Interpreter
-        ├── Area Plan Advisor
-        ├── Incentives Navigator
-        ├── Design Advisor
-        │   └── Nano Banana (Vision)
-        ├── Location Intelligence (Mapbox Tools)
-        │   └── geocode_address, search_nearby_pois,
-        │       calculate_isochrone, get_travel_time,
-        │       generate_map_image
-        ├── Permit Navigator
-        │   └── Form-aware guidance + walkthrough
-        └── Feasibility Analyst (Meta-Agent)
-            └── Orchestrates all above
+        ├── Specialized Agents (Single-Domain)
+        │   ├── Zoning Interpreter (zoning code, parking, permitted uses)
+        │   ├── Area Plan Advisor (neighborhood vision, development goals)
+        │   ├── Incentives Navigator (TIF, OZ, tax credits)
+        │   ├── Spatial Agent (geocoding, parcel search, ESRI queries)
+        │   ├── Design Advisor + Nano Banana (vision generation)
+        │   └── Permit Navigator (form-aware guidance)
+        │
+        ├── Memory Layer (Supermemory)
+        │   ├── User Profiles (auto-learned preferences)
+        │   ├── Project Memory (multi-session tracking)
+        │   ├── Interaction Memory (findings, calculations)
+        │   └── Semantic Recall (search past interactions)
+        │
+        └── Orchestrator Agent (Multi-Domain)
+            ├── Query Classification (simple vs complex)
+            ├── Workflow Planning (task DAG generation)
+            ├── Parallel Execution (independent tasks)
+            ├── Result Synthesis (combine agent outputs)
+            ├── Memory Integration (user context + preferences)
+            └── Handles: feasibility analysis, site comparison,
+                incentive stacking, complex neighborhood queries
 
 Opik/Comet
     ├── Tracing (all agents)

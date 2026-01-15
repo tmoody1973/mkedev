@@ -1,12 +1,15 @@
+"use node";
+
 /**
  * Zoning Interpreter Agent - Convex Implementation
  *
  * Conversational agent that helps users understand Milwaukee zoning requirements.
  * Uses Gemini function calling for intelligent tool orchestration.
+ * Instrumented with Opik for LLM observability and tracing.
  */
 
 import { v } from "convex/values";
-import { action, mutation, query } from "../_generated/server";
+import { action } from "../_generated/server";
 import { api } from "../_generated/api";
 import {
   TOOL_DECLARATIONS,
@@ -14,13 +17,14 @@ import {
   queryZoningAtPoint,
   calculateParking,
 } from "./tools";
+import { createTraceManager } from "../lib/opik";
 
 // =============================================================================
 // Configuration
 // =============================================================================
 
 const MODEL = "gemini-3-flash-preview";
-const MAX_TOOL_CALLS = 10;
+const MAX_TOOL_CALLS = 15;
 
 const SYSTEM_INSTRUCTION = `You are a helpful Milwaukee zoning assistant. Your role is to help users understand zoning requirements for properties in Milwaukee, Wisconsin.
 
@@ -31,6 +35,7 @@ You have access to these tools:
 2. **query_zoning_at_point** - Get zoning district and overlay zones at a location
 3. **calculate_parking** - Calculate required parking spaces
 4. **query_zoning_code** - Search the Milwaukee zoning code for detailed regulations
+5. **query_area_plans** - Search neighborhood area plans for development goals, housing strategies, and community vision (covers Downtown, Menomonee Valley, Third Ward, Near North Side, and 10+ other neighborhoods)
 
 ## Interaction Guidelines
 
@@ -52,12 +57,18 @@ For location-specific questions:
 - Use query_zoning_code to look up general zoning info for the area/neighborhood
 - Proceed with calculations if the user provides the district code
 
-### 3. Be Specific and Cite Sources
+### 3. Use Area Plans for Neighborhood Context
+When users ask about development goals, housing strategies, or community vision for a specific neighborhood:
+- Use query_area_plans to find relevant neighborhood planning information
+- Neighborhoods covered: Downtown, Menomonee Valley, Third Ward, Harbor District, Near North Side, Near West Side, North Side, Northwest Side, Northeast Side, Southeast Side, Southwest Side, Washington Park, Fondy/North
+
+### 4. Be Specific and Cite Sources
 - Always mention the specific zoning district (e.g., "In the DC Downtown Core district...")
 - Reference code sections when possible (e.g., "Per Section 295-403...")
 - Mention any overlay zones that may affect requirements
+- For area plans, mention which neighborhood plan you're referencing
 
-### 4. Response Format
+### 5. Response Format
 Structure your responses clearly:
 1. **Direct Answer** - Start with the specific answer
 2. **Details** - Provide the calculation or reasoning
@@ -102,6 +113,7 @@ interface RAGResult {
 
 /**
  * Chat with the Zoning Interpreter Agent.
+ * Instrumented with Opik tracing for observability.
  */
 export const chat = action({
   args: {
@@ -121,6 +133,21 @@ export const chat = action({
   }> => {
     const apiKey = getGeminiApiKey();
     const toolsUsed: string[] = [];
+
+    // Initialize Opik tracing
+    const tracer = createTraceManager();
+    tracer.startTrace({
+      name: "zoning-interpreter-chat",
+      input: {
+        message: args.message,
+        historyLength: args.conversationHistory?.length || 0,
+      },
+      tags: ["zoning-agent", "gemini", "milwaukee"],
+      metadata: {
+        model: MODEL,
+        maxToolCalls: MAX_TOOL_CALLS,
+      },
+    });
 
     // Build conversation history for Gemini
     const contents: GeminiMessage[] = [];
@@ -144,38 +171,79 @@ export const chat = action({
     // Agent loop with tool calling
     let iteration = 0;
 
-    while (iteration < MAX_TOOL_CALLS) {
-      iteration++;
+    try {
+      while (iteration < MAX_TOOL_CALLS) {
+        iteration++;
 
-      // Call Gemini API
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-            contents,
-            tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 2048,
-            },
-          }),
+        // Start LLM call span
+        const llmSpanId = tracer.startSpan({
+          name: `llm-call-${iteration}`,
+          input: {
+            model: MODEL,
+            messageCount: contents.length,
+            iteration,
+          },
+          metadata: {
+            temperature: 0.3,
+            maxOutputTokens: 2048,
+          },
+        });
+
+        // Call Gemini API
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+              contents,
+              tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 2048,
+              },
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          tracer.endSpan(llmSpanId, {
+            output: { error: errorText, status: response.status },
+          });
+          throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
         }
-      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-      }
+        const result = await response.json();
+        const candidate = result.candidates?.[0];
 
-      const result = await response.json();
-      const candidate = result.candidates?.[0];
+        // Extract token usage if available
+        const usageMetadata = result.usageMetadata;
 
-      if (!candidate?.content?.parts) {
-        throw new Error("Empty response from Gemini");
-      }
+        if (!candidate?.content?.parts) {
+          tracer.endSpan(llmSpanId, {
+            output: { error: "Empty response" },
+          });
+          throw new Error("Empty response from Gemini");
+        }
+
+        // End LLM span with token usage
+        tracer.endSpan(llmSpanId, {
+          output: {
+            hasFunctionCalls: candidate.content.parts.some((p: { functionCall?: unknown }) => p.functionCall),
+            partsCount: candidate.content.parts.length,
+          },
+          usage: usageMetadata
+            ? {
+                promptTokens: usageMetadata.promptTokenCount,
+                completionTokens: usageMetadata.candidatesTokenCount,
+                totalTokens: usageMetadata.totalTokenCount,
+              }
+            : undefined,
+          model: MODEL,
+          provider: "google",
+        });
 
       // Check for function calls
       const functionCalls = candidate.content.parts.filter(
@@ -200,6 +268,7 @@ export const chat = action({
 
           // Execute tool inline to avoid type issues
           let toolResult: Record<string, unknown>;
+          const toolStartTime = Date.now();
 
           switch (name) {
             case "geocode_address":
@@ -234,9 +303,41 @@ export const chat = action({
               break;
             }
 
+            case "query_area_plans": {
+              // Query area plans for neighborhood development information
+              const areaArgs = fnArgs as { question: string; neighborhood?: string };
+              const enhancedQuestion = areaArgs.neighborhood
+                ? `Regarding the ${areaArgs.neighborhood} neighborhood: ${areaArgs.question}`
+                : areaArgs.question;
+
+              const areaPlanResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+                question: enhancedQuestion,
+                category: "area-plans",
+              }) as RAGResult;
+
+              if (areaPlanResult.success && areaPlanResult.response) {
+                toolResult = {
+                  success: true,
+                  answer: areaPlanResult.response.answer,
+                  confidence: areaPlanResult.response.confidence,
+                  citations: areaPlanResult.response.citations,
+                };
+              } else {
+                toolResult = { success: false, error: areaPlanResult.error?.message || "Area plans query failed" };
+              }
+              break;
+            }
+
             default:
               toolResult = { error: `Unknown tool: ${name}` };
           }
+
+          // Log tool execution to Opik
+          const toolDuration = Date.now() - toolStartTime;
+          tracer.logToolExecution(
+            { name, args: fnArgs as Record<string, unknown> },
+            { result: toolResult, durationMs: toolDuration }
+          );
 
           functionResponses.push({
             functionResponse: {
@@ -256,22 +357,41 @@ export const chat = action({
         continue;
       }
 
-      // No function calls - return text response
-      const textParts = candidate.content.parts.filter(
-        (p: { text?: string }) => p.text
-      );
+        // No function calls - return text response
+        const textParts = candidate.content.parts.filter(
+          (p: { text?: string }) => p.text
+        );
 
-      if (textParts.length > 0) {
-        return {
-          response: textParts.map((p: { text: string }) => p.text).join("\n"),
-          toolsUsed,
-        };
+        if (textParts.length > 0) {
+          const finalResponse = textParts.map((p: { text: string }) => p.text).join("\n");
+
+          // End trace with successful response
+          await tracer.endTrace({
+            response: finalResponse,
+            toolsUsed,
+            iterations: iteration,
+            success: true,
+          });
+
+          return {
+            response: finalResponse,
+            toolsUsed,
+          };
+        }
+
+        throw new Error("No text response from Gemini");
       }
 
-      throw new Error("No text response from Gemini");
+      throw new Error("Max tool calls exceeded");
+    } catch (error) {
+      // End trace with error
+      await tracer.endTrace({
+        error: error instanceof Error ? error.message : String(error),
+        toolsUsed,
+        success: false,
+      });
+      throw error;
     }
-
-    throw new Error("Max tool calls exceeded");
   },
 });
 

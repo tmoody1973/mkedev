@@ -98,8 +98,85 @@ const DOCUMENT_SOURCES: Record<
       path: "data/zoning-code-pdfs/CH295table.pdf",
     },
   ],
-  "area-plans": [],
-  policies: [],
+  "area-plans": [
+    {
+      id: "downtown-plan",
+      title: "Milwaukee Downtown Plan",
+      path: "data/plans/MilwaukeeDowntownPlan-FINAL-web.pdf",
+    },
+    {
+      id: "fondy-north-plan",
+      title: "Fondy and North Area Plan",
+      path: "data/plans/Fondy-and-North1222021REDUCED.pdf",
+    },
+    {
+      id: "harbor-district-plan",
+      title: "Harbor District Water and Land Use Plan",
+      path: "data/plans/HarborDistrictWaterandLandUsePlanREDUCEDDecember2017.pdf",
+    },
+    {
+      id: "menomonee-valley-plan",
+      title: "Menomonee Valley Plan 2.0",
+      path: "data/plans/MenomoneeValleyPlan2.0_Final---Amendment-Notes.pdf",
+    },
+    {
+      id: "near-north-plan",
+      title: "Near North Side Comprehensive Plan",
+      path: "data/plans/NearNorthPlan-w-CTC.pdf",
+    },
+    {
+      id: "near-west-plan",
+      title: "Near West Side Area Plan",
+      path: "data/plans/NearWestPlan.pdf",
+    },
+    {
+      id: "northeast-side-plan",
+      title: "Northeast Side Comprehensive Plan",
+      path: "data/plans/NESplan.pdf",
+    },
+    {
+      id: "north-side-plan",
+      title: "North Side Area Plan",
+      path: "data/plans/NSPlan.pdf",
+    },
+    {
+      id: "northwest-side-plan",
+      title: "Northwest Side Area Plan",
+      path: "data/plans/NWSPlan.pdf",
+    },
+    {
+      id: "southeast-side-plan",
+      title: "Southeast Side Area Plan",
+      path: "data/plans/SEPlan.pdf",
+    },
+    {
+      id: "southwest-side-plan",
+      title: "Southwest Side Area Plan",
+      path: "data/plans/SWPlan.pdf",
+    },
+    {
+      id: "third-ward-plan",
+      title: "Third Ward/Walker's Point Area Plan",
+      path: "data/plans/TWPlan.pdf",
+    },
+    {
+      id: "washington-park-plan",
+      title: "Washington Park Area Plan",
+      path: "data/plans/WPPlan.pdf",
+    },
+  ],
+  policies: [
+    {
+      id: "housing-element",
+      title: "Milwaukee Housing Element Plan",
+      path: "data/plans/Housing-Element---FINAL-PLAN---web (1).pdf",
+    },
+    {
+      id: "citywide-plan",
+      title: "Milwaukee Citywide Policy Plan",
+      path: "data/plans/Citywide.pdf",
+    },
+  ],
   ordinances: [],
   guides: [],
 };

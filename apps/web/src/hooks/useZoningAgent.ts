@@ -54,8 +54,9 @@ export function useZoningAgent(): UseZoningAgentReturn {
 
       try {
         // Build conversation history for context
+        // Convert 'assistant' role to 'model' for Gemini API
         const conversationHistory = messages.map((msg) => ({
-          role: msg.role as 'user' | 'model',
+          role: (msg.role === 'assistant' ? 'model' : msg.role) as 'user' | 'model',
           content: msg.content,
         }));
 

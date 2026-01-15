@@ -454,8 +454,10 @@ GOOGLE_GEMINI_API_KEY=...
 # Firecrawl
 FIRECRAWL_API_KEY=...
 
-# Comet/Opik (future)
-COMET_API_KEY=...
+# Opik (LLM Observability)
+OPIK_API_KEY=...
+OPIK_WORKSPACE=...
+OPIK_PROJECT_NAME=mkedev-civic-ai
 ```
 
 ---
@@ -531,6 +533,130 @@ Use this agent when building map features that integrate Esri data with Mapbox. 
 - "Style map layer"
 - "Build mapping feature"
 - Any task involving Milwaukee GIS data + Mapbox
+
+---
+
+## Opik (LLM Observability)
+
+### Overview
+All LLM agents in this project are instrumented with [Opik](https://www.comet.com/docs/opik) for observability, tracing, and evaluation. Opik captures:
+- Agent interactions (traces)
+- LLM calls with token usage (spans)
+- Tool executions with timing
+- Errors and success/failure status
+
+### Configuration
+Set these environment variables to enable Opik:
+```bash
+OPIK_API_KEY=your-api-key          # Get from comet.com/opik
+OPIK_WORKSPACE=your-workspace      # Optional
+OPIK_PROJECT_NAME=mkedev-civic-ai  # Project name in Opik dashboard
+```
+
+If `OPIK_API_KEY` is not set, tracing is silently disabled (no errors).
+
+### Usage in Convex Actions
+Import the trace manager utility:
+```typescript
+import { createTraceManager } from "../lib/opik";
+
+export const myAction = action({
+  handler: async (ctx, args) => {
+    const tracer = createTraceManager();
+
+    // Start trace
+    tracer.startTrace({
+      name: "my-agent-action",
+      input: { message: args.message },
+      tags: ["agent", "gemini"],
+    });
+
+    try {
+      // Start span for LLM call
+      const llmSpanId = tracer.startSpan({
+        name: "llm-call",
+        input: { prompt: "..." },
+      });
+
+      // Make LLM call...
+      const result = await callLLM();
+
+      // End span with output
+      tracer.endSpan(llmSpanId, {
+        output: { response: result },
+        usage: { promptTokens: 100, completionTokens: 50 },
+        model: "gemini-3-flash-preview",
+        provider: "google",
+      });
+
+      // Log tool execution
+      tracer.logToolExecution(
+        { name: "geocode_address", args: { address: "500 N Water St" } },
+        { result: { lat: 43.04, lng: -87.91 }, durationMs: 150 }
+      );
+
+      // End trace with final output
+      await tracer.endTrace({ response: result, success: true });
+
+      return result;
+    } catch (error) {
+      await tracer.endTrace({ error: error.message, success: false });
+      throw error;
+    }
+  },
+});
+```
+
+### Viewing Traces
+1. Go to [comet.com/opik](https://comet.com/opik)
+2. Select your workspace and project
+3. View traces, spans, and metrics in the dashboard
+
+### Adding Feedback Scores
+For evaluation metrics (e.g., hallucination detection):
+```typescript
+tracer.addScore("hallucination", 0.1, "Response grounded in sources");
+tracer.addScore("relevance", 0.95, "Directly answers user question");
+```
+
+---
+
+## MCP Servers
+
+### CopilotKit MCP (REQUIRED for CopilotKit work)
+**ALWAYS use the CopilotKit MCP tools when working with CopilotKit features.** This ensures you have access to the latest documentation, patterns, and code examples.
+
+**Available Tools:**
+- `mcp__copilotkit-mcp__search-docs` - Search CopilotKit documentation for concepts, APIs, and guides
+- `mcp__copilotkit-mcp__search-code` - Search CopilotKit code examples and implementation patterns
+
+**When to use:**
+- Before implementing any CopilotKit feature (Generative UI, AG-UI protocol, CoAgents)
+- When configuring CopilotKit providers or hooks
+- When building copilot actions or render functions
+- When integrating CopilotKit with Convex or other backends
+- When troubleshooting CopilotKit behavior
+
+**Workflow:**
+1. **First**: Use `search-docs` to understand the concept/API
+2. **Then**: Use `search-code` to find implementation examples
+3. **Finally**: Implement following the patterns from the MCP results
+
+**Example queries:**
+```
+# Documentation searches
+search-docs: "useCopilotAction hook"
+search-docs: "AG-UI protocol setup"
+search-docs: "CopilotKit with Next.js App Router"
+search-docs: "generative UI components"
+
+# Code searches
+search-code: "useCopilotReadable example"
+search-code: "CopilotKit provider configuration"
+search-code: "render function patterns"
+```
+
+**Important:** CopilotKit is rapidly evolving. Documentation and examples from the MCP are more current than training data. Always verify patterns against MCP results before implementing.
 
 ---
 

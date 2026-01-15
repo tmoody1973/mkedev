@@ -21,6 +21,7 @@ import type * as ingestion_rag from "../ingestion/rag.js";
 import type * as ingestion_ragV2 from "../ingestion/ragV2.js";
 import type * as ingestion_trigger from "../ingestion/trigger.js";
 import type * as ingestion_types from "../ingestion/types.js";
+import type * as lib_opik from "../lib/opik.js";
 import type * as users from "../users.js";
 
 import type {
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/ragV2": typeof ingestion_ragV2;
   "ingestion/trigger": typeof ingestion_trigger;
   "ingestion/types": typeof ingestion_types;
+  "lib/opik": typeof lib_opik;
   users: typeof users;
 }>;
 

@@ -1,0 +1,517 @@
+"use node";
+
+/**
+ * Zoning Interpreter Agent - Google ADK TypeScript Implementation
+ *
+ * Conversational agent that helps users understand Milwaukee zoning requirements.
+ * Built with Google ADK (Agent Development Kit) for TypeScript.
+ */
+
+import { v } from "convex/values";
+import { action } from "../_generated/server";
+import { api } from "../_generated/api";
+import { FunctionTool, LlmAgent, InMemoryRunner, isFinalResponse, Gemini } from "@google/adk";
+import { z } from "zod";
+import { createTraceManager } from "../lib/opik";
+
+// =============================================================================
+// Model Configuration
+// =============================================================================
+
+// Create Gemini model with explicit API key from environment
+function createGeminiModel(model: string = "gemini-2.5-flash") {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY environment variable is not set");
+  }
+  return new Gemini({
+    model,
+    apiKey,
+  });
+}
+
+// =============================================================================
+// Configuration
+// =============================================================================
+
+const MILWAUKEE_BBOX = "-88.1,42.8,-87.8,43.2";
+const ESRI_BASE = "https://milwaukeemaps.milwaukee.gov/arcgis/rest/services";
+
+// =============================================================================
+// Tool Schemas (using Zod 3.x for ADK compatibility)
+// =============================================================================
+
+const geocodeSchema = z.object({
+  address: z.string().describe('Street address (e.g., "500 N Water St")'),
+  city: z.string().optional().describe("City name (default: Milwaukee)"),
+  state: z.string().optional().describe("State abbreviation (default: WI)"),
+});
+
+const zoningQuerySchema = z.object({
+  longitude: z.number().describe("Longitude coordinate (e.g., -87.9095)"),
+  latitude: z.number().describe("Latitude coordinate (e.g., 43.0389)"),
+});
+
+const parkingSchema = z.object({
+  useType: z.enum([
+    "restaurant", "retail", "office", "medical",
+    "industrial", "warehouse", "assembly", "residential"
+  ]).describe("Type of use"),
+  grossFloorArea: z.number().describe("Gross floor area in square feet"),
+  zoningDistrict: z.string().describe("Zoning district code (e.g., DC, RS6, LB2)"),
+  seatingCapacity: z.number().optional().describe("Seating capacity (for assembly uses)"),
+  units: z.number().optional().describe("Number of dwelling units (for residential)"),
+});
+
+// =============================================================================
+// Tool Implementations
+// =============================================================================
+
+/**
+ * Geocode a Milwaukee address to coordinates.
+ */
+const geocodeAddressTool = new FunctionTool({
+  name: "geocode_address",
+  description:
+    "Convert a Milwaukee street address to latitude/longitude coordinates for zoning lookup. Use this when you need to find zoning information for a specific address.",
+  parameters: geocodeSchema,
+  execute: async ({ address, city = "Milwaukee", state = "WI" }: z.infer<typeof geocodeSchema>) => {
+    const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!mapboxToken) {
+      return { success: false, error: "Mapbox token not configured" };
+    }
+
+    const fullAddress = `${address}, ${city}, ${state}`;
+    const encodedAddress = encodeURIComponent(fullAddress);
+
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${mapboxToken}&bbox=${MILWAUKEE_BBOX}&limit=1&types=address`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        return { success: false, error: `Geocoding error: ${response.status}` };
+      }
+
+      const data = await response.json();
+      const feature = data.features?.[0];
+
+      if (!feature || feature.relevance < 0.7) {
+        return {
+          success: false,
+          error: "Address not found in Milwaukee. Please check the spelling.",
+        };
+      }
+
+      return {
+        success: true,
+        coordinates: {
+          longitude: feature.center[0],
+          latitude: feature.center[1],
+        },
+        formattedAddress: feature.place_name,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Geocoding failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
+/**
+ * Query zoning district at a coordinate point.
+ */
+const queryZoningAtPointTool = new FunctionTool({
+  name: "query_zoning_at_point",
+  description:
+    "Get zoning district and overlay information (TIF, Opportunity Zone, Historic District) for a specific location. Requires longitude and latitude coordinates from geocoding.",
+  parameters: zoningQuerySchema,
+  execute: async ({ longitude, latitude }: z.infer<typeof zoningQuerySchema>) => {
+    try {
+      const zoningUrl = `${ESRI_BASE}/planning/zoning/MapServer/11/query?geometry=${longitude},${latitude}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
+      const zoningResponse = await fetch(zoningUrl);
+      const zoningData = await zoningResponse.json();
+      const zoning = zoningData.features?.[0]?.attributes;
+
+      if (!zoning) {
+        return {
+          success: false,
+          error: "No zoning information found at this location.",
+        };
+      }
+
+      // Query overlay zones
+      const overlays: string[] = [];
+
+      // TIF Districts
+      try {
+        const tifUrl = `${ESRI_BASE}/planning/special_districts/MapServer/8/query?geometry=${longitude},${latitude}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=TIF_NAME&returnGeometry=false&f=json`;
+        const tifResponse = await fetch(tifUrl);
+        const tifData = await tifResponse.json();
+        const tif = tifData.features?.[0]?.attributes;
+        if (tif?.TIF_NAME) {
+          overlays.push(`TIF District: ${tif.TIF_NAME}`);
+        }
+      } catch {
+        // Continue without TIF
+      }
+
+      // Opportunity Zones
+      try {
+        const ozUrl = `${ESRI_BASE}/planning/special_districts/MapServer/9/query?geometry=${longitude},${latitude}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
+        const ozResponse = await fetch(ozUrl);
+        const ozData = await ozResponse.json();
+        if (ozData.features?.length > 0) {
+          overlays.push("Opportunity Zone");
+        }
+      } catch {
+        // Continue without OZ
+      }
+
+      return {
+        success: true,
+        zoningDistrict: zoning.Zoning || zoning.ZONING || "Unknown",
+        zoningCategory: zoning.ZoningCategory || "",
+        zoningType: zoning.ZoningType || "",
+        overlayZones: overlays,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Zoning query failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
+
+/**
+ * Calculate required parking spaces.
+ */
+const REDUCED_PARKING_DISTRICTS = ["DC", "DL1", "DL2", "DL3", "DL4", "DR1", "DR2"];
+const PARKING_RATIOS: Record<string, { standard: number; reduced: number; min: number }> = {
+  restaurant: { standard: 100, reduced: 400, min: 0 },
+  retail: { standard: 300, reduced: 600, min: 3 },
+  office: { standard: 400, reduced: 1000, min: 3 },
+  medical: { standard: 200, reduced: 400, min: 5 },
+  industrial: { standard: 1000, reduced: 1000, min: 3 },
+  warehouse: { standard: 2000, reduced: 2000, min: 2 },
+  assembly: { standard: 50, reduced: 100, min: 10 },
+  residential: { standard: 1, reduced: 0.5, min: 0 },
+};
+
+const calculateParkingTool = new FunctionTool({
+  name: "calculate_parking",
+  description:
+    "Calculate required parking spaces based on use type, building size, and zoning district. Use this after determining the zoning district to give specific parking requirements.",
+  parameters: parkingSchema,
+  execute: ({ useType, grossFloorArea, zoningDistrict, seatingCapacity, units }: z.infer<typeof parkingSchema>) => {
+    const useTypeLower = useType.toLowerCase();
+    const isReducedDistrict = REDUCED_PARKING_DISTRICTS.includes(zoningDistrict.toUpperCase());
+    const ratioConfig = PARKING_RATIOS[useTypeLower] || PARKING_RATIOS.retail;
+    const ratio = isReducedDistrict ? ratioConfig.reduced : ratioConfig.standard;
+
+    let requiredSpaces: number;
+    let calculation: string;
+    let ratioString: string;
+
+    if (useTypeLower === "residential" && units !== undefined) {
+      requiredSpaces = Math.ceil(units * ratio);
+      calculation = `${units} units × ${ratio} spaces/unit = ${requiredSpaces} spaces`;
+      ratioString = `${ratio} space(s) per unit`;
+    } else if (useTypeLower === "assembly" && seatingCapacity !== undefined) {
+      requiredSpaces = Math.ceil(seatingCapacity / ratio);
+      calculation = `${seatingCapacity} seats ÷ ${ratio} = ${requiredSpaces} spaces`;
+      ratioString = `1 space per ${ratio} seats`;
+    } else {
+      requiredSpaces = Math.ceil(grossFloorArea / ratio);
+      calculation = `${grossFloorArea.toLocaleString()} sq ft ÷ ${ratio} = ${requiredSpaces} spaces`;
+      ratioString = `1 space per ${ratio} sq ft`;
+    }
+
+    requiredSpaces = Math.max(requiredSpaces, ratioConfig.min);
+
+    const notes = isReducedDistrict
+      ? `The ${zoningDistrict} district has reduced parking requirements. Shared parking and in-lieu fees may be available.`
+      : "Standard parking requirements apply.";
+
+    return {
+      requiredSpaces,
+      ratio: ratioString,
+      isReducedDistrict,
+      calculation,
+      notes,
+      codeReference: "Section 295-403 (Off-Street Parking Requirements)",
+    };
+  },
+});
+
+// =============================================================================
+// Agent System Instructions
+// =============================================================================
+
+const SYSTEM_INSTRUCTION = `You are a helpful Milwaukee zoning assistant. Your role is to help users understand zoning requirements for properties in Milwaukee, Wisconsin.
+
+## Your Capabilities
+
+You have access to these tools:
+1. **geocode_address** - Convert street addresses to coordinates
+2. **query_zoning_at_point** - Get zoning district and overlay zones at a location
+3. **calculate_parking** - Calculate required parking spaces
+
+## Interaction Guidelines
+
+### 1. Always Gather Context First
+When users ask location-specific questions (parking, setbacks, permitted uses, height limits), you MUST ask for the property address first if not provided.
+
+Example:
+User: "What parking do I need for my restaurant?"
+You: "I'd be happy to help calculate your parking requirements! What's the address of your restaurant, and approximately how many square feet is it?"
+
+### 2. Use Tools in the Right Order
+For location-specific questions:
+1. First, use geocode_address to get coordinates
+2. Then, use query_zoning_at_point to get the zoning district
+3. Finally, use calculate_parking with the district context
+
+### 3. Be Specific and Cite Sources
+- Always mention the specific zoning district (e.g., "In the DC Downtown Core district...")
+- Reference code sections when possible (e.g., "Per Section 295-403...")
+- Mention any overlay zones that may affect requirements
+
+### 4. Response Format
+Structure your responses clearly:
+1. **Direct Answer** - Start with the specific answer
+2. **Details** - Provide the calculation or reasoning
+3. **Code Reference** - Cite the relevant section
+4. **Special Notes** - Mention any exceptions or options`;
+
+// =============================================================================
+// Create the ADK Agent (created per-request to ensure API key is available)
+// =============================================================================
+
+function createZoningAgent() {
+  console.log("Creating zoning agent with tools:", [geocodeAddressTool.name, queryZoningAtPointTool.name, calculateParkingTool.name]);
+  return new LlmAgent({
+    name: "zoning_interpreter",
+    model: createGeminiModel(),
+    description: "Milwaukee zoning assistant that helps understand zoning requirements, parking calculations, and permitted uses.",
+    instruction: SYSTEM_INSTRUCTION,
+    tools: [geocodeAddressTool, queryZoningAtPointTool, calculateParkingTool],
+  });
+}
+
+// Simple test agent without tools
+function createSimpleAgent() {
+  return new LlmAgent({
+    name: "simple_test",
+    model: createGeminiModel(),
+    description: "Simple test agent",
+    instruction: "You are a helpful assistant. Reply briefly to user messages.",
+    tools: [],
+  });
+}
+
+// =============================================================================
+// Convex Actions
+// =============================================================================
+
+/**
+ * Chat with the Zoning Interpreter Agent using Google ADK.
+ */
+export const chat = action({
+  args: {
+    message: v.string(),
+    sessionId: v.optional(v.string()),
+  },
+  handler: async (_ctx, args): Promise<{
+    response: string;
+    toolsUsed: string[];
+  }> => {
+    // Initialize Opik tracing
+    const tracer = createTraceManager();
+    tracer.startTrace({
+      name: "zoning-adk-chat",
+      input: { message: args.message, sessionId: args.sessionId },
+      tags: ["zoning-agent", "google-adk", "gemini"],
+      metadata: { model: "gemini-2.5-flash" },
+    });
+
+    const toolsUsed: string[] = [];
+
+    try {
+      // Create agent and runner for this request
+      const zoningAgent = createZoningAgent();
+      const runner = new InMemoryRunner({
+        agent: zoningAgent,
+        appName: "mkedev-zoning",
+      });
+
+      // Create user message content
+      const userMessage = {
+        role: "user" as const,
+        parts: [{ text: args.message }],
+      };
+
+      // Generate user ID
+      const userId = "user";
+
+      // Create session first (InMemoryRunner requires session to exist)
+      const session = await runner.sessionService.createSession({
+        appName: "mkedev-zoning",
+        userId,
+        sessionId: args.sessionId,
+      });
+
+      // Run the agent
+      const stream = runner.runAsync({
+        userId,
+        sessionId: session.id,
+        newMessage: userMessage,
+      });
+
+      let finalResponse = "";
+
+      // Process events
+      for await (const event of stream) {
+        console.log("Event received:", JSON.stringify({
+          author: event.author,
+          isFinal: isFinalResponse(event),
+          hasParts: !!event.content?.parts?.length,
+          parts: event.content?.parts?.map(p => Object.keys(p)),
+          fullContent: event.content,
+          actions: event.actions,
+        }));
+
+        // Track tool calls
+        if (event.content?.parts) {
+          for (const part of event.content.parts) {
+            if ("functionCall" in part && part.functionCall) {
+              const toolName = part.functionCall.name ?? "unknown";
+              toolsUsed.push(toolName);
+              tracer.logToolExecution(
+                { name: toolName, args: (part.functionCall.args ?? {}) as Record<string, unknown> },
+                { result: { called: true }, durationMs: 0 }
+              );
+            }
+            // Also check for text responses regardless of isFinalResponse
+            if ("text" in part && part.text) {
+              console.log("Text found:", part.text.substring(0, 100));
+            }
+          }
+        }
+
+        // Capture final response
+        if (isFinalResponse(event) && event.content?.parts) {
+          for (const part of event.content.parts) {
+            if ("text" in part && part.text) {
+              finalResponse += part.text;
+            }
+          }
+        }
+      }
+
+      console.log("Final response length:", finalResponse.length);
+
+      // End trace with success
+      await tracer.endTrace({
+        response: finalResponse,
+        toolsUsed,
+        success: true,
+      });
+
+      return {
+        response: finalResponse || "I apologize, but I couldn't generate a response. Please try again.",
+        toolsUsed: [...new Set(toolsUsed)], // Remove duplicates
+      };
+    } catch (error) {
+      // End trace with error
+      await tracer.endTrace({
+        error: error instanceof Error ? error.message : String(error),
+        toolsUsed,
+        success: false,
+      });
+
+      throw error;
+    }
+  },
+});
+
+/**
+ * Test the ADK zoning agent.
+ */
+export const testAgent = action({
+  args: {
+    message: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ response: string; toolsUsed: string[] }> => {
+    const testMessage =
+      args.message ||
+      "What parking do I need for a 2500 sq ft restaurant at 500 N Water St?";
+
+    const result = await ctx.runAction(api.agents.zoningAdk.chat, {
+      message: testMessage,
+    });
+
+    return result;
+  },
+});
+
+/**
+ * Simple test with no tools to verify basic ADK functionality.
+ */
+export const testSimple = action({
+  args: {
+    message: v.optional(v.string()),
+  },
+  handler: async (_ctx, args): Promise<{ response: string }> => {
+    const testMessage = args.message || "Hello, what is 2+2?";
+
+    // Create simple agent and runner
+    const agent = createSimpleAgent();
+    const runner = new InMemoryRunner({
+      agent,
+      appName: "mkedev-test",
+    });
+
+    // Create session
+    const session = await runner.sessionService.createSession({
+      appName: "mkedev-test",
+      userId: "test-user",
+    });
+
+    // Create user message
+    const userMessage = {
+      role: "user" as const,
+      parts: [{ text: testMessage }],
+    };
+
+    // Run agent
+    const stream = runner.runAsync({
+      userId: "test-user",
+      sessionId: session.id,
+      newMessage: userMessage,
+    });
+
+    let finalResponse = "";
+
+    for await (const event of stream) {
+      console.log("Simple Event:", JSON.stringify({
+        author: event.author,
+        isFinal: isFinalResponse(event),
+        hasParts: !!event.content?.parts?.length,
+        content: event.content,
+      }));
+
+      if (isFinalResponse(event) && event.content?.parts) {
+        for (const part of event.content.parts) {
+          if ("text" in part && part.text) {
+            finalResponse += part.text;
+          }
+        }
+      }
+    }
+
+    return { response: finalResponse || "No response" };
+  },
+});

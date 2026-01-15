@@ -116,6 +116,25 @@ export const TOOL_DECLARATIONS = [
       required: ["question"],
     },
   },
+  {
+    name: "query_area_plans",
+    description:
+      "Query Milwaukee neighborhood area plans for development goals, land use recommendations, housing strategies, and community vision. Use this for questions about specific neighborhoods or areas like Menomonee Valley, Third Ward, Near North Side, Downtown, etc.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: "The specific question about neighborhood plans or development vision",
+        },
+        neighborhood: {
+          type: "string",
+          description: "Neighborhood name for context (e.g., Menomonee Valley, Third Ward, Near North Side)",
+        },
+      },
+      required: ["question"],
+    },
+  },
 ];
 
 // =============================================================================
@@ -220,8 +239,12 @@ export async function queryZoningAtPoint(params: {
   success: boolean;
   zoningDistrict?: string;
   zoningDescription?: string;
+  zoningCategory?: string;
+  zoningType?: string;
   overlayZones?: string[];
   error?: string;
+  coordinates?: { longitude: number; latitude: number };
+  suggestion?: string;
 }> {
   const { longitude, latitude } = params;
 
