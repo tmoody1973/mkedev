@@ -2,6 +2,7 @@
 
 import { Mic, MicOff, Layers, Map, Box, History } from 'lucide-react'
 import { UserMenu } from '@/components/user-menu'
+import { AddressSearchBox } from './AddressSearchBox'
 
 export interface HeaderProps {
   /** Whether voice mode is active */
@@ -28,11 +29,17 @@ export interface HeaderProps {
   onSidebarToggle?: () => void
   /** Whether to show the sidebar toggle button */
   showSidebarToggle?: boolean
+  /** Callback when address search is submitted (with text) */
+  onAddressSearch?: (address: string) => void
+  /** Callback when address is selected from autocomplete (with coordinates) */
+  onAddressSelect?: (coordinates: [number, number], address: string) => void
+  /** Whether address search is in progress */
+  isSearching?: boolean
 }
 
 /**
- * Header component with MKE.dev logo, voice toggle, 3D toggle, layers button, and user menu.
- * Follows RetroUI neobrutalist styling with translate-y hover effects.
+ * Header component with MKE.dev logo, Mapbox address search, toggles, and user menu.
+ * Uses official Mapbox SearchBox for address autocomplete.
  */
 export function Header({
   isVoiceActive = false,
@@ -47,6 +54,8 @@ export function Header({
   isSidebarOpen = false,
   onSidebarToggle,
   showSidebarToggle = false,
+  onAddressSearch,
+  onAddressSelect,
 }: HeaderProps) {
   return (
     <header
@@ -90,6 +99,11 @@ export function Header({
             className="h-10 w-auto dark:invert"
           />
         </button>
+      </div>
+
+      {/* Mapbox Address Search Box */}
+      <div className="hidden sm:block flex-1 max-w-md mx-4">
+        <AddressSearchBox onAddressSelect={onAddressSelect} />
       </div>
 
       {/* Center Controls */}

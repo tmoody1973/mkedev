@@ -208,15 +208,32 @@ export function MapProvider({
       zoom?: number,
       options?: { pitch?: number; bearing?: number; duration?: number }
     ) => {
-      if (mapRef.current) {
-        mapRef.current.flyTo({
-          center,
-          zoom: zoom ?? mapRef.current.getZoom(),
-          pitch: options?.pitch,
-          bearing: options?.bearing,
-          duration: options?.duration ?? 1500,
-        })
+      if (!mapRef.current) return
+
+      // Validate coordinates to prevent NaN corruption
+      const [lng, lat] = center
+      if (
+        typeof lng !== 'number' ||
+        typeof lat !== 'number' ||
+        isNaN(lng) ||
+        isNaN(lat) ||
+        lng < -180 ||
+        lng > 180 ||
+        lat < -90 ||
+        lat > 90
+      ) {
+        console.warn('flyTo called with invalid coordinates:', center)
+        return
       }
+
+      mapRef.current.flyTo({
+        center: [lng, lat],
+        zoom: zoom ?? mapRef.current.getZoom(),
+        duration: options?.duration ?? 1500,
+        essential: true,
+        ...(typeof options?.pitch === 'number' && !isNaN(options.pitch) ? { pitch: options.pitch } : {}),
+        ...(typeof options?.bearing === 'number' && !isNaN(options.bearing) ? { bearing: options.bearing } : {}),
+      })
     },
     []
   )

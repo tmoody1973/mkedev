@@ -264,9 +264,18 @@ export function MapContainer({
 
     // Handle style load event
     const handleStyleLoad = () => {
-      // Restore center and zoom
-      map.setCenter([currentCenter.lng, currentCenter.lat])
-      map.setZoom(currentZoom)
+      // Restore center and zoom (with validation to prevent NaN corruption)
+      const lng = currentCenter.lng
+      const lat = currentCenter.lat
+      if (!isNaN(lng) && !isNaN(lat) && lng !== 0 && lat !== 0) {
+        map.setCenter([lng, lat])
+      } else {
+        // Fallback to Milwaukee center if coordinates are invalid
+        map.setCenter([-87.9065, 43.0389])
+      }
+      if (!isNaN(currentZoom) && currentZoom > 0) {
+        map.setZoom(currentZoom)
+      }
 
       // Animate camera after style loads
       if (is3DMode) {

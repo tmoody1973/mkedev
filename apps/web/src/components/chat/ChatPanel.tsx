@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { CitationText, SourcesFooter } from './CitationText'
 import { enhanceCitations, hasCitationMarkers, type EnhancedCitation, type RawCitation } from '@/lib/citations'
+import { matchDocumentUrl } from '@/lib/documentUrls'
 
 // Dynamic import to avoid SSR issues with react-pdf (uses DOMMatrix)
 const PDFViewerModal = dynamic(
@@ -364,8 +365,43 @@ function MessageBubble({ message, formatTimestamp, renderCard, onCitationClick }
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              // Custom link component - opens external links in new tab
+              // Custom link component - redirects to local PDFs when available
               a: ({ href, children, ...props }) => {
+                // Extract text content from children
+                const linkText = typeof children === 'string'
+                  ? children
+                  : Array.isArray(children)
+                    ? children.map(c => typeof c === 'string' ? c : '').join('')
+                    : '';
+
+                // Try to match link text to a local PDF document
+                const localDoc = matchDocumentUrl(linkText);
+
+                if (localDoc) {
+                  // Create a synthetic citation for the PDF viewer
+                  const syntheticCitation: EnhancedCitation = {
+                    index: 0,
+                    sourceId: localDoc.url,
+                    sourceName: localDoc.title,
+                    title: localDoc.title,
+                    excerpt: '',
+                    documentUrl: localDoc.url,
+                    category: localDoc.url.includes('/zoning-code/') ? 'zoning-codes' : 'area-plans',
+                  };
+
+                  return (
+                    <button
+                      onClick={() => onCitationClick?.(syntheticCitation)}
+                      className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:text-sky-700 dark:hover:text-sky-300 cursor-pointer"
+                      title={`View: ${localDoc.title}`}
+                      {...props}
+                    >
+                      {children}
+                    </button>
+                  );
+                }
+
+                // Fallback to external link
                 const isExternal = href?.startsWith('http') || href?.startsWith('https');
                 return (
                   <a

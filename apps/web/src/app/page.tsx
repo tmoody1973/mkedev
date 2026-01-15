@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect, type ReactNode } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import { SignedIn, SignedOut, useAuth } from '@clerk/nextjs'
 import { AppShell } from '@/components/shell'
 import { MapContainer, type ParcelData } from '@/components/map'
 import { ChatPanel, ConversationSidebar, type ChatMessage, type GenerativeCard } from '@/components/chat'
 import { useZoningAgent } from '@/hooks/useZoningAgent'
 import { useConversations } from '@/hooks/useConversations'
+import { useMap } from '@/contexts/MapContext'
 import { ZoneInfoCard, ParcelCard } from '@/components/copilot'
 import { LandingPage } from '@/components/landing'
 import dynamic from 'next/dynamic'
@@ -40,6 +41,13 @@ export default function Home() {
   const [_selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  // Address search state
+  const [isAddressSearching, setIsAddressSearching] = useState(false)
+  // Track last processed message to avoid duplicate map movements
+  const lastProcessedMessageRef = useRef<string | null>(null)
+
+  // Map context for flying to locations
+  const { flyTo } = useMap()
 
   // PDF viewer modal state
   const [pdfModal, setPdfModal] = useState<PDFModalState>({
@@ -79,28 +87,37 @@ export default function Home() {
     startNewConversation,
   } = useConversations()
 
-  // Convert agent messages to ChatMessage format, or load from persisted conversation
+  // Convert agent messages to ChatMessage format, combining with persisted conversation
   const messages: ChatMessage[] = useMemo(() => {
-    // If viewing a persisted conversation, show its messages
-    if (currentConversation && currentConversation.messages.length > 0) {
-      return currentConversation.messages.map((msg) => ({
-        id: msg._id,
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        timestamp: new Date(msg.timestamp),
-        inputMode: (msg.inputMode || 'text') as 'text' | 'voice',
-        cards: msg.cards as GenerativeCard[] | undefined,
-      }))
-    }
-    // Otherwise show current agent session messages
-    return agentMessages.map((msg) => ({
-      id: msg.id,
-      role: msg.role,
+    // Start with persisted conversation messages if viewing one
+    const persistedMessages: ChatMessage[] = currentConversation?.messages?.map((msg) => ({
+      id: msg._id,
+      role: msg.role as 'user' | 'assistant',
       content: msg.content,
-      timestamp: msg.timestamp,
-      inputMode: 'text' as const,
-      cards: msg.cards,
-    }))
+      timestamp: new Date(msg.timestamp),
+      inputMode: (msg.inputMode || 'text') as 'text' | 'voice',
+      cards: msg.cards as GenerativeCard[] | undefined,
+    })) || []
+
+    // Get content signatures of persisted messages to avoid duplicates
+    const persistedContent = new Set(
+      persistedMessages.map((m) => `${m.role}:${m.content.substring(0, 100)}`)
+    )
+
+    // Add current agent session messages (only those not yet persisted)
+    const sessionMessages: ChatMessage[] = agentMessages
+      .filter((msg) => !persistedContent.has(`${msg.role}:${msg.content.substring(0, 100)}`))
+      .map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        inputMode: 'text' as const,
+        cards: msg.cards,
+      }))
+
+    // Combine: persisted history + new session messages (deduplicated)
+    return [...persistedMessages, ...sessionMessages]
   }, [agentMessages, currentConversation])
 
   // Persist messages when agent responds
@@ -119,6 +136,114 @@ export default function Home() {
       })
     }
   }, [agentMessages.length]) // Only run when message count changes
+
+  // Watch for parcel-info cards in agent messages and fly to location
+  useEffect(() => {
+    const lastMsg = agentMessages[agentMessages.length - 1]
+    if (!lastMsg || lastMsg.role !== 'assistant') return
+    if (lastProcessedMessageRef.current === lastMsg.id) return
+
+    // Look for parcel-info card with coordinates
+    const parcelCard = lastMsg.cards?.find((card) => card.type === 'parcel-info')
+    if (parcelCard) {
+      const data = parcelCard.data as { coordinates?: { latitude: number; longitude: number } }
+      // Validate coordinates are valid numbers before flying
+      if (
+        data.coordinates &&
+        typeof data.coordinates.longitude === 'number' &&
+        typeof data.coordinates.latitude === 'number' &&
+        !isNaN(data.coordinates.longitude) &&
+        !isNaN(data.coordinates.latitude) &&
+        data.coordinates.longitude !== 0 &&
+        data.coordinates.latitude !== 0
+      ) {
+        lastProcessedMessageRef.current = lastMsg.id
+        // Fly to the location with a nice zoom level
+        flyTo([data.coordinates.longitude, data.coordinates.latitude], 17, {
+          pitch: 45,
+          duration: 2000,
+        })
+      }
+    }
+  }, [agentMessages, flyTo])
+
+  /**
+   * Handle address search from the header search bar.
+   * Uses Mapbox Geocoding API to find coordinates, then flies the map there.
+   */
+  const handleAddressSearch = useCallback(
+    async (address: string) => {
+      setIsAddressSearching(true)
+      try {
+        // Add Milwaukee, WI context for better results
+        const searchQuery = address.toLowerCase().includes('milwaukee')
+          ? address
+          : `${address}, Milwaukee, WI`
+
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?` +
+            new URLSearchParams({
+              access_token: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
+              limit: '1',
+              types: 'address,poi',
+              bbox: '-88.1,42.8,-87.8,43.2', // Milwaukee bounding box
+            })
+        )
+
+        const data = await response.json()
+
+        if (data.features && data.features.length > 0) {
+          const [lng, lat] = data.features[0].center
+          // Fly to the location
+          flyTo([lng, lat], 17, { pitch: 45, duration: 2000 })
+          // Also send a message to the chat to get zoning info
+          sendMessage(`Tell me about the property at ${data.features[0].place_name}`)
+        } else {
+          // If no results, still ask the agent (it has its own geocoding)
+          sendMessage(`Tell me about the property at ${address}`)
+        }
+      } catch (error) {
+        console.error('Address search failed:', error)
+        // Fallback to agent geocoding
+        sendMessage(`Tell me about the property at ${address}`)
+      } finally {
+        setIsAddressSearching(false)
+      }
+    },
+    [flyTo, sendMessage]
+  )
+
+  /**
+   * Handle address selected from autocomplete dropdown.
+   * Coordinates are already available, so we can fly immediately.
+   */
+  const handleAddressSelect = useCallback(
+    (coordinates: [number, number], address: string) => {
+      console.log('[handleAddressSelect] Called with:', coordinates, address)
+
+      // Validate coordinates before flying
+      if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 2) {
+        console.error('[handleAddressSelect] Invalid coordinates:', coordinates)
+        sendMessage(`Tell me about the property at ${address}`)
+        return
+      }
+
+      const [lng, lat] = coordinates
+      if (typeof lng !== 'number' || typeof lat !== 'number' || isNaN(lng) || isNaN(lat)) {
+        console.error('[handleAddressSelect] Invalid coordinate values:', lng, lat)
+        sendMessage(`Tell me about the property at ${address}`)
+        return
+      }
+
+      // Fly to the location - use simple flyTo without pitch to avoid Mapbox projection errors
+      console.log('[handleAddressSelect] Flying to:', lng, lat)
+      flyTo([lng, lat], 17)
+
+      // Send to chat for zoning info
+      sendMessage(`Tell me about the property at ${address}`)
+    },
+    [flyTo, sendMessage]
+  )
 
   const handleVoiceToggle = useCallback(() => {
     setIsVoiceActive((prev) => !prev)
@@ -171,9 +296,108 @@ export default function Home() {
     }
   }, [selectConversation, deleteConversation, clearMessages])
 
+  /**
+   * Extract potential address from a message using multiple patterns.
+   * Handles various Milwaukee address formats and natural language.
+   */
+  const extractAddress = useCallback((message: string): string | null => {
+    // Normalize the message
+    const normalized = message
+      .replace(/[?.!,]/g, ' ') // Remove punctuation
+      .replace(/\s+/g, ' ')    // Normalize whitespace
+      .trim()
+
+    // Pattern 1: Full address with direction (N/S/E/W or North/South/East/West)
+    // Matches: "1108 W Chamber St", "500 North Water Street", "123 S. Main Ave"
+    const fullPattern = /\b(\d+)\s+(N\.?|S\.?|E\.?|W\.?|North|South|East|West)\s+(\w+(?:\s+\w+)?)\s*(St\.?|Street|Ave\.?|Avenue|Blvd\.?|Boulevard|Dr\.?|Drive|Rd\.?|Road|Ln\.?|Lane|Ct\.?|Court|Way|Pl\.?|Place|Pkwy\.?|Parkway|Ter\.?|Terrace|Cir\.?|Circle)?\b/i
+
+    // Pattern 2: Address without explicit suffix
+    // Matches: "1108 W Chamber", "500 N Water"
+    const noSuffixPattern = /\b(\d+)\s+(N\.?|S\.?|E\.?|W\.?|North|South|East|West)\s+(\w+(?:\s+\w+)?)\b/i
+
+    // Pattern 3: Simple number + street (no direction)
+    // Matches: "123 Main St", "456 Wisconsin Avenue"
+    const simplePattern = /\b(\d+)\s+(\w+(?:\s+\w+)?)\s+(St\.?|Street|Ave\.?|Avenue|Blvd\.?|Boulevard|Dr\.?|Drive|Rd\.?|Road|Ln\.?|Lane|Ct\.?|Court|Way|Pl\.?|Place|Pkwy\.?|Parkway|Ter\.?|Terrace|Cir\.?|Circle)\b/i
+
+    // Try patterns in order of specificity
+    let match = normalized.match(fullPattern)
+    if (match) {
+      return match[0]
+    }
+
+    match = normalized.match(noSuffixPattern)
+    if (match) {
+      return match[0]
+    }
+
+    match = normalized.match(simplePattern)
+    if (match) {
+      return match[0]
+    }
+
+    return null
+  }, [])
+
+  /**
+   * Geocode an address using Mapbox and fly to it.
+   * Uses multiple strategies for best results.
+   */
+  const geocodeAndFlyToAddress = useCallback(
+    async (message: string) => {
+      const address = extractAddress(message)
+      if (!address) return
+
+      // Add Milwaukee context
+      const searchQuery = address.toLowerCase().includes('milwaukee')
+        ? address
+        : `${address}, Milwaukee, WI`
+
+      try {
+        // First try: strict address geocoding
+        let response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?` +
+            new URLSearchParams({
+              access_token: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
+              limit: '1',
+              types: 'address',
+              bbox: '-88.1,42.8,-87.8,43.2', // Milwaukee bounding box
+            })
+        )
+
+        let data = await response.json()
+
+        // If no results, try more lenient search (include POI, locality)
+        if (!data.features || data.features.length === 0) {
+          response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?` +
+              new URLSearchParams({
+                access_token: process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '',
+                limit: '1',
+                bbox: '-88.1,42.8,-87.8,43.2',
+              })
+          )
+          data = await response.json()
+        }
+
+        if (data.features && data.features.length > 0) {
+          const [lng, lat] = data.features[0].center
+          // Fly immediately with smooth animation
+          flyTo([lng, lat], 17, { pitch: 45, duration: 1500 })
+          console.log('Geocoded and flying to:', data.features[0].place_name)
+        }
+      } catch (error) {
+        console.error('Quick geocode failed:', error)
+      }
+    },
+    [flyTo, extractAddress]
+  )
+
   const handleSendMessage = useCallback((content: string) => {
+    // Immediately try to geocode any address in the message
+    geocodeAndFlyToAddress(content)
+    // Send to agent for full processing
     sendMessage(content)
-  }, [sendMessage])
+  }, [sendMessage, geocodeAndFlyToAddress])
 
   const handleVoiceInput = useCallback(() => {
     // Voice input placeholder - will be implemented in Week 2
@@ -405,6 +629,9 @@ export default function Home() {
           onLogoClick={handleLogoClick}
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={handleSidebarToggle}
+          onAddressSearch={handleAddressSearch}
+          onAddressSelect={handleAddressSelect}
+          isSearching={isAddressSearching}
           sidebar={
             <ConversationSidebar
               conversations={conversations}
