@@ -249,6 +249,11 @@ export function ChatPanel({
             <Send className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Disclaimer */}
+        <p className="mt-2 text-[10px] text-stone-400 dark:text-stone-500 text-center leading-tight">
+          Not affiliated with the City of Milwaukee. For informational purposes only.
+        </p>
       </form>
 
       {/* PDF Viewer Modal */}

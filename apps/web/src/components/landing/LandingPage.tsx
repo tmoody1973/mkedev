@@ -218,19 +218,27 @@ export function LandingPage() {
 
       {/* Footer */}
       <footer className="py-8 px-4 sm:px-6 lg:px-8 bg-stone-900 dark:bg-black border-t-2 border-black">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <img
-              src="/mkedev-logo-nolabel.svg"
-              alt="MKE.dev"
-              className="h-6 w-auto invert"
-            />
-            <span className="text-stone-400 text-sm">
-              Milwaukee Civic Intelligence
-            </span>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <img
+                src="/mkedev-logo-nolabel.svg"
+                alt="MKE.dev"
+                className="h-6 w-auto invert"
+              />
+              <span className="text-stone-400 text-sm">
+                Milwaukee Civic Intelligence
+              </span>
+            </div>
+            <div className="text-stone-500 text-sm">
+              Built for the Gemini 3 Hackathon
+            </div>
           </div>
-          <div className="text-stone-500 text-sm">
-            Built for the Gemini 3 Hackathon
+          <div className="pt-4 border-t border-stone-800 text-center">
+            <p className="text-stone-500 text-xs">
+              This site is not affiliated with, endorsed by, or connected to the City of Milwaukee.
+              Information provided is for educational purposes only and should not be considered official city guidance.
+            </p>
           </div>
         </div>
       </footer>
