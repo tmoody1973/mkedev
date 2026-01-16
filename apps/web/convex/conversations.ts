@@ -253,7 +253,33 @@ export const addMessage = mutation({
       throw new Error("Conversation not found");
     }
 
+    // Deduplication: Check if a message with same role and content exists in the last 10 seconds
+    const recentMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversationId_timestamp", (q) =>
+        q.eq("conversationId", args.conversationId)
+      )
+      .order("desc")
+      .take(5);
+
     const now = Date.now();
+    const duplicateWindow = 10000; // 10 seconds
+
+    const isDuplicate = recentMessages.some(
+      (msg) =>
+        msg.role === args.role &&
+        msg.content === args.content &&
+        now - msg.timestamp < duplicateWindow
+    );
+
+    if (isDuplicate) {
+      // Return the existing message ID instead of creating a duplicate
+      const existingMsg = recentMessages.find(
+        (msg) => msg.role === args.role && msg.content === args.content
+      );
+      console.log(`[addMessage] Skipping duplicate ${args.role} message`);
+      return existingMsg?._id ?? null;
+    }
 
     // Insert the message
     const messageId = await ctx.db.insert("messages", {

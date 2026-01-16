@@ -53,6 +53,8 @@ export default function HomeContent() {
   const persistedMessageIdsRef = useRef<Set<string>>(new Set())
   // Track which conversation the persisted messages belong to
   const persistedForConversationRef = useRef<string | null>(null)
+  // Track if persistence is currently in progress to prevent concurrent calls
+  const isPersistingRef = useRef(false)
 
   // Map context for flying to locations
   const { flyTo } = useMap()
@@ -145,10 +147,19 @@ export default function HomeContent() {
     }
   }, [currentConversationId])
 
+  // Use ref to hold persistMessage to avoid it being a dependency
+  const persistMessageRef = useRef(persistMessage)
+  persistMessageRef.current = persistMessage
+
   // Persist messages when agent responds AND streaming is complete
   useEffect(() => {
     // Don't persist while still streaming - content is incomplete
     if (isStreaming) {
+      return
+    }
+
+    // Prevent concurrent persistence calls
+    if (isPersistingRef.current) {
       return
     }
 
@@ -171,15 +182,32 @@ export default function HomeContent() {
       persistedMessageIdsRef.current.add(secondLastMsg.id)
       persistedMessageIdsRef.current.add(lastAgentMsg.id)
 
-      // Persist user message
-      persistMessage('user', secondLastMsg.content, { inputMode: 'text' })
-      // Persist assistant message with cards
-      persistMessage('assistant', lastAgentMsg.content, {
-        inputMode: 'text',
-        cards: lastAgentMsg.cards,
-      })
+      // Set persisting flag
+      isPersistingRef.current = true
+
+      // Persist both messages sequentially to avoid race conditions
+      const doPersist = async () => {
+        try {
+          // Persist user message first
+          await persistMessageRef.current('user', secondLastMsg.content, { inputMode: 'text' })
+          // Then persist assistant message with cards
+          await persistMessageRef.current('assistant', lastAgentMsg.content, {
+            inputMode: 'text',
+            cards: lastAgentMsg.cards,
+          })
+        } catch (error) {
+          console.error('[HomeContent] Error persisting messages:', error)
+          // Remove from persisted set on error so it can be retried
+          persistedMessageIdsRef.current.delete(secondLastMsg.id)
+          persistedMessageIdsRef.current.delete(lastAgentMsg.id)
+        } finally {
+          isPersistingRef.current = false
+        }
+      }
+
+      doPersist()
     }
-  }, [agentMessages.length, isStreaming, persistMessage]) // Wait for streaming to complete
+  }, [agentMessages.length, isStreaming]) // Removed persistMessage from deps - using ref instead
 
   // Watch for parcel-info cards in agent messages and fly to location
   useEffect(() => {
