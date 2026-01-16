@@ -31,6 +31,10 @@ export interface HomeCardProps {
   narrative?: string;
   listingUrl?: string;
 
+  // Images
+  primaryImageUrl?: string;
+  imageUrls?: string[];
+
   // Loading state
   status?: "inProgress" | "executing" | "complete";
 
@@ -49,6 +53,8 @@ export function HomeCard({
   yearBuilt,
   narrative,
   listingUrl,
+  primaryImageUrl,
+  imageUrls,
   status = "complete",
   onFlyTo,
 }: HomeCardProps) {
@@ -117,8 +123,32 @@ export function HomeCard({
     );
   }
 
+  // Image count for badge
+  const imageCount = imageUrls?.length || 0;
+
   return (
     <div className="border-2 border-black dark:border-white rounded-lg bg-white dark:bg-stone-900 shadow-[4px_4px_0_0_black] dark:shadow-[4px_4px_0_0_white] overflow-hidden">
+      {/* Primary Image */}
+      {primaryImageUrl && (
+        <div className="relative h-48 bg-stone-200 dark:bg-stone-700 overflow-hidden">
+          <img
+            src={primaryImageUrl}
+            alt={`${address} exterior`}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Hide image on error
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+          {/* Image count badge */}
+          {imageCount > 1 && (
+            <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white text-xs font-medium rounded">
+              +{imageCount - 1} photos
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="p-4 border-b-2 border-black dark:border-white bg-stone-50 dark:bg-stone-800">
         <div className="flex items-start gap-3">

@@ -471,6 +471,8 @@ export interface HomeDetails {
   narrative?: string;
   listingUrl?: string;
   developerName?: string;
+  imageUrls?: string[];
+  primaryImageUrl?: string;
 }
 
 /**
@@ -581,6 +583,8 @@ export async function getHomeDetails(
       narrative: home.narrative,
       listingUrl: home.listingUrl,
       developerName: home.developerName,
+      imageUrls: home.imageUrls,
+      primaryImageUrl: home.primaryImageUrl,
     };
 
     return {

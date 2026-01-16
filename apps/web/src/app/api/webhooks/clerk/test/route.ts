@@ -24,7 +24,7 @@ export async function GET() {
   });
 }
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
   try {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 

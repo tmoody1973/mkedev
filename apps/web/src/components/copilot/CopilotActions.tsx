@@ -303,6 +303,8 @@ export function CopilotActions({
             yearBuilt: number;
             narrative?: string;
             listingUrl?: string;
+            primaryImageUrl?: string;
+            imageUrls?: string[];
           };
         };
 
@@ -335,6 +337,8 @@ export function CopilotActions({
             yearBuilt={home.yearBuilt}
             narrative={home.narrative}
             listingUrl={home.listingUrl}
+            primaryImageUrl={home.primaryImageUrl}
+            imageUrls={home.imageUrls}
             status="complete"
             onFlyTo={handleFlyTo}
           />
