@@ -21,13 +21,29 @@ interface ClerkConvexProviderProps {
 export function ClerkConvexProvider({ children }: ClerkConvexProviderProps) {
   const convex = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+
+    // Check if URL is set
     if (!url) {
       console.warn(
         "NEXT_PUBLIC_CONVEX_URL is not set. Convex features will not work."
       );
       return null;
     }
-    return new ConvexReactClient(url);
+
+    // Validate URL is absolute (starts with http:// or https://)
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      console.error(
+        `NEXT_PUBLIC_CONVEX_URL must be an absolute URL (got: "${url}"). Convex features will not work.`
+      );
+      return null;
+    }
+
+    try {
+      return new ConvexReactClient(url);
+    } catch (error) {
+      console.error("Failed to create Convex client:", error);
+      return null;
+    }
   }, []);
 
   // If Convex URL is not configured, fall back to basic ClerkProvider
