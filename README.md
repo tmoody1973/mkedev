@@ -21,6 +21,8 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 - **Interactive 3D Map** - Mapbox GL JS with 2D/3D toggle and 7 Milwaukee ESRI data layers
 - **File Search RAG** - 12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores
 - **Real-Time Geocoding** - Address to zoning lookup via Mapbox + Milwaukee ESRI integration
+- **Generative UI Cards** - Rich property cards with Street View, zoning details, and area plans
+- **Conversation History** - Persistent chat sessions with search, star, and sidebar navigation
 - **High-Performance Tiles** - PMTiles (313,000+ features) for instant map rendering
 - **Voice-First Interface** - Real-time voice conversations via Gemini Live API (in progress)
 
@@ -225,10 +227,11 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 - [x] **File Search RAG** - 12 zoning PDFs in persistent stores
 - [x] **ESRI Integration** - Fixed geocoding + zoning lookup
 - [x] **3D Map Visualization** - Zoning extrusions with category colors
+- [x] **Conversation History** - Persistent chat with sidebar, search, and star/delete
+- [x] **Generative UI Cards** - ParcelCard, ZoneInfoCard with Street View integration
 - [ ] Gemini Live API integration
 - [ ] Voice activity detection
-- [ ] CopilotKit generative UI
-- [ ] Conversation history
+- [ ] CopilotKit agent coordination
 
 ### Week 3: Advanced Agents
 - [ ] Area Plan Advisor agent
