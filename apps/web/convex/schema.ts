@@ -162,7 +162,9 @@ export default defineSchema({
             v.literal("area-plan-context"),
             v.literal("permit-process"),
             v.literal("code-citation"),
-            v.literal("opportunity-list")
+            v.literal("opportunity-list"),
+            v.literal("home-listing"),
+            v.literal("homes-list")
           ),
           data: v.any(),
         })

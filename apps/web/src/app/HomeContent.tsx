@@ -457,17 +457,23 @@ export default function HomeContent() {
 
   /**
    * Handle home selection from HomesListCard.
-   * Flies to the home and highlights it on the map.
+   * Flies to the home on the map and asks the agent for full details.
    */
   const handleHomeSelect = useCallback((home: HomeListItem) => {
+    console.log('[handleHomeSelect] Home selected:', home.address, home.coordinates)
+
     // Fly to the selected home
-    if (home.coordinates) {
+    if (home.coordinates && Array.isArray(home.coordinates)) {
+      console.log('[handleHomeSelect] Flying to:', home.coordinates)
       flyTo(home.coordinates, 17, {
         pitch: 45,
         duration: 2000,
       })
     }
-  }, [flyTo])
+
+    // Ask agent for detailed home info (triggers get_home_details tool → HomeCard with images)
+    sendMessage(`Tell me more about the home at ${home.address}`)
+  }, [flyTo, sendMessage])
 
   /**
    * Handle fly to location from HomeCard.

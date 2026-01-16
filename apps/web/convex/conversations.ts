@@ -226,13 +226,15 @@ export const addMessage = mutation({
         v.object({
           type: v.union(
             v.literal("zone-info"),
+            v.literal("parcel-info"),
             v.literal("parcel-analysis"),
             v.literal("incentives-summary"),
             v.literal("area-plan-context"),
             v.literal("permit-process"),
             v.literal("code-citation"),
             v.literal("opportunity-list"),
-            v.literal("parcel-info")
+            v.literal("home-listing"),
+            v.literal("homes-list")
           ),
           data: v.any(),
         })
