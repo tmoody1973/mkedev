@@ -6,18 +6,37 @@
  * Displays property information from the Homes MKE ESRI FeatureServer including:
  * - Address and neighborhood
  * - Bedrooms, bathrooms, square footage, year built
+ * - Lot size, units, outbuildings, district, developer
  * - Property narrative/description
+ * - Image gallery with slideshow
  * - Actions: View Listing (external URL), Fly to Location (map)
  *
  * Follows RetroUI neobrutalist styling patterns from ParcelCard and ZoneInfoCard.
  */
 
-import { Home, MapPin, BedDouble, Bath, Square, Calendar, ExternalLink, Navigation } from "lucide-react";
+import { useState } from "react";
+import {
+  Home,
+  MapPin,
+  BedDouble,
+  Bath,
+  Square,
+  Calendar,
+  ExternalLink,
+  Navigation,
+  ChevronLeft,
+  ChevronRight,
+  LandPlot,
+  Building2,
+  Warehouse,
+  User
+} from "lucide-react";
 
 export interface HomeCardProps {
   // Location
   address: string;
   neighborhood?: string;
+  districtName?: string;
   coordinates?: [number, number]; // [lng, lat]
 
   // Property details
@@ -25,11 +44,15 @@ export interface HomeCardProps {
   fullBaths?: number;
   halfBaths?: number;
   buildingSqFt?: number;
+  lotSizeSqFt?: number;
   yearBuilt?: number;
+  numberOfUnits?: number;
+  hasOutbuildings?: boolean;
 
   // Listing info
   narrative?: string;
   listingUrl?: string;
+  developerName?: string;
 
   // Images
   primaryImageUrl?: string;
@@ -45,14 +68,19 @@ export interface HomeCardProps {
 export function HomeCard({
   address,
   neighborhood,
+  districtName,
   coordinates,
   bedrooms,
   fullBaths = 0,
   halfBaths = 0,
   buildingSqFt,
+  lotSizeSqFt,
   yearBuilt,
+  numberOfUnits,
+  hasOutbuildings,
   narrative,
   listingUrl,
+  developerName,
   primaryImageUrl,
   imageUrls,
   status = "complete",
@@ -60,12 +88,21 @@ export function HomeCard({
 }: HomeCardProps) {
   const isLoading = status === "inProgress" || status === "executing";
 
+  // Image gallery state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const allImages = imageUrls && imageUrls.length > 0 ? imageUrls : (primaryImageUrl ? [primaryImageUrl] : []);
+  const hasMultipleImages = allImages.length > 1;
+
   // Calculate total baths (full + half * 0.5)
   const totalBaths = fullBaths + halfBaths * 0.5;
 
   // Format square footage with commas
   const formattedSqFt = buildingSqFt
     ? buildingSqFt.toLocaleString("en-US")
+    : undefined;
+
+  const formattedLotSize = lotSizeSqFt
+    ? lotSizeSqFt.toLocaleString("en-US")
     : undefined;
 
   // Handle View Listing click
@@ -80,6 +117,15 @@ export function HomeCard({
     if (coordinates && onFlyTo) {
       onFlyTo(coordinates);
     }
+  };
+
+  // Image gallery navigation
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
   };
 
   // Loading state skeleton UI
@@ -123,27 +169,66 @@ export function HomeCard({
     );
   }
 
-  // Image count for badge
-  const imageCount = imageUrls?.length || 0;
-
   return (
     <div className="border-2 border-black dark:border-white rounded-lg bg-white dark:bg-stone-900 shadow-[4px_4px_0_0_black] dark:shadow-[4px_4px_0_0_white] overflow-hidden">
-      {/* Primary Image */}
-      {primaryImageUrl && (
-        <div className="relative h-48 bg-stone-200 dark:bg-stone-700 overflow-hidden">
+      {/* Image Gallery */}
+      {allImages.length > 0 && (
+        <div className="relative h-56 bg-stone-200 dark:bg-stone-700 overflow-hidden">
           <img
-            src={primaryImageUrl}
-            alt={`${address} exterior`}
+            src={allImages[currentImageIndex]}
+            alt={`${address} - Image ${currentImageIndex + 1}`}
             className="w-full h-full object-cover"
             onError={(e) => {
               // Hide image on error
               (e.target as HTMLImageElement).style.display = "none";
             }}
           />
-          {/* Image count badge */}
-          {imageCount > 1 && (
+
+          {/* Navigation arrows for multiple images */}
+          {hasMultipleImages && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleNextImage}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
+                aria-label="Next image"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+
+          {/* Image counter badge */}
+          {allImages.length > 1 && (
             <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white text-xs font-medium rounded">
-              +{imageCount - 1} photos
+              {currentImageIndex + 1} / {allImages.length}
+            </div>
+          )}
+
+          {/* Thumbnail dots */}
+          {hasMultipleImages && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {allImages.slice(0, 5).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    idx === currentImageIndex
+                      ? 'bg-white'
+                      : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  aria-label={`Go to image ${idx + 1}`}
+                />
+              ))}
+              {allImages.length > 5 && (
+                <span className="text-white text-xs ml-1">+{allImages.length - 5}</span>
+              )}
             </div>
           )}
         </div>
@@ -159,19 +244,26 @@ export function HomeCard({
             <h3 className="font-bold text-lg text-stone-900 dark:text-stone-100 leading-tight">
               {address}
             </h3>
-            {neighborhood && (
-              <div className="flex items-center gap-1 mt-1">
-                <MapPin className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
-                <span className="text-sm text-stone-600 dark:text-stone-400">
-                  {neighborhood}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+              {neighborhood && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
+                  <span className="text-sm text-stone-600 dark:text-stone-400">
+                    {neighborhood}
+                  </span>
+                </div>
+              )}
+              {districtName && (
+                <span className="text-xs px-2 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 rounded">
+                  {districtName}
                 </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Property Details Grid */}
+      {/* Property Details Grid - Primary Stats */}
       <div className="grid grid-cols-4 gap-3 p-4 border-b-2 border-black dark:border-white">
         {/* Bedrooms */}
         {bedrooms !== undefined && (
@@ -233,6 +325,38 @@ export function HomeCard({
           </div>
         )}
       </div>
+
+      {/* Additional Property Details */}
+      {(formattedLotSize || numberOfUnits || hasOutbuildings || developerName) && (
+        <div className="px-4 py-3 border-b-2 border-black dark:border-white bg-stone-50/50 dark:bg-stone-800/50">
+          <div className="flex flex-wrap gap-3 text-sm">
+            {formattedLotSize && (
+              <div className="flex items-center gap-1.5 text-stone-600 dark:text-stone-400">
+                <LandPlot className="w-4 h-4 text-stone-500" />
+                <span>{formattedLotSize} sqft lot</span>
+              </div>
+            )}
+            {numberOfUnits && numberOfUnits > 1 && (
+              <div className="flex items-center gap-1.5 text-stone-600 dark:text-stone-400">
+                <Building2 className="w-4 h-4 text-stone-500" />
+                <span>{numberOfUnits} units</span>
+              </div>
+            )}
+            {hasOutbuildings && (
+              <div className="flex items-center gap-1.5 text-stone-600 dark:text-stone-400">
+                <Warehouse className="w-4 h-4 text-stone-500" />
+                <span>Has outbuildings</span>
+              </div>
+            )}
+            {developerName && (
+              <div className="flex items-center gap-1.5 text-stone-600 dark:text-stone-400">
+                <User className="w-4 h-4 text-stone-500" />
+                <span>{developerName}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Narrative / Description */}
       {narrative && (

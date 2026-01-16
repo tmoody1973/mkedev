@@ -314,6 +314,7 @@ export default defineSchema({
     // Location
     address: v.string(), // ADDRESSES field
     neighborhood: v.string(), // NEIGHBORHOOD_1 field
+    districtName: v.optional(v.string()), // DistrictName - zoning/district
     coordinates: v.array(v.number()), // [longitude, latitude] in WGS84
 
     // Property details
@@ -321,7 +322,10 @@ export default defineSchema({
     fullBaths: v.number(), // NumberOfFullBaths
     halfBaths: v.number(), // NumberOfHalfBaths
     buildingSqFt: v.number(), // Bldg_SF
+    lotSizeSqFt: v.optional(v.number()), // Size_SF_ - lot size
     yearBuilt: v.number(), // Built
+    numberOfUnits: v.optional(v.number()), // Number_of_Units
+    hasOutbuildings: v.optional(v.boolean()), // Outbuildings_Present
 
     // Listing info
     status: v.union(

@@ -209,14 +209,19 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
             homeId: string;
             address: string;
             neighborhood: string;
+            districtName?: string;
             coordinates?: [number, number];
             bedrooms: number;
             fullBaths: number;
             halfBaths: number;
             buildingSqFt: number;
+            lotSizeSqFt?: number;
             yearBuilt: number;
+            numberOfUnits?: number;
+            hasOutbuildings?: boolean;
             narrative?: string;
             listingUrl?: string;
+            developerName?: string;
             primaryImageUrl?: string;
             imageUrls?: string[];
           };
@@ -227,14 +232,19 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
             data: {
               address: r.home.address,
               neighborhood: r.home.neighborhood,
+              districtName: r.home.districtName,
               coordinates: r.home.coordinates,
               bedrooms: r.home.bedrooms,
               fullBaths: r.home.fullBaths,
               halfBaths: r.home.halfBaths,
               buildingSqFt: r.home.buildingSqFt,
+              lotSizeSqFt: r.home.lotSizeSqFt,
               yearBuilt: r.home.yearBuilt,
+              numberOfUnits: r.home.numberOfUnits,
+              hasOutbuildings: r.home.hasOutbuildings,
               narrative: r.home.narrative,
               listingUrl: r.home.listingUrl,
+              developerName: r.home.developerName,
               primaryImageUrl: r.home.primaryImageUrl,
               imageUrls: r.home.imageUrls,
             },

@@ -461,12 +461,16 @@ export interface HomeDetails {
   homeId: string;
   address: string;
   neighborhood: string;
+  districtName?: string;
   coordinates: [number, number];
   bedrooms: number;
   fullBaths: number;
   halfBaths: number;
   buildingSqFt: number;
+  lotSizeSqFt?: number;
   yearBuilt: number;
+  numberOfUnits?: number;
+  hasOutbuildings?: boolean;
   status: string;
   narrative?: string;
   listingUrl?: string;
@@ -573,12 +577,16 @@ export async function getHomeDetails(
       homeId: home._id,
       address: home.address,
       neighborhood: home.neighborhood,
+      districtName: home.districtName,
       coordinates: home.coordinates as [number, number],
       bedrooms: home.bedrooms,
       fullBaths: home.fullBaths,
       halfBaths: home.halfBaths,
       buildingSqFt: home.buildingSqFt,
+      lotSizeSqFt: home.lotSizeSqFt,
       yearBuilt: home.yearBuilt,
+      numberOfUnits: home.numberOfUnits,
+      hasOutbuildings: home.hasOutbuildings,
       status: home.status,
       narrative: home.narrative,
       listingUrl: home.listingUrl,

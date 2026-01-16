@@ -43,11 +43,15 @@ interface ESRIFeatureAttributes {
   FK_Tax: number | null;
   ADDRESSES: string | null;
   NEIGHBORHOOD_1: string | null;
+  DistrictName: string | null;
   NumberOfBedrooms: number | null;
   NumberOfFullBaths: number | null;
   NumberOfHalfBaths: number | null;
   Bldg_SF: number | null;
+  Size_SF_: string | null; // Lot size as string
   Built: number | null;
+  Number_of_Units: number | null;
+  Outbuildings_Present: string | null;
   Property_Status: string | null;
   Narrative: string | null;
   Link: string | null;
@@ -72,12 +76,16 @@ interface HomeForSaleData {
   taxKey: string;
   address: string;
   neighborhood: string;
+  districtName?: string;
   coordinates: number[];
   bedrooms: number;
   fullBaths: number;
   halfBaths: number;
   buildingSqFt: number;
+  lotSizeSqFt?: number;
   yearBuilt: number;
+  numberOfUnits?: number;
+  hasOutbuildings?: boolean;
   status: "for_sale" | "sold" | "unknown";
   narrative?: string;
   listingUrl?: string;
@@ -164,17 +172,26 @@ function transformFeature(
     return null;
   }
 
+  // Parse lot size from string (e.g., "5,000" -> 5000)
+  const lotSizeSqFt = attrs.Size_SF_
+    ? parseInt(attrs.Size_SF_.replace(/,/g, ""), 10) || undefined
+    : undefined;
+
   return {
     esriObjectId: String(attrs.OBJECTID_1),
     taxKey: attrs.FK_Tax ? String(attrs.FK_Tax) : "",
     address: attrs.ADDRESSES || "Unknown Address",
     neighborhood: attrs.NEIGHBORHOOD_1 || "Unknown",
+    districtName: attrs.DistrictName || undefined,
     coordinates: [lng, lat],
     bedrooms: attrs.NumberOfBedrooms || 0,
     fullBaths: attrs.NumberOfFullBaths || 0,
     halfBaths: attrs.NumberOfHalfBaths || 0,
     buildingSqFt: attrs.Bldg_SF || 0,
+    lotSizeSqFt,
     yearBuilt: attrs.Built || 0,
+    numberOfUnits: attrs.Number_of_Units || undefined,
+    hasOutbuildings: attrs.Outbuildings_Present === "Yes" ? true : undefined,
     status: mapPropertyStatus(attrs.Property_Status),
     narrative: attrs.Narrative || undefined,
     listingUrl: attrs.Link || undefined,

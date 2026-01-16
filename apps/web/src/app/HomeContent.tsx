@@ -657,14 +657,19 @@ export default function HomeContent() {
         const data = card.data as {
           address: string;
           neighborhood?: string;
+          districtName?: string;
           coordinates?: [number, number];
           bedrooms?: number;
           fullBaths?: number;
           halfBaths?: number;
           buildingSqFt?: number;
+          lotSizeSqFt?: number;
           yearBuilt?: number;
+          numberOfUnits?: number;
+          hasOutbuildings?: boolean;
           narrative?: string;
           listingUrl?: string;
+          developerName?: string;
           primaryImageUrl?: string;
           imageUrls?: string[];
         };
@@ -672,14 +677,19 @@ export default function HomeContent() {
           <HomeCard
             address={data.address}
             neighborhood={data.neighborhood}
+            districtName={data.districtName}
             coordinates={data.coordinates}
             bedrooms={data.bedrooms}
             fullBaths={data.fullBaths}
             halfBaths={data.halfBaths}
             buildingSqFt={data.buildingSqFt}
+            lotSizeSqFt={data.lotSizeSqFt}
             yearBuilt={data.yearBuilt}
+            numberOfUnits={data.numberOfUnits}
+            hasOutbuildings={data.hasOutbuildings}
             narrative={data.narrative}
             listingUrl={data.listingUrl}
+            developerName={data.developerName}
             primaryImageUrl={data.primaryImageUrl}
             imageUrls={data.imageUrls}
             status="complete"
