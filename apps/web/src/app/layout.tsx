@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo_Black, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
-import { ClerkConvexProvider } from "@/providers/ClerkConvexProvider";
-import { AppProviders } from "@/providers/AppProviders";
+import { ClientProviders } from "./ClientProviders";
 import "./globals.css";
 
 const archivoBlack = Archivo_Black({
@@ -48,9 +47,7 @@ export default function RootLayout({
         className={`${archivoBlack.variable} ${spaceGrotesk.variable} ${ibmPlexMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <ClerkConvexProvider>
-          <AppProviders>{children}</AppProviders>
-        </ClerkConvexProvider>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
