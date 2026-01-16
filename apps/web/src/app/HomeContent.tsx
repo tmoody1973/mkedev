@@ -76,7 +76,7 @@ export default function HomeContent() {
   }, [])
 
   // Use the Zoning Agent for chat
-  const { messages: agentMessages, isLoading, agentStatus, sendMessage, clearMessages } = useZoningAgent()
+  const { messages: agentMessages, isLoading, agentStatus, isStreaming, sendMessage, clearMessages } = useZoningAgent()
 
   // Conversation persistence
   const {
@@ -145,15 +145,25 @@ export default function HomeContent() {
     }
   }, [currentConversationId])
 
-  // Persist messages when agent responds
+  // Persist messages when agent responds AND streaming is complete
   useEffect(() => {
+    // Don't persist while still streaming - content is incomplete
+    if (isStreaming) {
+      return
+    }
+
     const lastAgentMsg = agentMessages[agentMessages.length - 1]
     const secondLastMsg = agentMessages[agentMessages.length - 2]
 
-    // When we have a new assistant message, persist both user and assistant messages
+    // When we have a new assistant message with content, persist both messages
     if (lastAgentMsg?.role === 'assistant' && secondLastMsg?.role === 'user') {
       // Skip if we already persisted this message pair
       if (persistedMessageIdsRef.current.has(lastAgentMsg.id)) {
+        return
+      }
+
+      // Skip if assistant message has no content (shouldn't happen after streaming)
+      if (!lastAgentMsg.content || lastAgentMsg.content.trim() === '') {
         return
       }
 
@@ -169,7 +179,7 @@ export default function HomeContent() {
         cards: lastAgentMsg.cards,
       })
     }
-  }, [agentMessages.length, persistMessage]) // Added persistMessage to deps
+  }, [agentMessages.length, isStreaming, persistMessage]) // Wait for streaming to complete
 
   // Watch for parcel-info cards in agent messages and fly to location
   useEffect(() => {
