@@ -146,8 +146,8 @@ const LAYER_STYLES: Record<
     type: 'fill',
     paint: {
       'fill-color': '#78716C',
-      'fill-opacity': 0.1,
-      'fill-outline-color': '#44403C',
+      'fill-opacity': 0, // Transparent fill - outline only
+      'fill-outline-color': '#57534E', // stone-600 for better visibility
     },
     minzoom: 13,
     maxzoom: 22,
@@ -268,7 +268,7 @@ export class PMTilesLayerManager {
     for (const [layerId, style] of Object.entries(LAYER_STYLES)) {
       const visible = initialVisibility[layerId as ESRILayerType] ?? false
       this.layerVisibility.set(layerId as ESRILayerType, visible)
-      this.layerOpacity.set(layerId as ESRILayerType, ((style.paint as mapboxgl.FillPaint | undefined)?.['fill-opacity'] as number) || 1)
+      this.layerOpacity.set(layerId as ESRILayerType, ((style.paint as mapboxgl.FillPaint | undefined)?.['fill-opacity'] as number) ?? 1)
 
       this.map.addLayer({
         id: `pmtiles-${layerId}`,
@@ -377,12 +377,12 @@ export class PMTilesLayerManager {
         this.map.setLayoutProperty('pmtiles-zoning-3d', 'visibility', 'none')
       }
 
-      // 2D mode: Restore parcel fill opacity
+      // 2D mode: Keep parcel fill transparent (outline only)
       const parcelsLayerId = 'pmtiles-parcels'
       if (this.map.getLayer(parcelsLayerId) && parcelsVisible) {
-        const originalOpacity = this.layerOpacity.get('parcels') ?? 0.1
+        const originalOpacity = this.layerOpacity.get('parcels') ?? 0
         this.map.setPaintProperty(parcelsLayerId, 'fill-opacity', originalOpacity)
-        this.map.setPaintProperty(parcelsLayerId, 'fill-outline-color', '#44403C')
+        this.map.setPaintProperty(parcelsLayerId, 'fill-outline-color', '#57534E')
       }
     }
   }
