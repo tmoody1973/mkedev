@@ -35,6 +35,8 @@ export interface UseHomesLayerResult {
   selectedHome: HomeForSale | null
   /** Clear the selected home */
   clearSelectedHome: () => void
+  /** Re-initialize the layer (after style change) */
+  reinitializeLayers: () => void
 }
 
 // =============================================================================
@@ -53,6 +55,7 @@ export function useHomesLayer(): UseHomesLayerResult {
   const [error, setError] = useState<string | null>(null)
   const [selectedHome, setSelectedHome] = useState<HomeForSale | null>(null)
   const [homeCount, setHomeCount] = useState(0)
+  const [reinitializeCounter, setReinitializeCounter] = useState(0)
 
   // Fetch homes data from Convex
   const homesData = useQuery(api.homes.getForMap)
@@ -62,9 +65,11 @@ export function useHomesLayer(): UseHomesLayerResult {
     setSelectedHome(event.properties)
   }, [])
 
-  // Store callback in ref to avoid effect re-runs
+  // Store callback and data in refs to avoid effect re-runs
   const handleHomeClickRef = useRef(handleHomeClick)
+  const homesDataRef = useRef(homesData)
   handleHomeClickRef.current = handleHomeClick
+  homesDataRef.current = homesData
 
   // Track initialization
   const isInitializedRef = useRef(false)
@@ -74,12 +79,19 @@ export function useHomesLayer(): UseHomesLayerResult {
     if (!map || !isMapLoaded) return
 
     // Prevent double initialization in React StrictMode
-    if (isInitializedRef.current && layerManagerRef.current) {
+    // But allow re-initialization when reinitializeCounter changes
+    if (isInitializedRef.current && layerManagerRef.current && reinitializeCounter === 0) {
       setIsLoading(false)
       return
     }
 
     try {
+      // Destroy existing manager if re-initializing
+      if (layerManagerRef.current) {
+        layerManagerRef.current.destroy()
+        layerManagerRef.current = null
+      }
+
       setIsLoading(true)
       setError(null)
 
@@ -91,6 +103,34 @@ export function useHomesLayer(): UseHomesLayerResult {
       manager.addLayer()
       layerManagerRef.current = manager
       isInitializedRef.current = true
+
+      // If we have data, update the layer immediately
+      if (homesDataRef.current && homesDataRef.current.length > 0) {
+        const homes: HomeForSale[] = homesDataRef.current.map(
+          (h: {
+            id: string
+            address: string
+            neighborhood: string
+            coordinates: number[]
+            bedrooms: number
+            fullBaths: number
+            halfBaths: number
+          }) => ({
+            _id: h.id,
+            address: h.address,
+            neighborhood: h.neighborhood,
+            coordinates: h.coordinates as [number, number],
+            bedrooms: h.bedrooms,
+            fullBaths: h.fullBaths,
+            halfBaths: h.halfBaths,
+            buildingSqFt: 0,
+            yearBuilt: 0,
+            status: 'for_sale' as const,
+          })
+        )
+        manager.updateData(homes)
+        setHomeCount(homes.length)
+      }
 
       setIsLoading(false)
     } catch (err) {
@@ -109,7 +149,7 @@ export function useHomesLayer(): UseHomesLayerResult {
         isInitializedRef.current = false
       }
     }
-  }, [map, isMapLoaded])
+  }, [map, isMapLoaded, reinitializeCounter])
 
   // Update layer data when Convex data changes
   useEffect(() => {
@@ -166,6 +206,11 @@ export function useHomesLayer(): UseHomesLayerResult {
     setSelectedHome(null)
   }, [])
 
+  // Re-initialize layers (called after style change)
+  const reinitializeLayers = useCallback(() => {
+    setReinitializeCounter((prev) => prev + 1)
+  }, [])
+
   return {
     isLoading,
     error,
@@ -174,5 +219,6 @@ export function useHomesLayer(): UseHomesLayerResult {
     clearHighlights,
     selectedHome,
     clearSelectedHome,
+    reinitializeLayers,
   }
 }

@@ -18,6 +18,8 @@ export interface HomesLayerLoaderProps {
   onHomeClick?: (home: HomeForSale) => void
   /** Callback when home selection is cleared */
   onHomeClear?: () => void
+  /** Whether a style change is in progress (for layer re-initialization) */
+  isStyleChanging?: boolean
 }
 
 // =============================================================================
@@ -31,10 +33,21 @@ export interface HomesLayerLoaderProps {
 export function HomesLayerLoader({
   onHomeClick,
   onHomeClear,
+  isStyleChanging = false,
 }: HomesLayerLoaderProps) {
-  const { selectedHome, homeCount } = useHomesLayer()
+  const { selectedHome, homeCount, reinitializeLayers } = useHomesLayer()
 
   const prevSelectedRef = useRef(selectedHome)
+  const prevStyleChangingRef = useRef(isStyleChanging)
+
+  // Re-initialize layers after style change completes
+  useEffect(() => {
+    // Detect when style change completes (was true, now false)
+    if (prevStyleChangingRef.current && !isStyleChanging) {
+      reinitializeLayers?.()
+    }
+    prevStyleChangingRef.current = isStyleChanging
+  }, [isStyleChanging, reinitializeLayers])
 
   // Notify parent when home is selected/cleared
   useEffect(() => {
@@ -50,7 +63,7 @@ export function HomesLayerLoader({
   // It logs the home count for debugging
   useEffect(() => {
     if (homeCount > 0) {
-      console.log(`Homes layer loaded: ${homeCount} homes for sale`)
+      console.log(`[HomesLayerLoader] Loaded: ${homeCount} homes for sale`)
     }
   }, [homeCount])
 
