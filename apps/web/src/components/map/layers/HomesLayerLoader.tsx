@@ -18,8 +18,6 @@ export interface HomesLayerLoaderProps {
   onHomeClick?: (home: HomeForSale) => void
   /** Callback when home selection is cleared */
   onHomeClear?: () => void
-  /** Whether a style change is in progress (for layer re-initialization) */
-  isStyleChanging?: boolean
 }
 
 // =============================================================================
@@ -33,9 +31,8 @@ export interface HomesLayerLoaderProps {
 export function HomesLayerLoader({
   onHomeClick,
   onHomeClear,
-  isStyleChanging = false,
 }: HomesLayerLoaderProps) {
-  const { selectedHome, clearSelectedHome, homeCount } = useHomesLayer()
+  const { selectedHome, homeCount } = useHomesLayer()
 
   const prevSelectedRef = useRef(selectedHome)
 

@@ -356,10 +356,7 @@ export function MapContainer({
             />
           )}
           {enableHomesLayer && (
-            <HomesLayerLoader
-              onHomeClick={onHomeClick}
-              isStyleChanging={isStyleChanging}
-            />
+            <HomesLayerLoader onHomeClick={onHomeClick} />
           )}
           {showLayerPanel && <LayerPanel />}
           {showParcelPopup && selectedParcel && (

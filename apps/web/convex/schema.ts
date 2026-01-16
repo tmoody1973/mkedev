@@ -331,6 +331,10 @@ export default defineSchema({
     listingUrl: v.optional(v.string()), // Link field - external listing URL
     developerName: v.optional(v.string()), // Developer_Name field
 
+    // Images from ESRI attachments
+    imageUrls: v.optional(v.array(v.string())), // Array of image URLs from ESRI attachments
+    primaryImageUrl: v.optional(v.string()), // First/primary image for thumbnails
+
     // Sync metadata
     lastSyncedAt: v.number(), // Timestamp of last successful sync
     createdAt: v.number(),

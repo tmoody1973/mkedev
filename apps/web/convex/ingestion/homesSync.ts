@@ -81,9 +81,22 @@ interface HomeForSaleData {
   narrative?: string;
   listingUrl?: string;
   developerName?: string;
+  imageUrls?: string[];
+  primaryImageUrl?: string;
   lastSyncedAt: number;
   createdAt: number;
   updatedAt: number;
+}
+
+interface ESRIAttachment {
+  id: number;
+  name: string;
+  contentType: string;
+  size: number;
+}
+
+interface ESRIAttachmentsResponse {
+  attachmentInfos?: ESRIAttachment[];
 }
 
 interface SyncResult {
@@ -169,6 +182,39 @@ function transformFeature(
     createdAt: syncTimestamp,
     updatedAt: syncTimestamp,
   };
+}
+
+/**
+ * Fetch attachments for a specific feature
+ * Returns array of image URLs
+ */
+async function fetchAttachments(objectId: number): Promise<string[]> {
+  try {
+    const url = `${ESRI_BASE_URL}/${objectId}/attachments?f=json`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = (await response.json()) as ESRIAttachmentsResponse;
+
+    if (!data.attachmentInfos || data.attachmentInfos.length === 0) {
+      return [];
+    }
+
+    // Filter to only image attachments and build URLs
+    const imageAttachments = data.attachmentInfos.filter((att) =>
+      att.contentType.startsWith("image/")
+    );
+
+    return imageAttachments.map(
+      (att) => `${ESRI_BASE_URL}/${objectId}/attachments/${att.id}`
+    );
+  } catch {
+    // Silently fail for attachments - not critical
+    return [];
+  }
 }
 
 /**
@@ -283,6 +329,29 @@ export const syncFromESRI = internalAction({
       console.log(
         `Transformed ${transformedHomes.length} of ${features.length} features`
       );
+
+      // Fetch attachments for each home in parallel (batched to avoid rate limits)
+      console.log("Fetching image attachments...");
+      const ATTACHMENT_BATCH_SIZE = 10;
+
+      for (let i = 0; i < transformedHomes.length; i += ATTACHMENT_BATCH_SIZE) {
+        const batch = transformedHomes.slice(i, i + ATTACHMENT_BATCH_SIZE);
+
+        const attachmentPromises = batch.map(async (home) => {
+          const imageUrls = await fetchAttachments(
+            parseInt(home.esriObjectId, 10)
+          );
+          home.imageUrls = imageUrls;
+          home.primaryImageUrl = imageUrls.length > 0 ? imageUrls[0] : undefined;
+        });
+
+        await Promise.all(attachmentPromises);
+      }
+
+      const homesWithImages = transformedHomes.filter(
+        (h) => h.imageUrls && h.imageUrls.length > 0
+      ).length;
+      console.log(`${homesWithImages} homes have images`);
 
       // Batch upsert to database (Convex has limits on mutation size)
       const BATCH_SIZE = 100;

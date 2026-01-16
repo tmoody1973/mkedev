@@ -8,7 +8,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import type { Map as MapboxMap } from 'mapbox-gl'
 import { useQuery } from 'convex/react'
-import { api } from '@/convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import { useMap } from '@/contexts/MapContext'
 import {
   HomesLayerManager,
@@ -116,18 +116,28 @@ export function useHomesLayer(): UseHomesLayerResult {
     if (!layerManagerRef.current || !homesData) return
 
     // Transform Convex data to HomeForSale format
-    const homes: HomeForSale[] = homesData.map((h) => ({
-      _id: h.id,
-      address: h.address,
-      neighborhood: h.neighborhood,
-      coordinates: h.coordinates as [number, number],
-      bedrooms: h.bedrooms,
-      fullBaths: h.fullBaths,
-      halfBaths: h.halfBaths,
-      buildingSqFt: 0, // Not included in getForMap for performance
-      yearBuilt: 0,
-      status: 'for_sale' as const,
-    }))
+    const homes: HomeForSale[] = homesData.map(
+      (h: {
+        id: string
+        address: string
+        neighborhood: string
+        coordinates: number[]
+        bedrooms: number
+        fullBaths: number
+        halfBaths: number
+      }) => ({
+        _id: h.id,
+        address: h.address,
+        neighborhood: h.neighborhood,
+        coordinates: h.coordinates as [number, number],
+        bedrooms: h.bedrooms,
+        fullBaths: h.fullBaths,
+        halfBaths: h.halfBaths,
+        buildingSqFt: 0, // Not included in getForMap for performance
+        yearBuilt: 0,
+        status: 'for_sale' as const,
+      })
+    )
 
     layerManagerRef.current.updateData(homes)
     setHomeCount(homes.length)

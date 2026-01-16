@@ -39,6 +39,8 @@ export const upsertHomes = internalMutation({
         narrative: v.optional(v.string()),
         listingUrl: v.optional(v.string()),
         developerName: v.optional(v.string()),
+        imageUrls: v.optional(v.array(v.string())),
+        primaryImageUrl: v.optional(v.string()),
         lastSyncedAt: v.number(),
         createdAt: v.number(),
         updatedAt: v.number(),

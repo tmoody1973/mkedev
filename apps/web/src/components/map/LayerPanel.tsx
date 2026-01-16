@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { useState, useCallback } from 'react'
-import { Layers, ChevronUp, ChevronDown, Eye, EyeOff, Home } from 'lucide-react'
+import { Layers, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react'
 import { useMap } from '@/contexts/MapContext'
 import {
   ALL_LAYER_CONFIGS,
