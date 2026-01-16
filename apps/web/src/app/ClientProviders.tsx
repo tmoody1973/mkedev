@@ -14,6 +14,12 @@ const AppProviders = dynamic(
   { ssr: false }
 )
 
+// PMTiles cache service worker registration
+const PMTilesCacheProvider = dynamic(
+  () => import('@/components/map/PMTilesCacheProvider').then(mod => mod.PMTilesCacheProvider),
+  { ssr: false }
+)
+
 interface ClientProvidersProps {
   children: ReactNode
 }
@@ -45,7 +51,10 @@ export function ClientProviders({ children }: ClientProvidersProps) {
 
   return (
     <ClerkConvexProvider>
-      <AppProviders>{children}</AppProviders>
+      <AppProviders>
+        <PMTilesCacheProvider />
+        {children}
+      </AppProviders>
     </ClerkConvexProvider>
   )
 }
