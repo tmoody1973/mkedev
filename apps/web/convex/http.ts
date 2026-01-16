@@ -2,8 +2,83 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Webhook } from "svix";
+import {
+  upsertDocument,
+  updateStatus,
+  getDocument,
+  checkHash,
+  listByFrequency,
+} from "./http/planningIngestion";
 
 const http = httpRouter();
+
+// =============================================================================
+// Planning Ingestion API Routes (for Python ADK Agent)
+// =============================================================================
+
+http.route({
+  path: "/api/planning/documents/upsert",
+  method: "POST",
+  handler: upsertDocument,
+});
+
+http.route({
+  path: "/api/planning/documents/status",
+  method: "POST",
+  handler: updateStatus,
+});
+
+http.route({
+  path: "/api/planning/documents",
+  method: "GET",
+  handler: getDocument,
+});
+
+http.route({
+  path: "/api/planning/documents/check-hash",
+  method: "GET",
+  handler: checkHash,
+});
+
+http.route({
+  path: "/api/planning/documents/by-frequency",
+  method: "GET",
+  handler: listByFrequency,
+});
+
+// =============================================================================
+// Homes MKE Sync API Routes
+// =============================================================================
+
+/**
+ * Manually trigger homes sync from ESRI.
+ * POST /api/homes/sync
+ *
+ * This endpoint triggers an immediate sync of Homes MKE data from the ESRI FeatureServer.
+ * Useful for initial data population and on-demand refreshes.
+ */
+http.route({
+  path: "/api/homes/sync",
+  method: "POST",
+  handler: httpAction(async (ctx) => {
+    try {
+      const result = await ctx.runAction(
+        internal.ingestion.homesSync.syncFromESRI,
+        {}
+      );
+      return new Response(JSON.stringify(result), {
+        status: result.success ? 200 : 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return new Response(JSON.stringify({ success: false, message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }),
+});
 
 /**
  * Clerk webhook handler for user events.

@@ -16,15 +16,18 @@ export {
   HISTORIC_LAYER_CONFIG,
   ARB_LAYER_CONFIG,
   CITY_OWNED_LAYER_CONFIG,
+  HOMES_LAYER_CONFIG,
   ALL_LAYER_CONFIGS,
   getLayerConfig,
 } from './layer-config'
 
 export type {
   ZoningCategory,
+  ESRILayerType,
   LayerType,
   LegendItem,
   ESRILayerConfig,
+  HomesLayerConfig,
 } from './layer-config'
 
 // Layer manager
@@ -37,6 +40,17 @@ export type {
   LayerClickEvent,
   ESRILayerManagerOptions,
 } from './esri-layer-manager'
+
+// Homes layer manager
+export {
+  HomesLayerManager,
+} from './homes-layer-manager'
+
+export type {
+  HomeForSale,
+  HomeClickEvent,
+  HomesLayerManagerOptions,
+} from './homes-layer-manager'
 
 // React hook
 export {

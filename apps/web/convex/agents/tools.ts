@@ -5,6 +5,14 @@
  * These run as Convex actions and integrate with external APIs.
  */
 
+import type { GenericActionCtx } from "convex/server";
+import { api } from "../_generated/api";
+import type { DataModel } from "../_generated/dataModel";
+import type { Id } from "../_generated/dataModel";
+
+// Action context type using our DataModel
+type ActionCtx = GenericActionCtx<DataModel>;
+
 // =============================================================================
 // Tool Declarations for Gemini Function Calling
 // =============================================================================
@@ -133,6 +141,55 @@ export const TOOL_DECLARATIONS = [
         },
       },
       required: ["question"],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // Homes MKE Tools
+  // ---------------------------------------------------------------------------
+  {
+    name: "search_homes_for_sale",
+    description:
+      "Search for homes currently for sale in Milwaukee. Returns a list of available homes with their key details. Use this when users ask about homes for sale, available properties, or want to find a house in a specific neighborhood or with certain features (bedrooms, bathrooms).",
+    parameters: {
+      type: "object",
+      properties: {
+        neighborhood: {
+          type: "string",
+          description: "Filter by neighborhood name (e.g., Bay View, Third Ward, Walkers Point, Downtown). Case-insensitive partial match supported.",
+        },
+        minBedrooms: {
+          type: "number",
+          description: "Minimum number of bedrooms",
+        },
+        maxBedrooms: {
+          type: "number",
+          description: "Maximum number of bedrooms",
+        },
+        minBaths: {
+          type: "number",
+          description: "Minimum number of bathrooms (full baths count as 1, half baths as 0.5)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results to return (default: 10, max: 50)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_home_details",
+    description:
+      "Get detailed information about a specific home for sale, including full property description, listing URL, and precise location. Use this after search_homes_for_sale to get more details about a specific property, or when you have a home ID from a previous interaction.",
+    parameters: {
+      type: "object",
+      properties: {
+        homeId: {
+          type: "string",
+          description: "The Convex document ID of the home (obtained from search_homes_for_sale results)",
+        },
+      },
+      required: ["homeId"],
     },
   },
 ];
@@ -378,4 +435,162 @@ export function calculateParking(params: {
     notes,
     codeReference: "Section 295-403 (Off-Street Parking Requirements)",
   };
+}
+
+// =============================================================================
+// Homes MKE Tool Implementations
+// =============================================================================
+
+/**
+ * Home summary type returned by search_homes_for_sale.
+ */
+export interface HomeSummary {
+  homeId: string;
+  address: string;
+  neighborhood: string;
+  bedrooms: number;
+  fullBaths: number;
+  halfBaths: number;
+  buildingSqFt: number;
+}
+
+/**
+ * Full home details type returned by get_home_details.
+ */
+export interface HomeDetails {
+  homeId: string;
+  address: string;
+  neighborhood: string;
+  coordinates: [number, number];
+  bedrooms: number;
+  fullBaths: number;
+  halfBaths: number;
+  buildingSqFt: number;
+  yearBuilt: number;
+  status: string;
+  narrative?: string;
+  listingUrl?: string;
+  developerName?: string;
+}
+
+/**
+ * Search for homes currently for sale in Milwaukee.
+ * Calls the Convex homes.searchHomes query.
+ */
+export async function searchHomesForSale(
+  ctx: ActionCtx,
+  params: {
+    neighborhood?: string;
+    minBedrooms?: number;
+    maxBedrooms?: number;
+    minBaths?: number;
+    limit?: number;
+  }
+): Promise<{
+  success: boolean;
+  homes?: HomeSummary[];
+  count?: number;
+  error?: string;
+}> {
+  try {
+    // Enforce reasonable limit
+    const limit = Math.min(params.limit ?? 10, 50);
+
+    // Query homes from Convex
+    const homes = await ctx.runQuery(api.homes.searchHomes, {
+      neighborhood: params.neighborhood,
+      minBedrooms: params.minBedrooms,
+      maxBedrooms: params.maxBedrooms,
+      minBaths: params.minBaths,
+      limit,
+    });
+
+    // Transform to tool response format
+    const homeSummaries: HomeSummary[] = homes.map(
+      (home: {
+        _id: string;
+        address: string;
+        neighborhood: string;
+        bedrooms: number;
+        fullBaths: number;
+        halfBaths: number;
+        buildingSqFt: number;
+      }) => ({
+        homeId: home._id,
+        address: home.address,
+        neighborhood: home.neighborhood,
+        bedrooms: home.bedrooms,
+        fullBaths: home.fullBaths,
+        halfBaths: home.halfBaths,
+        buildingSqFt: home.buildingSqFt,
+      })
+    );
+
+    return {
+      success: true,
+      homes: homeSummaries,
+      count: homeSummaries.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to search homes: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Get detailed information about a specific home.
+ * Calls the Convex homes.getById query.
+ */
+export async function getHomeDetails(
+  ctx: ActionCtx,
+  params: {
+    homeId: string;
+  }
+): Promise<{
+  success: boolean;
+  home?: HomeDetails;
+  error?: string;
+}> {
+  try {
+    // Query home from Convex
+    const home = await ctx.runQuery(api.homes.getById, {
+      id: params.homeId as Id<"homesForSale">,
+    });
+
+    if (!home) {
+      return {
+        success: false,
+        error: `Home not found with ID: ${params.homeId}`,
+      };
+    }
+
+    // Transform to tool response format
+    const homeDetails: HomeDetails = {
+      homeId: home._id,
+      address: home.address,
+      neighborhood: home.neighborhood,
+      coordinates: home.coordinates as [number, number],
+      bedrooms: home.bedrooms,
+      fullBaths: home.fullBaths,
+      halfBaths: home.halfBaths,
+      buildingSqFt: home.buildingSqFt,
+      yearBuilt: home.yearBuilt,
+      status: home.status,
+      narrative: home.narrative,
+      listingUrl: home.listingUrl,
+      developerName: home.developerName,
+    };
+
+    return {
+      success: true,
+      home: homeDetails,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to get home details: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
 }

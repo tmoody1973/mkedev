@@ -8,7 +8,7 @@ import { ChatPanel, ConversationSidebar, type ChatMessage, type GenerativeCard }
 import { useZoningAgent } from '@/hooks/useZoningAgent'
 import { useConversations } from '@/hooks/useConversations'
 import { useMap } from '@/contexts/MapContext'
-import { ZoneInfoCard, ParcelCard } from '@/components/copilot'
+import { ZoneInfoCard, ParcelCard, HomeCard, HomesListCard, type HomeListItem } from '@/components/copilot'
 import { LandingPage } from '@/components/landing'
 import dynamic from 'next/dynamic'
 
@@ -204,6 +204,36 @@ export default function HomeContent() {
         lastProcessedMessageRef.current = lastMsg.id
         // Fly to the location with a nice zoom level
         flyTo([data.coordinates.longitude, data.coordinates.latitude], 17, {
+          pitch: 45,
+          duration: 2000,
+        })
+      }
+    }
+
+    // Look for homes-list card and fly to first home (or highlight all)
+    const homesListCard = lastMsg.cards?.find((card) => card.type === 'homes-list')
+    if (homesListCard) {
+      const data = homesListCard.data as { homes?: Array<{ coordinates?: [number, number] }> }
+      if (data.homes && data.homes.length > 0) {
+        const firstHome = data.homes[0]
+        if (firstHome.coordinates && Array.isArray(firstHome.coordinates)) {
+          lastProcessedMessageRef.current = lastMsg.id
+          // Fly to first home location
+          flyTo(firstHome.coordinates, 14, {
+            duration: 2000,
+          })
+        }
+      }
+    }
+
+    // Look for home-listing card and fly to that specific home
+    const homeListingCard = lastMsg.cards?.find((card) => card.type === 'home-listing')
+    if (homeListingCard) {
+      const data = homeListingCard.data as { coordinates?: [number, number] }
+      if (data.coordinates && Array.isArray(data.coordinates)) {
+        lastProcessedMessageRef.current = lastMsg.id
+        // Fly to the specific home
+        flyTo(data.coordinates, 17, {
           pitch: 45,
           duration: 2000,
         })
@@ -426,6 +456,30 @@ export default function HomeContent() {
   }, [sendMessage])
 
   /**
+   * Handle home selection from HomesListCard.
+   * Flies to the home and highlights it on the map.
+   */
+  const handleHomeSelect = useCallback((home: HomeListItem) => {
+    // Fly to the selected home
+    if (home.coordinates) {
+      flyTo(home.coordinates, 17, {
+        pitch: 45,
+        duration: 2000,
+      })
+    }
+  }, [flyTo])
+
+  /**
+   * Handle fly to location from HomeCard.
+   */
+  const handleHomeFlyTo = useCallback((coordinates: [number, number]) => {
+    flyTo(coordinates, 17, {
+      pitch: 45,
+      duration: 2000,
+    })
+  }, [flyTo])
+
+  /**
    * Render generative UI cards based on tool results.
    */
   const renderCard = useCallback((card: GenerativeCard): ReactNode => {
@@ -589,10 +643,66 @@ export default function HomeContent() {
         );
       }
 
+      // ========================================================================
+      // Home Cards - Homes MKE Integration (Chat-to-Map Bridge)
+      // ========================================================================
+
+      case 'home-listing': {
+        const data = card.data as {
+          address: string;
+          neighborhood?: string;
+          coordinates?: [number, number];
+          bedrooms?: number;
+          fullBaths?: number;
+          halfBaths?: number;
+          buildingSqFt?: number;
+          yearBuilt?: number;
+          narrative?: string;
+          listingUrl?: string;
+        };
+        return (
+          <HomeCard
+            address={data.address}
+            neighborhood={data.neighborhood}
+            coordinates={data.coordinates}
+            bedrooms={data.bedrooms}
+            fullBaths={data.fullBaths}
+            halfBaths={data.halfBaths}
+            buildingSqFt={data.buildingSqFt}
+            yearBuilt={data.yearBuilt}
+            narrative={data.narrative}
+            listingUrl={data.listingUrl}
+            status="complete"
+            onFlyTo={handleHomeFlyTo}
+          />
+        );
+      }
+
+      case 'homes-list': {
+        const data = card.data as {
+          homes: Array<{
+            id: string;
+            address: string;
+            neighborhood: string;
+            coordinates: [number, number];
+            bedrooms: number;
+            fullBaths: number;
+            halfBaths: number;
+          }>;
+        };
+        return (
+          <HomesListCard
+            homes={data.homes}
+            onHomeSelect={handleHomeSelect}
+            status="complete"
+          />
+        );
+      }
+
       default:
         return null;
     }
-  }, [openPdfViewer])
+  }, [openPdfViewer, handleHomeFlyTo, handleHomeSelect])
 
   // Show loading skeleton while auth state is being determined
   // This prevents hydration mismatch between server and client

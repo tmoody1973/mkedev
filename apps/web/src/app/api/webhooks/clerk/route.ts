@@ -29,12 +29,16 @@ function getConvexClient() {
  * 3. Copy the signing secret to CLERK_WEBHOOK_SECRET env var
  */
 export async function POST(req: Request) {
+  console.log("[Clerk Webhook] Received request");
+
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
-    console.error("CLERK_WEBHOOK_SECRET is not set");
+    console.error("[Clerk Webhook] CLERK_WEBHOOK_SECRET is not set");
     return new Response("Webhook secret not configured", { status: 500 });
   }
+
+  console.log("[Clerk Webhook] Secret is configured");
 
   // Get the headers
   const headerPayload = await headers();
@@ -44,8 +48,15 @@ export async function POST(req: Request) {
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
+    console.error("[Clerk Webhook] Missing svix headers", {
+      svix_id: !!svix_id,
+      svix_timestamp: !!svix_timestamp,
+      svix_signature: !!svix_signature,
+    });
     return new Response("Missing svix headers", { status: 400 });
   }
+
+  console.log("[Clerk Webhook] Headers received, verifying signature...");
 
   // Get the body
   const payload = await req.json();
@@ -63,8 +74,9 @@ export async function POST(req: Request) {
       "svix-timestamp": svix_timestamp,
       "svix-signature": svix_signature,
     }) as WebhookEvent;
+    console.log("[Clerk Webhook] Signature verified successfully");
   } catch (err) {
-    console.error("Error verifying webhook:", err);
+    console.error("[Clerk Webhook] Signature verification failed:", err);
     return new Response("Invalid webhook signature", { status: 400 });
   }
 
@@ -72,7 +84,9 @@ export async function POST(req: Request) {
   const eventType = evt.type;
 
   try {
+    console.log(`[Clerk Webhook] Processing event: ${eventType}`);
     const convex = getConvexClient();
+    console.log("[Clerk Webhook] Convex client created");
 
     switch (eventType) {
       case "user.created":
@@ -84,6 +98,8 @@ export async function POST(req: Request) {
           (e) => e.id === evt.data.primary_email_address_id
         );
 
+        console.log(`[Clerk Webhook] Upserting user ${id} with email ${primaryEmail?.email_address}`);
+
         await convex.mutation(api.users.upsertUser, {
           clerkId: id,
           email: primaryEmail?.email_address ?? "",
@@ -92,7 +108,7 @@ export async function POST(req: Request) {
           imageUrl: image_url ?? undefined,
         });
 
-        console.log(`User ${eventType}: ${id}`);
+        console.log(`[Clerk Webhook] Successfully upserted user: ${id}`);
         break;
       }
 
@@ -100,19 +116,20 @@ export async function POST(req: Request) {
         const { id } = evt.data;
 
         if (id) {
+          console.log(`[Clerk Webhook] Deleting user: ${id}`);
           await convex.mutation(api.users.deleteByClerkId, {
             clerkId: id,
           });
-          console.log(`User deleted: ${id}`);
+          console.log(`[Clerk Webhook] Successfully deleted user: ${id}`);
         }
         break;
       }
 
       default:
-        console.log(`Unhandled webhook event: ${eventType}`);
+        console.log(`[Clerk Webhook] Unhandled event type: ${eventType}`);
     }
   } catch (error) {
-    console.error(`Error handling webhook event ${eventType}:`, error);
+    console.error(`[Clerk Webhook] Error processing ${eventType}:`, error);
     return new Response("Error processing webhook", { status: 500 });
   }
 

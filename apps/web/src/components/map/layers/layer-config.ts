@@ -21,9 +21,10 @@ export type ZoningCategory =
   | 'special'
 
 /**
- * Layer type identifiers matching MapContext layer visibility keys
+ * ESRI/PMTiles layer type identifiers
+ * These are layers sourced from ESRI or PMTiles
  */
-export type LayerType =
+export type ESRILayerType =
   | 'zoning'
   | 'parcels'
   | 'tif'
@@ -31,6 +32,12 @@ export type LayerType =
   | 'historic'
   | 'arb'
   | 'cityOwned'
+
+/**
+ * All layer type identifiers matching MapContext layer visibility keys
+ * Includes both ESRI layers and custom layers (homes)
+ */
+export type LayerType = ESRILayerType | 'homes'
 
 /**
  * Legend item for categorical layer display
@@ -45,7 +52,7 @@ export interface LegendItem {
  */
 export interface ESRILayerConfig {
   /** Unique layer identifier (matches MapContext layerVisibility keys) */
-  id: LayerType
+  id: ESRILayerType
   /** Display name for the layer */
   name: string
   /** Layer description */
@@ -67,6 +74,38 @@ export interface ESRILayerConfig {
   /** Whether this layer supports click interaction */
   interactive: boolean
   /** Legend items for categorical display */
+  legendItems: LegendItem[]
+  /** Data source attribution */
+  dataSource: string
+}
+
+/**
+ * Configuration for the Homes layer (non-ESRI, uses Convex data)
+ */
+export interface HomesLayerConfig {
+  /** Layer identifier */
+  id: 'homes'
+  /** Display name for the layer */
+  name: string
+  /** Layer description */
+  description: string
+  /** Circle color (default state) */
+  color: string
+  /** Circle color when highlighted */
+  highlightColor: string
+  /** Circle radius in pixels */
+  circleRadius: number
+  /** Circle radius when highlighted */
+  highlightRadius: number
+  /** Stroke/border color */
+  strokeColor: string
+  /** Stroke width */
+  strokeWidth: number
+  /** Whether layer is visible by default */
+  defaultVisible: boolean
+  /** Whether this layer supports click interaction */
+  interactive: boolean
+  /** Legend items for display */
   legendItems: LegendItem[]
   /** Data source attribution */
   dataSource: string
@@ -322,8 +361,36 @@ export const CITY_OWNED_LAYER_CONFIG: ESRILayerConfig = {
   dataSource: 'Milwaukee GIS - City-Owned Properties',
 }
 
+// =============================================================================
+// Homes Layer Configuration (Non-ESRI, Convex data)
+// =============================================================================
+
 /**
- * All layer configurations in display order
+ * Homes For Sale Layer
+ * Properties from Homes MKE program via Convex
+ * Uses circle markers instead of fill polygons
+ */
+export const HOMES_LAYER_CONFIG: HomesLayerConfig = {
+  id: 'homes',
+  name: 'Homes For Sale',
+  description: 'Homes for sale from Homes MKE program',
+  color: '#0ea5e9', // sky-500
+  highlightColor: '#f59e0b', // amber-500
+  circleRadius: 8,
+  highlightRadius: 12,
+  strokeColor: '#ffffff',
+  strokeWidth: 2,
+  defaultVisible: true,
+  interactive: true,
+  legendItems: [
+    { label: 'Home For Sale', color: '#0ea5e9' },
+    { label: 'Selected', color: '#f59e0b' },
+  ],
+  dataSource: 'Homes MKE - City of Milwaukee',
+}
+
+/**
+ * All ESRI layer configurations in display order
  */
 export const ALL_LAYER_CONFIGS: ESRILayerConfig[] = [
   ZONING_LAYER_CONFIG,
@@ -340,6 +407,9 @@ export const ALL_LAYER_CONFIGS: ESRILayerConfig[] = [
  * @param layerId - Layer identifier
  * @returns Layer configuration or undefined
  */
-export function getLayerConfig(layerId: LayerType): ESRILayerConfig | undefined {
+export function getLayerConfig(layerId: LayerType): ESRILayerConfig | HomesLayerConfig | undefined {
+  if (layerId === 'homes') {
+    return HOMES_LAYER_CONFIG
+  }
   return ALL_LAYER_CONFIGS.find((config) => config.id === layerId)
 }

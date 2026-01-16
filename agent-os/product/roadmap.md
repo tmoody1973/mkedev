@@ -112,11 +112,32 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 
 | Priority | Feature | Description |
 |----------|---------|-------------|
-| P0 | Automated Crawling | Weekly Firecrawl runs for new content |
+| P0 | **Planning Ingestion Agent** | Google ADK Python agent for crawling Milwaukee planning docs ([spec](../specs/2026-01-16-planning-ingestion-agent/spec.md)) |
+| P0 | Automated Crawling | Weekly Firecrawl runs for new content (via Planning Ingestion Agent) |
 | P0 | Source Monitoring | Dashboard showing sync status per source |
 | P1 | Document Versioning | Track changes to regulations over time |
 | P1 | City API Integration | Direct integration with city permit system |
 | P2 | Community Contributions | Allow verified users to flag outdated info |
+
+### Planning Ingestion Agent Details
+
+**Architecture**: Standalone Google ADK Python service at `apps/agents/planning-ingestion/`
+
+**Data Sources**:
+- HTML Pages (weekly): Home Building Sites, Vacant Lots, Commercial Properties, Overlay Zones, Design Guidelines
+- PDF Documents (monthly): House Design Standards, Green Milwaukee Guide, Vacant Lot Handbook
+
+**Key Features**:
+- Firecrawl MCP integration for web scraping
+- Content hashing for change detection
+- Convex HTTP API for storage
+- Gemini File Search Store uploads for RAG
+- Opik observability tracing
+
+**Why ADK (not Convex)**:
+- Native Firecrawl MCP support
+- Better suited for background batch processing
+- Keeps existing chat agent untouched (avoids migration risk)
 
 ---
 
@@ -174,9 +195,17 @@ Foundation
 Document Ingestion (Gemini File Search)
     ├── Zoning Code PDFs (informational)
     ├── Area Plans PDFs (informational)
-    └── Application Forms (actionable)
-        ├── Form metadata (downloadUrl, formNumber, etc.)
-        └── Form-aware RAG responses
+    ├── Application Forms (actionable)
+    │   ├── Form metadata (downloadUrl, formNumber, etc.)
+    │   └── Form-aware RAG responses
+    │
+    └── Planning Ingestion Agent (Google ADK Python)
+        ├── Firecrawl MCP (web scraping)
+        ├── HTML Pages (weekly): Home Sites, Vacant Lots, Commercial, Overlays
+        ├── PDF Documents (monthly): Design Standards, Green Guide, Handbooks
+        ├── Content Hashing (change detection)
+        ├── Convex HTTP API (storage)
+        └── Gemini File Search Store (RAG indexing)
     │
     └── Agent System (Google ADK)
         ├── Specialized Agents (Single-Domain)

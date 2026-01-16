@@ -18,7 +18,7 @@ import { add3DBuildings, remove3DBuildings } from './3d-buildings'
 // PMTiles is dynamically imported only when needed
 const isPMTilesConfigured = () => !!process.env.NEXT_PUBLIC_PMTILES_URL
 const getPMTilesUrl = () => process.env.NEXT_PUBLIC_PMTILES_URL
-import type { LayerType } from './layer-config'
+import type { ESRILayerType } from './layer-config'
 
 // =============================================================================
 // Types
@@ -53,6 +53,8 @@ export interface UseESRILayersResult {
 /**
  * Hook for managing ESRI layers within a Mapbox GL map
  * Integrates with MapContext for layer visibility management
+ * Note: This hook manages ESRI/PMTiles layers only. The homes layer
+ * is managed separately by HomesLayerManager.
  */
 export function useESRILayers(): UseESRILayersResult {
   const {
@@ -146,6 +148,13 @@ export function useESRILayers(): UseESRILayersResult {
         setIsLoading(true)
         setError(null)
 
+        // Filter to only ESRI layer types (exclude 'homes')
+        const esriLayerVisibility = Object.fromEntries(
+          Object.entries(layerVisibilityRef.current).filter(
+            ([key]) => key !== 'homes'
+          )
+        ) as Record<ESRILayerType, boolean>
+
         if (usePMTiles) {
           // Use PMTiles for faster tile loading
           const pmtilesUrl = getPMTilesUrl()!
@@ -189,7 +198,7 @@ export function useESRILayers(): UseESRILayersResult {
           layerManagerRef.current = manager
           isInitializedRef.current = true
 
-          await manager.initialize(layerVisibilityRef.current as Record<LayerType, boolean>)
+          await manager.initialize(esriLayerVisibility)
 
           // Set 3D mode if active after initialization
           if (is3DModeRef.current && manager.setZoning3DMode) {
@@ -207,7 +216,7 @@ export function useESRILayers(): UseESRILayersResult {
           layerManagerRef.current = manager
           isInitializedRef.current = true
 
-          await manager.initializeLayers(layerVisibilityRef.current as Record<LayerType, boolean>)
+          await manager.initializeLayers(esriLayerVisibility)
         }
 
         // Add 3D buildings layer (Mapbox composite source)
@@ -241,27 +250,31 @@ export function useESRILayers(): UseESRILayersResult {
     }
   }, [map, isMapLoaded, usePMTiles, reinitializeCounter])
 
-  // Sync layer visibility with MapContext
+  // Sync layer visibility with MapContext (ESRI layers only)
   useEffect(() => {
     if (!layerManagerRef.current || isLoading) return
 
     const manager = layerManagerRef.current
 
-    // Update visibility for each layer
-    const visibilityEntries = Object.entries(layerVisibility) as [LayerType, boolean][]
+    // Update visibility for each ESRI layer (skip 'homes' as it's managed separately)
+    const visibilityEntries = Object.entries(layerVisibility).filter(
+      ([key]) => key !== 'homes'
+    ) as [ESRILayerType, boolean][]
     visibilityEntries.forEach(([layerId, visible]) => {
       manager.setLayerVisibility(layerId, visible)
     })
   }, [layerVisibility, isLoading])
 
-  // Sync layer opacity with MapContext
+  // Sync layer opacity with MapContext (ESRI layers only)
   useEffect(() => {
     if (!layerManagerRef.current || isLoading) return
 
     const manager = layerManagerRef.current
 
-    // Update opacity for each layer
-    const opacityEntries = Object.entries(layerOpacity) as [LayerType, number][]
+    // Update opacity for each ESRI layer (skip 'homes' as it's managed separately)
+    const opacityEntries = Object.entries(layerOpacity).filter(
+      ([key]) => key !== 'homes'
+    ) as [ESRILayerType, number][]
     opacityEntries.forEach(([layerId, opacity]) => {
       manager.setLayerOpacity(layerId, opacity)
     })

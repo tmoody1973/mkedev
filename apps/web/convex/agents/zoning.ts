@@ -16,6 +16,8 @@ import {
   geocodeAddress,
   queryZoningAtPoint,
   calculateParking,
+  searchHomesForSale,
+  getHomeDetails,
 } from "./tools";
 import { createTraceManager } from "../lib/opik";
 
@@ -28,7 +30,7 @@ const FALLBACK_MODEL = "gemini-2.5-flash";
 const MAX_TOOL_CALLS = 15;
 const MAX_RETRIES = 2;
 
-const SYSTEM_INSTRUCTION = `You are a helpful Milwaukee zoning and development assistant. Your role is to help users understand zoning requirements AND neighborhood development context for properties in Milwaukee, Wisconsin.
+const SYSTEM_INSTRUCTION = `You are a helpful Milwaukee zoning and development assistant. Your role is to help users understand zoning requirements, neighborhood development context, AND available homes for sale in Milwaukee, Wisconsin.
 
 ## Your Capabilities
 
@@ -38,6 +40,45 @@ You have access to these tools:
 3. **calculate_parking** - Calculate required parking spaces
 4. **query_zoning_code** - Search the Milwaukee zoning code for detailed regulations
 5. **query_area_plans** - Search neighborhood area plans for development goals, housing strategies, and community vision
+6. **search_homes_for_sale** - Search for available homes in Milwaukee with optional filters (neighborhood, bedrooms, bathrooms)
+7. **get_home_details** - Get detailed information about a specific home including description, listing URL, and location
+
+## Home Search Capabilities
+
+When users ask about homes for sale, available properties, or houses in Milwaukee:
+- Use **search_homes_for_sale** to find homes matching their criteria
+- Filters available: neighborhood, minimum/maximum bedrooms, minimum bathrooms
+- Results include home IDs that can be used to highlight properties on the map
+- Each result shows: address, neighborhood, bedrooms, bathrooms, square footage
+
+When users want details about a specific home:
+- Use **get_home_details** with the homeId from search results
+- Returns: full property description (narrative), listing URL, coordinates, year built
+- The listing URL allows users to view the official listing
+- Coordinates enable the map to fly to the home's location
+
+### Home Search Guidelines
+
+1. **When to Search Homes:**
+   - "Show me homes for sale in Bay View"
+   - "I'm looking for a 3 bedroom house"
+   - "What's available in Third Ward?"
+   - "Find me a home with at least 2 bathrooms"
+
+2. **Combining with Zoning:**
+   - If a user is interested in a home AND wants zoning info, first search for homes, then use zoning tools for specific addresses
+   - Example: "Show me homes in Bay View and tell me about the zoning" - search homes, then offer to provide zoning details for any specific address
+
+3. **Response Format for Home Searches:**
+   - Start with the count of homes found
+   - List key details: address, beds/baths, square footage
+   - Mention that users can ask for more details about any specific home
+   - Note: homes are highlighted on the map when search results are returned
+
+4. **When to Get Details:**
+   - When a user asks "tell me more about [address]"
+   - When a user references a home from previous results
+   - When showing a single home result, you can proactively include details
 
 ## Neighborhood Coverage
 
@@ -80,8 +121,8 @@ For location-specific questions:
 
 Example workflow for "Can I build apartments at 500 N Water St?":
 1. Geocode the address
-2. Query zoning → Get district info
-3. Query area plans → Add Third Ward/Downtown development context
+2. Query zoning -> Get district info
+3. Query area plans -> Add Third Ward/Downtown development context
 4. Provide complete answer with both zoning rules AND neighborhood alignment
 
 ### 4. When to Lead with Area Plans
@@ -528,6 +569,31 @@ export const chat = action({
                 break;
               }
 
+              // ---------------------------------------------------------------
+              // Homes MKE Tools
+              // ---------------------------------------------------------------
+              case "search_homes_for_sale": {
+                const homeSearchArgs = fnArgs as {
+                  neighborhood?: string;
+                  minBedrooms?: number;
+                  maxBedrooms?: number;
+                  minBaths?: number;
+                  limit?: number;
+                };
+
+                toolResult = await searchHomesForSale(ctx, homeSearchArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              case "get_home_details": {
+                const homeDetailsArgs = fnArgs as { homeId: string };
+
+                toolResult = await getHomeDetails(ctx, homeDetailsArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
               default:
                 toolResult = { error: `Unknown tool: ${name}` };
                 toolSuccess = false;
@@ -711,6 +777,27 @@ export const testCombinedQuery = action({
   handler: async (ctx, args): Promise<{ response: string; toolsUsed: string[] }> => {
     const address = args.address || "500 N Water St";
     const testMessage = `I want to build a mixed-use development with apartments and ground-floor retail at ${address}. What are the zoning requirements and how does this fit with the city's vision for the area?`;
+
+    const result = await ctx.runAction(api.agents.zoning.chat, {
+      message: testMessage,
+    });
+
+    return result as { response: string; toolsUsed: string[] };
+  },
+});
+
+/**
+ * Test home search - exercises search_homes_for_sale tool.
+ */
+export const testHomeSearch = action({
+  args: {
+    neighborhood: v.optional(v.string()),
+    minBedrooms: v.optional(v.number()),
+  },
+  handler: async (ctx, args): Promise<{ response: string; toolsUsed: string[] }> => {
+    const neighborhood = args.neighborhood || "Bay View";
+    const minBedrooms = args.minBedrooms || 3;
+    const testMessage = `Show me homes for sale in ${neighborhood} with at least ${minBedrooms} bedrooms.`;
 
     const result = await ctx.runAction(api.agents.zoning.chat, {
       message: testMessage,

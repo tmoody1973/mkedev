@@ -5,7 +5,7 @@
 
 import type { Map as MapboxMap } from 'mapbox-gl'
 import FeatureService from 'mapbox-gl-arcgis-featureserver'
-import type { ESRILayerConfig, LayerType } from './layer-config'
+import type { ESRILayerConfig, ESRILayerType } from './layer-config'
 import { ALL_LAYER_CONFIGS, ZONING_CATEGORY_COLORS } from './layer-config'
 
 // =============================================================================
@@ -22,7 +22,7 @@ export interface ParcelData {
 }
 
 export interface LayerClickEvent {
-  layerId: LayerType
+  layerId: ESRILayerType
   coordinates: [number, number]
   properties: Record<string, unknown>
   parcelData?: ParcelData
@@ -44,28 +44,28 @@ export interface ESRILayerManagerOptions {
 /**
  * Generate unique source ID for a layer
  */
-function getSourceId(layerId: LayerType): string {
+function getSourceId(layerId: ESRILayerType): string {
   return `esri-source-${layerId}`
 }
 
 /**
  * Generate unique fill layer ID
  */
-function getFillLayerId(layerId: LayerType): string {
+function getFillLayerId(layerId: ESRILayerType): string {
   return `esri-fill-${layerId}`
 }
 
 /**
  * Generate unique stroke layer ID
  */
-function getStrokeLayerId(layerId: LayerType): string {
+function getStrokeLayerId(layerId: ESRILayerType): string {
   return `esri-stroke-${layerId}`
 }
 
 /**
  * Generate unique highlight layer ID
  */
-function getHighlightLayerId(layerId: LayerType): string {
+function getHighlightLayerId(layerId: ESRILayerType): string {
   return `esri-highlight-${layerId}`
 }
 
@@ -79,8 +79,8 @@ function getHighlightLayerId(layerId: LayerType): string {
  */
 export class ESRILayerManager {
   private map: MapboxMap
-  private featureServices: Map<LayerType, FeatureService> = new Map()
-  private layerConfigs: Map<LayerType, ESRILayerConfig> = new Map()
+  private featureServices: Map<ESRILayerType, FeatureService> = new Map()
+  private layerConfigs: Map<ESRILayerType, ESRILayerConfig> = new Map()
   private onFeatureClick?: (event: LayerClickEvent) => void
   private onFeatureHover?: (event: LayerClickEvent | null) => void
   private selectedFeatureId: string | null = null
@@ -101,7 +101,7 @@ export class ESRILayerManager {
    * Should be called after the map has loaded
    */
   async initializeLayers(
-    initialVisibility: Record<LayerType, boolean>
+    initialVisibility: Record<ESRILayerType, boolean>
   ): Promise<void> {
     // Add layers in reverse order so first layers appear on top
     const reversedConfigs = [...ALL_LAYER_CONFIGS].reverse()
@@ -287,7 +287,7 @@ export class ESRILayerManager {
   /**
    * Add highlight layer for selected/hovered features
    */
-  private addHighlightLayer(layerId: LayerType, sourceId: string): void {
+  private addHighlightLayer(layerId: ESRILayerType, sourceId: string): void {
     const highlightLayerId = getHighlightLayerId(layerId)
 
     if (this.map.getLayer(highlightLayerId)) return
@@ -412,7 +412,7 @@ export class ESRILayerManager {
   /**
    * Set visibility for a specific layer
    */
-  setLayerVisibility(layerId: LayerType, visible: boolean): void {
+  setLayerVisibility(layerId: ESRILayerType, visible: boolean): void {
     const fillLayerId = getFillLayerId(layerId)
     const strokeLayerId = getStrokeLayerId(layerId)
     const visibility = visible ? 'visible' : 'none'
@@ -429,7 +429,7 @@ export class ESRILayerManager {
   /**
    * Set opacity for a specific layer
    */
-  setLayerOpacity(layerId: LayerType, opacity: number): void {
+  setLayerOpacity(layerId: ESRILayerType, opacity: number): void {
     const fillLayerId = getFillLayerId(layerId)
 
     if (this.map.getLayer(fillLayerId)) {
@@ -483,7 +483,7 @@ export class ESRILayerManager {
   /**
    * Get configuration for a specific layer
    */
-  getLayerConfig(layerId: LayerType): ESRILayerConfig | undefined {
+  getLayerConfig(layerId: ESRILayerType): ESRILayerConfig | undefined {
     return this.layerConfigs.get(layerId)
   }
 

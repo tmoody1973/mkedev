@@ -1,7 +1,7 @@
 /**
  * Convex Cron Jobs
  *
- * Scheduled tasks for automated document maintenance.
+ * Scheduled tasks for automated document maintenance and data sync.
  */
 
 import { cronJobs } from "convex/server";
@@ -44,6 +44,28 @@ crons.weekly(
   "check-gemini-files",
   { dayOfWeek: "monday", hourUTC: 4, minuteUTC: 0 },
   internal.ingestion.gemini.checkFileStatuses
+);
+
+// =============================================================================
+// Homes MKE Data Sync Crons
+// =============================================================================
+
+/**
+ * Weekly sync of Homes MKE properties from ESRI FeatureServer.
+ * Runs every Monday at 6:00 AM UTC.
+ *
+ * This cron job:
+ * 1. Fetches all properties from Homes_MKE_Properties FeatureServer
+ * 2. Converts UTM coordinates to WGS84
+ * 3. Upserts records to homesForSale table
+ * 4. Marks properties no longer in the feed as "sold"
+ *
+ * Source: https://services1.arcgis.com/5ly0cVV70qsN8Soc/arcgis/rest/services/Homes_MKE_Properties/FeatureServer/0
+ */
+crons.weekly(
+  "sync-homes-mke",
+  { dayOfWeek: "monday", hourUTC: 6, minuteUTC: 0 },
+  internal.ingestion.homesSync.syncFromESRI
 );
 
 export default crons;

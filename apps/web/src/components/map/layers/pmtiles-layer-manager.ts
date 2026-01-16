@@ -16,7 +16,7 @@
 
 import mapboxgl from 'mapbox-gl'
 import { PmTilesSource } from '@/lib/mapbox-pmtiles-wrapper'
-import type { LayerType } from './layer-config'
+import type { ESRILayerType } from './layer-config'
 import { ZONING_CATEGORY_COLORS } from './layer-config'
 
 // PMTiles source type needs to be registered once
@@ -34,8 +34,8 @@ function registerPMTilesSourceType() {
 export interface PMTilesLayerManagerOptions {
   map: mapboxgl.Map
   pmtilesUrl: string
-  onFeatureClick?: (event: { layerId: LayerType; properties: Record<string, unknown>; coordinates: [number, number] }) => void
-  onFeatureHover?: (event: { layerId: LayerType; properties: Record<string, unknown>; coordinates: [number, number] } | null) => void
+  onFeatureClick?: (event: { layerId: ESRILayerType; properties: Record<string, unknown>; coordinates: [number, number] }) => void
+  onFeatureHover?: (event: { layerId: ESRILayerType; properties: Record<string, unknown>; coordinates: [number, number] } | null) => void
 }
 
 /**
@@ -122,9 +122,10 @@ const ZONING_COLOR_EXPRESSION: mapboxgl.Expression = [
 
 /**
  * Layer styling configuration
+ * Note: Uses ESRILayerType since PMTiles only handles ESRI-sourced layers
  */
 const LAYER_STYLES: Record<
-  LayerType,
+  ESRILayerType,
   {
     type: 'fill' | 'line'
     paint: mapboxgl.FillPaint | mapboxgl.LinePaint
@@ -205,8 +206,9 @@ const LAYER_STYLES: Record<
 
 /**
  * PMTiles source layer IDs (must match tippecanoe -L names)
+ * Note: Uses ESRILayerType since PMTiles only handles ESRI-sourced layers
  */
-const SOURCE_LAYER_IDS: Record<LayerType, string> = {
+const SOURCE_LAYER_IDS: Record<ESRILayerType, string> = {
   zoning: 'zoning',
   parcels: 'parcels',
   tif: 'tif',
@@ -224,8 +226,8 @@ export class PMTilesLayerManager {
   private map: mapboxgl.Map
   private pmtilesUrl: string
   private sourceId = 'milwaukee-pmtiles'
-  private layerVisibility: Map<LayerType, boolean> = new Map()
-  private layerOpacity: Map<LayerType, number> = new Map()
+  private layerVisibility: Map<ESRILayerType, boolean> = new Map()
+  private layerOpacity: Map<ESRILayerType, number> = new Map()
   private is3DMode = false
   private onFeatureClick?: PMTilesLayerManagerOptions['onFeatureClick']
   private onFeatureHover?: PMTilesLayerManagerOptions['onFeatureHover']
@@ -240,7 +242,7 @@ export class PMTilesLayerManager {
   /**
    * Initialize all layers from PMTiles source
    */
-  async initialize(initialVisibility: Record<LayerType, boolean>): Promise<void> {
+  async initialize(initialVisibility: Record<ESRILayerType, boolean>): Promise<void> {
     // Register PMTiles source type
     registerPMTilesSourceType()
 
@@ -264,15 +266,15 @@ export class PMTilesLayerManager {
 
     // Add layers
     for (const [layerId, style] of Object.entries(LAYER_STYLES)) {
-      const visible = initialVisibility[layerId as LayerType] ?? false
-      this.layerVisibility.set(layerId as LayerType, visible)
-      this.layerOpacity.set(layerId as LayerType, ((style.paint as mapboxgl.FillPaint | undefined)?.['fill-opacity'] as number) || 1)
+      const visible = initialVisibility[layerId as ESRILayerType] ?? false
+      this.layerVisibility.set(layerId as ESRILayerType, visible)
+      this.layerOpacity.set(layerId as ESRILayerType, ((style.paint as mapboxgl.FillPaint | undefined)?.['fill-opacity'] as number) || 1)
 
       this.map.addLayer({
         id: `pmtiles-${layerId}`,
         type: style.type,
         source: this.sourceId,
-        'source-layer': SOURCE_LAYER_IDS[layerId as LayerType],
+        'source-layer': SOURCE_LAYER_IDS[layerId as ESRILayerType],
         paint: style.paint as mapboxgl.AnyPaint,
         layout: {
           visibility: visible ? 'visible' : 'none',
@@ -289,7 +291,7 @@ export class PMTilesLayerManager {
   /**
    * Set visibility for a layer
    */
-  setLayerVisibility(layerId: LayerType, visible: boolean): void {
+  setLayerVisibility(layerId: ESRILayerType, visible: boolean): void {
     // Track the desired visibility state
     this.layerVisibility.set(layerId, visible)
 
@@ -303,7 +305,7 @@ export class PMTilesLayerManager {
    * Set opacity for a layer
    * In 3D mode: parcels stay transparent, zoning uses reduced opacity for tinting
    */
-  setLayerOpacity(layerId: LayerType, opacity: number): void {
+  setLayerOpacity(layerId: ESRILayerType, opacity: number): void {
     this.layerOpacity.set(layerId, opacity)
 
     // In 3D mode, parcels should stay transparent

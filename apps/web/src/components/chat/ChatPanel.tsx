@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, type ReactNode, type FormEvent } from 'react'
-import { Send, Mic, MessageCircle, MapPin, FileSearch, Calculator, BookOpen, CheckCircle2, Loader2 } from 'lucide-react'
+import { Send, Mic, MessageCircle, MapPin, FileSearch, Calculator, BookOpen, CheckCircle2, Loader2, Home } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,8 @@ export interface GenerativeCard {
     | 'permit-process'
     | 'code-citation'
     | 'opportunity-list'
+    | 'home-listing'
+    | 'homes-list'
   data: unknown
 }
 
@@ -506,6 +508,9 @@ function getToolIcon(toolName: string) {
     case 'query_zoning_code':
     case 'query_area_plans':
       return <BookOpen className="w-4 h-4" />;
+    case 'search_homes_for_sale':
+    case 'get_home_details':
+      return <Home className="w-4 h-4" />;
     default:
       return <Loader2 className="w-4 h-4 animate-spin" />;
   }
@@ -627,6 +632,10 @@ function getToolLabel(toolName: string): string {
       return 'Zoning Code Search';
     case 'query_area_plans':
       return 'Area Plans Search';
+    case 'search_homes_for_sale':
+      return 'Home Search';
+    case 'get_home_details':
+      return 'Home Details';
     default:
       return toolName;
   }
@@ -647,6 +656,10 @@ function getToolShortLabel(toolName: string): string {
       return 'Code';
     case 'query_area_plans':
       return 'Plans';
+    case 'search_homes_for_sale':
+      return 'Homes';
+    case 'get_home_details':
+      return 'Home';
     default:
       return toolName;
   }

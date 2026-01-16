@@ -13,8 +13,23 @@
 import { useCopilotAction } from "@copilotkit/react-core";
 import { ZoneInfoCard } from "./ZoneInfoCard";
 import { FormActionCard } from "./FormActionCard";
+import { HomeCard } from "./HomeCard";
+import { HomesListCard, type HomeListItem } from "./HomesListCard";
 
-export function CopilotActions() {
+interface CopilotActionsProps {
+  /** Callback to fly map to coordinates */
+  onFlyTo?: (coordinates: [number, number]) => void;
+  /** Callback to highlight homes on map */
+  onHighlightHomes?: (homeIds: string[]) => void;
+  /** Callback when a home is selected from the list */
+  onHomeSelect?: (home: HomeListItem) => void;
+}
+
+export function CopilotActions({
+  onFlyTo,
+  onHighlightHomes,
+  onHomeSelect,
+}: CopilotActionsProps = {}) {
   // Render zoning query results as a ZoneInfoCard
   useCopilotAction({
     name: "query_zoning_at_point",
@@ -176,6 +191,156 @@ export function CopilotActions() {
           </div>
         );
       }
+      return <></>;
+    },
+  });
+
+  // ==========================================================================
+  // Home Tools - Homes MKE Integration
+  // ==========================================================================
+
+  // Render search_homes_for_sale results as HomesListCard
+  useCopilotAction({
+    name: "search_homes_for_sale",
+    available: "disabled", // Render-only, backend executes
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <HomesListCard
+            homes={[]}
+            onHomeSelect={() => {}}
+            status="loading"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          homes?: Array<{
+            homeId: string;
+            address: string;
+            neighborhood: string;
+            coordinates?: [number, number];
+            bedrooms: number;
+            fullBaths: number;
+            halfBaths: number;
+          }>;
+        };
+
+        // Convert to HomeListItem format
+        const homes: HomeListItem[] = (resultData.homes || []).map((h) => ({
+          id: h.homeId,
+          address: h.address,
+          neighborhood: h.neighborhood,
+          coordinates: h.coordinates || [-87.9065, 43.0389], // Default to Milwaukee center
+          bedrooms: h.bedrooms,
+          fullBaths: h.fullBaths,
+          halfBaths: h.halfBaths,
+        }));
+
+        // Trigger map highlighting when results arrive
+        if (onHighlightHomes && homes.length > 0) {
+          const homeIds = homes.map((h) => h.id);
+          onHighlightHomes(homeIds);
+        }
+
+        // Handler for home selection from list
+        const handleHomeSelect = (home: HomeListItem) => {
+          // Fly to the selected home
+          if (onFlyTo) {
+            onFlyTo(home.coordinates);
+          }
+          // Highlight just this home
+          if (onHighlightHomes) {
+            onHighlightHomes([home.id]);
+          }
+          // Notify parent
+          if (onHomeSelect) {
+            onHomeSelect(home);
+          }
+        };
+
+        return (
+          <HomesListCard
+            homes={homes}
+            onHomeSelect={handleHomeSelect}
+            status="complete"
+          />
+        );
+      }
+
+      return <></>;
+    },
+  });
+
+  // Render get_home_details results as HomeCard
+  useCopilotAction({
+    name: "get_home_details",
+    available: "disabled", // Render-only, backend executes
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <HomeCard
+            address="Loading..."
+            status="inProgress"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          home?: {
+            homeId: string;
+            address: string;
+            neighborhood: string;
+            coordinates: [number, number];
+            bedrooms: number;
+            fullBaths: number;
+            halfBaths: number;
+            buildingSqFt: number;
+            yearBuilt: number;
+            narrative?: string;
+            listingUrl?: string;
+          };
+        };
+
+        if (!resultData.home) {
+          return <></>;
+        }
+
+        const home = resultData.home;
+
+        // Handler for fly to location
+        const handleFlyTo = (coordinates: [number, number]) => {
+          if (onFlyTo) {
+            onFlyTo(coordinates);
+          }
+          // Also highlight this home on the map
+          if (onHighlightHomes) {
+            onHighlightHomes([home.homeId]);
+          }
+        };
+
+        return (
+          <HomeCard
+            address={home.address}
+            neighborhood={home.neighborhood}
+            coordinates={home.coordinates}
+            bedrooms={home.bedrooms}
+            fullBaths={home.fullBaths}
+            halfBaths={home.halfBaths}
+            buildingSqFt={home.buildingSqFt}
+            yearBuilt={home.yearBuilt}
+            narrative={home.narrative}
+            listingUrl={home.listingUrl}
+            status="complete"
+            onFlyTo={handleFlyTo}
+          />
+        );
+      }
+
       return <></>;
     },
   });

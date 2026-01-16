@@ -302,6 +302,98 @@ export default defineSchema({
     .index("by_storeId_status", ["storeId", "status"]),
 
   // ---------------------------------------------------------------------------
+  // Homes For Sale - Properties from Homes MKE ESRI FeatureServer
+  // ---------------------------------------------------------------------------
+  homesForSale: defineTable({
+    // ESRI identification
+    esriObjectId: v.string(), // OBJECTID_1 from ESRI - unique identifier for sync
+    taxKey: v.string(), // FK_Tax field - Milwaukee tax key
+
+    // Location
+    address: v.string(), // ADDRESSES field
+    neighborhood: v.string(), // NEIGHBORHOOD_1 field
+    coordinates: v.array(v.number()), // [longitude, latitude] in WGS84
+
+    // Property details
+    bedrooms: v.number(), // NumberOfBedrooms
+    fullBaths: v.number(), // NumberOfFullBaths
+    halfBaths: v.number(), // NumberOfHalfBaths
+    buildingSqFt: v.number(), // Bldg_SF
+    yearBuilt: v.number(), // Built
+
+    // Listing info
+    status: v.union(
+      v.literal("for_sale"),
+      v.literal("sold"),
+      v.literal("unknown")
+    ),
+    narrative: v.optional(v.string()), // Narrative field - property description
+    listingUrl: v.optional(v.string()), // Link field - external listing URL
+    developerName: v.optional(v.string()), // Developer_Name field
+
+    // Sync metadata
+    lastSyncedAt: v.number(), // Timestamp of last successful sync
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_neighborhood", ["neighborhood"])
+    .index("by_taxKey", ["taxKey"])
+    .index("by_esriObjectId", ["esriObjectId"]),
+
+  // ---------------------------------------------------------------------------
+  // Planning Documents - Crawled Milwaukee planning pages and PDFs
+  // ---------------------------------------------------------------------------
+  planningDocuments: defineTable({
+    // Source identification
+    sourceId: v.string(), // Unique ID from config.py (e.g., "home-building-sites")
+    sourceUrl: v.string(), // Original URL crawled
+    title: v.string(),
+    contentType: v.union(v.literal("html"), v.literal("pdf")),
+    category: v.union(
+      v.literal("home-building"),
+      v.literal("vacant-lots"),
+      v.literal("commercial"),
+      v.literal("overlay-zones"),
+      v.literal("design-guidelines")
+    ),
+    syncFrequency: v.union(v.literal("weekly"), v.literal("monthly")),
+
+    // Content storage
+    markdownContent: v.optional(v.string()), // For HTML pages (converted to markdown)
+    pdfStorageId: v.optional(v.id("_storage")), // For PDFs stored in Convex storage
+    contentHash: v.string(), // MD5 hash for change detection
+
+    // Gemini File Search integration
+    geminiFileUri: v.optional(v.string()), // Gemini file URI after upload
+    fileSearchStoreId: v.optional(v.id("fileSearchStores")), // Reference to store
+
+    // Status tracking
+    status: v.union(
+      v.literal("pending"), // Not yet crawled
+      v.literal("crawling"), // Currently being crawled
+      v.literal("crawled"), // Successfully crawled, not yet uploaded to Gemini
+      v.literal("uploading"), // Uploading to Gemini File Search
+      v.literal("indexed"), // Successfully indexed in Gemini File Search
+      v.literal("error") // Error during crawl or upload
+    ),
+    errorMessage: v.optional(v.string()),
+
+    // Sync metadata
+    lastCrawledAt: v.optional(v.number()),
+    lastUploadedAt: v.optional(v.number()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_sourceId", ["sourceId"])
+    .index("by_category", ["category"])
+    .index("by_status", ["status"])
+    .index("by_contentType", ["contentType"])
+    .index("by_syncFrequency", ["syncFrequency"])
+    .index("by_contentHash", ["contentHash"]),
+
+  // ---------------------------------------------------------------------------
   // Agent Sessions - Real-time agent activity tracking
   // ---------------------------------------------------------------------------
   agentSessions: defineTable({
