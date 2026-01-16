@@ -165,6 +165,83 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
         }
         break;
       }
+
+      // ========================================================================
+      // Homes MKE Tools - Convert to generative UI cards
+      // ========================================================================
+
+      case 'search_homes_for_sale': {
+        const r = result as {
+          success?: boolean;
+          homes?: Array<{
+            homeId: string;
+            address: string;
+            neighborhood: string;
+            coordinates?: [number, number];
+            bedrooms: number;
+            fullBaths: number;
+            halfBaths: number;
+          }>;
+        };
+        if (r.success && r.homes && r.homes.length > 0) {
+          cards.push({
+            type: 'homes-list',
+            data: {
+              homes: r.homes.map((h) => ({
+                id: h.homeId,
+                address: h.address,
+                neighborhood: h.neighborhood,
+                coordinates: h.coordinates || [-87.9065, 43.0389], // Default Milwaukee center
+                bedrooms: h.bedrooms,
+                fullBaths: h.fullBaths,
+                halfBaths: h.halfBaths,
+              })),
+            },
+          });
+        }
+        break;
+      }
+
+      case 'get_home_details': {
+        const r = result as {
+          success?: boolean;
+          home?: {
+            homeId: string;
+            address: string;
+            neighborhood: string;
+            coordinates?: [number, number];
+            bedrooms: number;
+            fullBaths: number;
+            halfBaths: number;
+            buildingSqFt: number;
+            yearBuilt: number;
+            narrative?: string;
+            listingUrl?: string;
+            primaryImageUrl?: string;
+            imageUrls?: string[];
+          };
+        };
+        if (r.success && r.home) {
+          cards.push({
+            type: 'home-listing',
+            data: {
+              address: r.home.address,
+              neighborhood: r.home.neighborhood,
+              coordinates: r.home.coordinates,
+              bedrooms: r.home.bedrooms,
+              fullBaths: r.home.fullBaths,
+              halfBaths: r.home.halfBaths,
+              buildingSqFt: r.home.buildingSqFt,
+              yearBuilt: r.home.yearBuilt,
+              narrative: r.home.narrative,
+              listingUrl: r.home.listingUrl,
+              primaryImageUrl: r.home.primaryImageUrl,
+              imageUrls: r.home.imageUrls,
+            },
+          });
+        }
+        break;
+      }
     }
   }
 

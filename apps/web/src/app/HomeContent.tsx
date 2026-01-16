@@ -659,6 +659,8 @@ export default function HomeContent() {
           yearBuilt?: number;
           narrative?: string;
           listingUrl?: string;
+          primaryImageUrl?: string;
+          imageUrls?: string[];
         };
         return (
           <HomeCard
@@ -672,6 +674,8 @@ export default function HomeContent() {
             yearBuilt={data.yearBuilt}
             narrative={data.narrative}
             listingUrl={data.listingUrl}
+            primaryImageUrl={data.primaryImageUrl}
+            imageUrls={data.imageUrls}
             status="complete"
             onFlyTo={handleHomeFlyTo}
           />

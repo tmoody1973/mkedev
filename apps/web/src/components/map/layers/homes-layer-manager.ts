@@ -157,6 +157,12 @@ export class HomesLayerManager {
    * Converts homes array to GeoJSON and updates the source
    */
   updateData(homes: HomeForSale[]): void {
+    // Debug: Log coordinates
+    if (homes.length > 0) {
+      console.log('[HomesLayerManager] Updating with', homes.length, 'homes')
+      console.log('[HomesLayerManager] Sample coordinates:', homes[0].address, homes[0].coordinates)
+    }
+
     // Store homes data for click handler lookup
     this.homesData.clear()
     homes.forEach((home) => {

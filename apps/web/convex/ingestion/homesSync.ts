@@ -25,9 +25,10 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
 // Wisconsin South State Plane (EPSG:32054) - Lambert Conformal Conic
-// Used by Milwaukee's ESRI services
+// NAD27 / Wisconsin South - Used by some Milwaukee ESRI services
+// Source: https://epsg.io/32054.proj4
 const EPSG_32054 =
-  "+proj=lcc +lat_1=45.5 +lat_2=42.73333333333333 +lat_0=42 +lon_0=-90 +x_0=600000 +y_0=0 +datum=NAD83 +units=us-ft +no_defs";
+  "+proj=lcc +lat_0=42 +lon_0=-90 +lat_1=42.7333333333333 +lat_2=44.0666666666667 +x_0=609601.219202438 +y_0=0 +ellps=clrk66 +units=us-ft +no_defs";
 
 // Register the projection
 proj4.defs("EPSG:32054", EPSG_32054);
