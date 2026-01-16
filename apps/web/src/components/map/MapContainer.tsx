@@ -336,10 +336,26 @@ export function MapContainer({
             <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400" />
           </div>
           <p className="font-sans font-semibold text-neutral-900 dark:text-neutral-50 text-center mb-2">
-            Map Error
+            {error.includes('PMTiles') ? 'Map Tiles Unavailable' :
+             error.includes('Mapbox') ? 'Map Failed to Load' :
+             error.includes('fetch') ? 'Network Error' :
+             'Map Error'}
           </p>
-          <p className="font-sans text-sm text-neutral-600 dark:text-neutral-400 text-center max-w-md">
-            {error}
+          <p className="font-sans text-sm text-neutral-600 dark:text-neutral-400 text-center max-w-md mb-4">
+            {error.includes('fetch')
+              ? 'Could not connect to the map server. Please check your internet connection.'
+              : error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white font-medium text-sm rounded border-2 border-black shadow-[2px_2px_0_0_black] hover:translate-x-[-1px] hover:translate-y-[-1px] active:translate-x-[1px] active:translate-y-[1px] transition-all"
+          >
+            Refresh Page
+          </button>
+          <p className="font-sans text-xs text-neutral-500 dark:text-neutral-500 text-center mt-4">
+            {error.includes('PMTiles') && 'Service: PMTiles (Cloudflare R2)'}
+            {error.includes('Mapbox') && 'Service: Mapbox GL'}
+            {error.includes('arcgis') && 'Service: Milwaukee ESRI'}
           </p>
         </div>
       )}

@@ -240,9 +240,36 @@ export class PMTilesLayerManager {
   }
 
   /**
-   * Initialize all layers from PMTiles source
+   * Initialize all layers from PMTiles source with retry logic
    */
   async initialize(initialVisibility: Record<ESRILayerType, boolean>): Promise<void> {
+    const maxRetries = 3
+    const retryDelayMs = 1000
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await this.initializeInternal(initialVisibility)
+        return // Success
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`[PMTiles] Initialization attempt ${attempt + 1}/${maxRetries} failed:`, errorMessage)
+
+        if (attempt < maxRetries - 1) {
+          const delay = retryDelayMs * Math.pow(2, attempt)
+          console.log(`[PMTiles] Retrying in ${delay}ms...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        } else {
+          // All retries failed - throw with specific error message
+          throw new Error(`PMTiles tile server unreachable after ${maxRetries} attempts. The map tiles could not be loaded. Please check your connection and refresh the page.`)
+        }
+      }
+    }
+  }
+
+  /**
+   * Internal initialization logic (called by initialize with retry wrapper)
+   */
+  private async initializeInternal(initialVisibility: Record<ESRILayerType, boolean>): Promise<void> {
     // Register PMTiles source type
     registerPMTilesSourceType()
 

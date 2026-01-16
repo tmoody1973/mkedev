@@ -128,14 +128,46 @@ export function ESRILayerLoader({
     )
   }
 
+  // Parse error to determine which service failed
+  const getErrorDetails = (errorMsg: string) => {
+    if (errorMsg.includes('PMTiles')) {
+      return {
+        title: 'Map Tiles Unavailable',
+        description: 'The tile server is not responding. Retrying automatically...',
+        service: 'PMTiles (Cloudflare R2)',
+      }
+    }
+    if (errorMsg.includes('ESRI') || errorMsg.includes('arcgis')) {
+      return {
+        title: 'Milwaukee GIS Unavailable',
+        description: 'City of Milwaukee GIS service is not responding.',
+        service: 'Milwaukee ESRI ArcGIS',
+      }
+    }
+    if (errorMsg.includes('Mapbox')) {
+      return {
+        title: 'Map Style Error',
+        description: 'Could not load the map style from Mapbox.',
+        service: 'Mapbox GL',
+      }
+    }
+    return {
+      title: 'Layer Error',
+      description: errorMsg,
+      service: 'Unknown',
+    }
+  }
+
   // Render error state
   if (error && showLoadingOverlay) {
+    const errorDetails = getErrorDetails(error)
+
     return (
       <div
         ref={containerRef}
         className="absolute inset-0 pointer-events-none z-10"
       >
-        <div className="absolute bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-72">
+        <div className="absolute bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-80">
           <div
             className="
             bg-white/95 dark:bg-stone-900/95
@@ -145,16 +177,19 @@ export function ESRILayerLoader({
             p-4
           "
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center border-2 border-red-500">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center border-2 border-red-500 flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="font-sans font-semibold text-stone-900 dark:text-stone-100 text-sm">
-                  Layer Error
+                  {errorDetails.title}
                 </p>
-                <p className="font-sans text-xs text-stone-500 dark:text-stone-400">
-                  {error}
+                <p className="font-sans text-xs text-stone-500 dark:text-stone-400 mt-1">
+                  {errorDetails.description}
+                </p>
+                <p className="font-sans text-[10px] text-stone-400 dark:text-stone-500 mt-2">
+                  Service: {errorDetails.service}
                 </p>
               </div>
             </div>
