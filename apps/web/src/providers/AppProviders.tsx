@@ -41,8 +41,8 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="light"
+      enableSystem={false}
       disableTransitionOnChange
     >
       {isMounted && COPILOTKIT_API_KEY ? (
