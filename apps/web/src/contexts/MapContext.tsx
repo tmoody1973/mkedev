@@ -102,6 +102,7 @@ const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
   historic: false,
   arb: false,
   cityOwned: false,
+  homes: true, // Homes for sale layer - on by default
 }
 
 /** Default layer opacity states (all start at 100%) */
@@ -113,6 +114,7 @@ const DEFAULT_LAYER_OPACITY: LayerOpacity = {
   historic: 1,
   arb: 1,
   cityOwned: 1,
+  homes: 1,
 }
 
 // =============================================================================

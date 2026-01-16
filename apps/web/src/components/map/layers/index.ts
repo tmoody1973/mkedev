@@ -52,7 +52,7 @@ export type {
   HomesLayerManagerOptions,
 } from './homes-layer-manager'
 
-// React hook
+// React hooks
 export {
   useESRILayers,
 } from './useESRILayers'
@@ -62,9 +62,20 @@ export type {
   UseESRILayersResult,
 } from './useESRILayers'
 
+export {
+  useHomesLayer,
+} from './useHomesLayer'
+
+export type {
+  UseHomesLayerResult,
+} from './useHomesLayer'
+
 // Components
 export { ZoningTooltip } from './ZoningTooltip'
 export { ESRILayerLoader } from './ESRILayerLoader'
+export { HomesLayerLoader } from './HomesLayerLoader'
+
+export type { HomesLayerLoaderProps } from './HomesLayerLoader'
 
 // 3D Buildings
 export {

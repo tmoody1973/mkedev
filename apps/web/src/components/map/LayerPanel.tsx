@@ -6,9 +6,23 @@
 // =============================================================================
 
 import { useState, useCallback } from 'react'
-import { Layers, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react'
+import { Layers, ChevronUp, ChevronDown, Eye, EyeOff, Home } from 'lucide-react'
 import { useMap } from '@/contexts/MapContext'
-import { ALL_LAYER_CONFIGS, type ESRILayerConfig } from './layers'
+import {
+  ALL_LAYER_CONFIGS,
+  HOMES_LAYER_CONFIG,
+  type ESRILayerConfig,
+  type HomesLayerConfig,
+} from './layers'
+
+// Combined layer config type for display
+type LayerConfig = ESRILayerConfig | HomesLayerConfig
+
+// Combined array of all layer configs (ESRI + Homes)
+const ALL_LAYERS: LayerConfig[] = [
+  ...ALL_LAYER_CONFIGS,
+  HOMES_LAYER_CONFIG,
+]
 
 // =============================================================================
 // Types
@@ -44,11 +58,11 @@ export function LayerPanel({
   } = useMap()
 
   // Count visible layers
-  const visibleCount = ALL_LAYER_CONFIGS.filter(
+  const visibleCount = ALL_LAYERS.filter(
     (config) => layerVisibility[config.id] ?? config.defaultVisible
   ).length
 
-  const totalCount = ALL_LAYER_CONFIGS.length
+  const totalCount = ALL_LAYERS.length
 
   // Toggle panel expansion
   const handleToggleExpand = useCallback(() => {
@@ -143,7 +157,7 @@ export function LayerPanel({
         data-testid="layer-panel-content"
       >
         <div className="space-y-2">
-          {ALL_LAYER_CONFIGS.map((config) => (
+          {ALL_LAYERS.map((config) => (
             <LayerItem
               key={config.id}
               config={config}
@@ -166,7 +180,7 @@ export function LayerPanel({
 // =============================================================================
 
 interface LayerItemProps {
-  config: ESRILayerConfig
+  config: LayerConfig
   isVisible: boolean
   opacity: number
   isExpanded: boolean

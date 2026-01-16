@@ -11,9 +11,11 @@ import {
   MAP_STYLE_3D,
 } from '@/contexts/MapContext'
 import { ESRILayerLoader } from './layers/ESRILayerLoader'
+import { HomesLayerLoader } from './layers/HomesLayerLoader'
 import { LayerPanel } from './LayerPanel'
 import { ParcelPopup } from './ParcelPopup'
 import type { ParcelData } from './layers/esri-layer-manager'
+import type { HomeForSale } from './layers/homes-layer-manager'
 
 // Import Mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -33,6 +35,8 @@ export interface MapContainerProps {
   initialCenter?: [number, number]
   /** Whether to load ESRI layers */
   enableESRILayers?: boolean
+  /** Whether to load the homes for sale layer */
+  enableHomesLayer?: boolean
   /** Whether to show the zoning tooltip on hover */
   showZoningTooltip?: boolean
   /** Whether to show the layer panel */
@@ -49,6 +53,8 @@ export interface MapContainerProps {
   onParcelClear?: () => void
   /** Callback when user wants to ask about a parcel (sends context to chat) */
   onParcelAsk?: (parcel: ParcelData) => void
+  /** Callback when a home for sale marker is clicked */
+  onHomeClick?: (home: HomeForSale) => void
 }
 
 // =============================================================================
@@ -61,6 +67,7 @@ export function MapContainer({
   initialZoom = DEFAULT_ZOOM,
   initialCenter = MILWAUKEE_CENTER,
   enableESRILayers = true,
+  enableHomesLayer = true,
   showZoningTooltip = true,
   showLayerPanel = true,
   showParcelPopup = true,
@@ -69,6 +76,7 @@ export function MapContainer({
   onParcelSelect,
   onParcelClear,
   onParcelAsk,
+  onHomeClick,
 }: MapContainerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
@@ -344,6 +352,12 @@ export function MapContainer({
               onParcelSelect={handleParcelSelect}
               onParcelClear={handleParcelClear}
               showZoningTooltip={showZoningTooltip}
+              isStyleChanging={isStyleChanging}
+            />
+          )}
+          {enableHomesLayer && (
+            <HomesLayerLoader
+              onHomeClick={onHomeClick}
               isStyleChanging={isStyleChanging}
             />
           )}
