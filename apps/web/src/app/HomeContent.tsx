@@ -49,6 +49,10 @@ export default function HomeContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   // Track last processed message to avoid duplicate map movements
   const lastProcessedMessageRef = useRef<string | null>(null)
+  // Track which agent message IDs have been persisted to avoid duplicates
+  const persistedMessageIdsRef = useRef<Set<string>>(new Set())
+  // Track which conversation the persisted messages belong to
+  const persistedForConversationRef = useRef<string | null>(null)
 
   // Map context for flying to locations
   const { flyTo } = useMap()
@@ -104,13 +108,21 @@ export default function HomeContent() {
     })) || []
 
     // Get content signatures of persisted messages to avoid duplicates
+    // Include card types in the signature to differentiate messages with same text but different cards
     const persistedContent = new Set(
-      persistedMessages.map((m) => `${m.role}:${m.content.substring(0, 100)}`)
+      persistedMessages.map((m) => {
+        const cardSignature = m.cards?.map(c => c.type).sort().join(',') || ''
+        return `${m.role}:${m.content.substring(0, 100)}:${cardSignature}`
+      })
     )
 
     // Add current agent session messages (only those not yet persisted)
     const sessionMessages: ChatMessage[] = agentMessages
-      .filter((msg) => !persistedContent.has(`${msg.role}:${msg.content.substring(0, 100)}`))
+      .filter((msg) => {
+        const cardSignature = msg.cards?.map(c => c.type).sort().join(',') || ''
+        const signature = `${msg.role}:${msg.content.substring(0, 100)}:${cardSignature}`
+        return !persistedContent.has(signature)
+      })
       .map((msg) => ({
         id: msg.id,
         role: msg.role,
@@ -124,6 +136,15 @@ export default function HomeContent() {
     return [...persistedMessages, ...sessionMessages]
   }, [agentMessages, currentConversation])
 
+  // Clear persisted tracking when conversation changes
+  useEffect(() => {
+    const convId = currentConversationId ?? 'new'
+    if (persistedForConversationRef.current !== convId) {
+      persistedMessageIdsRef.current.clear()
+      persistedForConversationRef.current = convId
+    }
+  }, [currentConversationId])
+
   // Persist messages when agent responds
   useEffect(() => {
     const lastAgentMsg = agentMessages[agentMessages.length - 1]
@@ -131,6 +152,15 @@ export default function HomeContent() {
 
     // When we have a new assistant message, persist both user and assistant messages
     if (lastAgentMsg?.role === 'assistant' && secondLastMsg?.role === 'user') {
+      // Skip if we already persisted this message pair
+      if (persistedMessageIdsRef.current.has(lastAgentMsg.id)) {
+        return
+      }
+
+      // Mark as persisted BEFORE the async calls to prevent race conditions
+      persistedMessageIdsRef.current.add(secondLastMsg.id)
+      persistedMessageIdsRef.current.add(lastAgentMsg.id)
+
       // Persist user message
       persistMessage('user', secondLastMsg.content, { inputMode: 'text' })
       // Persist assistant message with cards
@@ -139,7 +169,7 @@ export default function HomeContent() {
         cards: lastAgentMsg.cards,
       })
     }
-  }, [agentMessages.length]) // Only run when message count changes
+  }, [agentMessages.length, persistMessage]) // Added persistMessage to deps
 
   // Watch for parcel-info cards in agent messages and fly to location
   useEffect(() => {
@@ -248,11 +278,14 @@ export default function HomeContent() {
 
   const handleDeleteConversation = useCallback(async (id: typeof currentConversationId) => {
     if (id) {
-      selectConversation(id)
-      await deleteConversation()
-      clearMessages()
+      // Pass ID directly to avoid state race condition
+      await deleteConversation(id)
+      // Only clear messages if we deleted the currently viewed conversation
+      if (id === currentConversationId) {
+        clearMessages()
+      }
     }
-  }, [selectConversation, deleteConversation, clearMessages])
+  }, [deleteConversation, clearMessages, currentConversationId])
 
   /**
    * Extract potential address from a message using multiple patterns.

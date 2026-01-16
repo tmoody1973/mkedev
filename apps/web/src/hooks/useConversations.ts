@@ -72,7 +72,7 @@ export interface UseConversationsReturn {
   ) => Promise<Id<"messages"> | null>;
   updateTitle: (title: string) => Promise<void>;
   toggleStarred: () => Promise<void>;
-  deleteConversation: () => Promise<void>;
+  deleteConversation: (id?: Id<"conversations">) => Promise<void>;
 
   // New conversation helper
   startNewConversation: () => void;
@@ -185,12 +185,16 @@ export function useConversations(): UseConversationsReturn {
   }, [currentConversationId, toggleStarredMutation]);
 
   /**
-   * Delete the current conversation.
+   * Delete a conversation by ID, or the current conversation if no ID provided.
    */
-  const deleteConversation = useCallback(async (): Promise<void> => {
-    if (!currentConversationId) return;
-    await deleteConversationMutation({ conversationId: currentConversationId });
-    setCurrentConversationId(null);
+  const deleteConversation = useCallback(async (id?: Id<"conversations">): Promise<void> => {
+    const targetId = id ?? currentConversationId;
+    if (!targetId) return;
+    await deleteConversationMutation({ conversationId: targetId });
+    // Clear selection if we deleted the current conversation
+    if (targetId === currentConversationId) {
+      setCurrentConversationId(null);
+    }
   }, [currentConversationId, deleteConversationMutation]);
 
   /**

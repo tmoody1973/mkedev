@@ -102,7 +102,7 @@ export function ConversationSidebar({
           border-r-2 border-black dark:border-stone-700
           flex flex-col
           transform transition-transform duration-200 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* Header */}
