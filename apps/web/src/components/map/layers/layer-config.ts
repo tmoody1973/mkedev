@@ -244,6 +244,7 @@ export const ZONING_LAYER_CONFIG: ESRILayerConfig = {
 /**
  * Parcels/MPROP Layer (Layer 2)
  * Master Property (MPROP) data with parcel boundaries
+ * Styled as clickable outlines with transparent fill
  */
 export const PARCELS_LAYER_CONFIG: ESRILayerConfig = {
   id: 'parcels',
@@ -252,9 +253,9 @@ export const PARCELS_LAYER_CONFIG: ESRILayerConfig = {
   url: `${MILWAUKEE_GIS_BASE_URL}/property/parcels_mprop/MapServer`,
   layerNumber: 2,
   color: '#78716C',
-  fillOpacity: 0.1,
-  strokeColor: '#44403C',
-  strokeWidth: 0.5,
+  fillOpacity: 0, // Transparent fill - outline only
+  strokeColor: '#57534E', // stone-600 for better visibility
+  strokeWidth: 0.75,
   defaultVisible: true,
   interactive: true,
   legendItems: [],
