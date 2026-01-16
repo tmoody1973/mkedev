@@ -98,11 +98,13 @@ export function ConversationSidebar({
       <aside
         className={`
           fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto
-          w-80 bg-white dark:bg-stone-900
+          bg-white dark:bg-stone-900
           border-r-2 border-black dark:border-stone-700
-          flex flex-col
-          transform transition-transform duration-200 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          flex flex-col overflow-hidden
+          transition-all duration-200 ease-in-out
+          ${isOpen
+            ? 'w-80 translate-x-0'
+            : 'w-0 lg:w-0 -translate-x-full lg:translate-x-0 border-r-0'}
         `}
       >
         {/* Header */}
