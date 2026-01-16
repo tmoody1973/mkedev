@@ -65,12 +65,12 @@ This guide documents the complete ESRI layer integration architecture and provid
 │  https://milwaukeemaps.milwaukee.gov/arcgis/rest/services/             │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │  1. Zoning Districts        (planning/zoning/MapServer/11)      │   │
-│  │  2. Parcels                 (lmi/parcels_mprop/MapServer/2)     │   │
+│  │  2. Parcels                 (property/parcels_mprop/MapServer/2)     │   │
 │  │  3. TIF Districts           (planning/special_districts/8)      │   │
 │  │  4. Opportunity Zones       (planning/special_districts/9)      │   │
 │  │  5. Historic Districts      (planning/special_districts/17)     │   │
 │  │  6. ARB Districts           (planning/special_districts/1)      │   │
-│  │  7. City-Owned Properties   (planning/govt_owned/MapServer)     │   │
+│  │  7. City-Owned Properties   (property/govt_owned/MapServer)     │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -148,7 +148,7 @@ https://milwaukeemaps.milwaukee.gov/arcgis/rest/services/planning/zoning/MapServ
   - `CATEGORY` - Zoning category
 
 ### 2. Parcels (Tax Parcels)
-- **URL:** `lmi/parcels_mprop/MapServer/2`
+- **URL:** `property/parcels_mprop/MapServer/2`
 - **Purpose:** Property boundaries with tax parcel data
 - **Interactive:** Yes (click for parcel details)
 - **Default Visible:** Yes
@@ -197,7 +197,7 @@ https://milwaukeemaps.milwaukee.gov/arcgis/rest/services/planning/zoning/MapServ
   - `REVIEW_REQUIREMENTS` - Review criteria
 
 ### 7. City-Owned Properties
-- **URL:** `planning/govt_owned/MapServer`
+- **URL:** `property/govt_owned/MapServer`
 - **Purpose:** Properties owned by the City of Milwaukee
 - **Interactive:** Yes
 - **Default Visible:** No
