@@ -183,26 +183,75 @@ function detectAreaPlan(text: string): { key: string; title: string } | null {
   const normalized = text.toLowerCase();
 
   const plans: Array<{ patterns: string[]; key: string; title: string }> = [
-    { patterns: ['menomonee valley', 'menomonee river'], key: 'menomonee-valley-plan', title: 'Menomonee Valley Plan' },
-    { patterns: ['near west side', 'near west'], key: 'near-west-plan', title: 'Near West Side Plan' },
-    { patterns: ['near north side', 'near north'], key: 'near-north-plan', title: 'Near North Side Plan' },
-    { patterns: ['southeast side', 'seplan'], key: 'southeast-plan', title: 'Southeast Side Plan' },
-    { patterns: ['southwest side', 'swplan'], key: 'southwest-plan', title: 'Southwest Side Plan' },
-    { patterns: ['northeast side', 'nesplan'], key: 'northeast-plan', title: 'Northeast Side Plan' },
-    { patterns: ['northwest side', 'nwsplan'], key: 'northwest-plan', title: 'Northwest Side Plan' },
-    { patterns: ['north side plan', 'nsplan'], key: 'north-side-plan', title: 'North Side Plan' },
-    { patterns: ['fondy', 'north avenue'], key: 'fondy-north-plan', title: 'Fondy & North Plan' },
-    { patterns: ['harbor district', 'inner harbor'], key: 'harbor-district-plan', title: 'Harbor District Plan' },
-    { patterns: ['third ward', 'historic third'], key: 'third-ward-plan', title: 'Third Ward Plan' },
-    { patterns: ['washington park'], key: 'washington-park-plan', title: 'Washington Park Plan' },
-    { patterns: ['downtown milwaukee', 'downtown plan'], key: 'downtown-plan', title: 'Downtown Milwaukee Plan' },
-    { patterns: ['housing element', 'affordable housing'], key: 'housing-element', title: 'Housing Element Plan' },
-    { patterns: ['citywide policy', 'comprehensive plan'], key: 'citywide-plan', title: 'Citywide Plan' },
+    // Match specific plan names from actual PDF content
+    { patterns: ['fond du lac & north', 'fond du lac and north', 'fondy', 'fondy north', 'north avenue corridor'], key: 'fondy-north-plan', title: 'Fond du Lac & North Area Plan' },
+    { patterns: ['menomonee valley', 'menomonee river', 'valley plan 2.0'], key: 'menomonee-valley-plan', title: 'Menomonee Valley Plan' },
+    { patterns: ['near west side', 'near west area'], key: 'near-west-plan', title: 'Near West Side Plan' },
+    { patterns: ['near north side', 'near north area'], key: 'near-north-plan', title: 'Near North Side Plan' },
+    { patterns: ['southeast side', 'southeast area', 'se side plan'], key: 'southeast-plan', title: 'Southeast Side Plan' },
+    { patterns: ['southwest side', 'southwest area', 'sw side plan'], key: 'southwest-plan', title: 'Southwest Side Plan' },
+    { patterns: ['northeast side', 'northeast area', 'ne side plan'], key: 'northeast-plan', title: 'Northeast Side Plan' },
+    { patterns: ['northwest side', 'northwest area', 'nw side plan'], key: 'northwest-plan', title: 'Northwest Side Plan' },
+    { patterns: ['north side comprehensive', 'north side area plan'], key: 'north-side-plan', title: 'North Side Plan' },
+    { patterns: ['harbor district', 'inner harbor', 'harbor water and land'], key: 'harbor-district-plan', title: 'Harbor District Plan' },
+    { patterns: ['third ward', 'historic third', 'walker\'s point'], key: 'third-ward-plan', title: 'Third Ward Plan' },
+    { patterns: ['washington park', 'washington park area'], key: 'washington-park-plan', title: 'Washington Park Plan' },
+    { patterns: ['downtown milwaukee', 'downtown plan', 'milwaukee downtown'], key: 'downtown-plan', title: 'Downtown Milwaukee Plan' },
+    { patterns: ['housing element', 'affordable housing', 'housing policy'], key: 'housing-element', title: 'Housing Element Plan' },
+    { patterns: ['citywide policy', 'comprehensive plan', 'citywide plan'], key: 'citywide-plan', title: 'Citywide Plan' },
   ];
 
   for (const { patterns, key, title } of plans) {
     if (patterns.some(p => normalized.includes(p))) {
       return { key, title };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract section reference from chunk text.
+ * Looks for Milwaukee zoning code section numbers like "295-503", "Table 295-503-1", etc.
+ */
+function extractSectionReference(text: string): string | null {
+  // Match patterns like "295-503", "295-503-1", "Table 295-503-1"
+  const patterns = [
+    /Table\s*295-\d{3}(?:-\d+)?/gi,     // Table 295-503-1
+    /Section\s*295-\d{3}/gi,             // Section 295-503
+    /295-\d{3}(?:-\d+)?/g,               // 295-503 or 295-503-1
+    /Subchapter\s*\d+/gi,                // Subchapter 5
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      return match[0];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract page number hint from chunk text.
+ * Some PDFs include page indicators in the text.
+ */
+function extractPageHint(text: string): number | null {
+  // Look for page indicators in text
+  const patterns = [
+    /Page\s*(\d+)/i,
+    /pg\.?\s*(\d+)/i,
+    /-\s*(\d+)\s*-/,  // Page numbers like "- 5 -"
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const pageNum = parseInt(match[1], 10);
+      if (pageNum > 0 && pageNum < 500) { // Sanity check
+        return pageNum;
+      }
     }
   }
 
@@ -285,6 +334,10 @@ function extractCitationsFromGrounding(
         sourceName = "Milwaukee Zoning Code";
       }
 
+      // Extract section reference and page hint from text
+      const sectionReference = extractSectionReference(text);
+      const pageNumber = extractPageHint(text);
+
       // Only add unique citations (by sourceId)
       if (!seen.has(sourceId)) {
         seen.add(sourceId);
@@ -292,6 +345,8 @@ function extractCitationsFromGrounding(
           sourceId,
           sourceName,
           excerpt: text.substring(0, 300) || "",
+          sectionReference: sectionReference || undefined,
+          pageNumber: pageNumber || undefined,
         });
       }
     }

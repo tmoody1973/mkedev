@@ -70,7 +70,7 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
 
   let areaPlanData: {
     answer?: string;
-    citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
+    citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string; sectionReference?: string; pageNumber?: number }>;
   } | null = null;
 
   let parkingData: {
@@ -120,7 +120,7 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
       case 'query_area_plans': {
         const r = result as {
           answer?: string;
-          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
+          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string; sectionReference?: string; pageNumber?: number }>;
         };
         if (r.answer) {
           areaPlanData = {
@@ -151,7 +151,7 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
         const r = result as {
           answer?: string;
           confidence?: number;
-          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
+          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string; sectionReference?: string; pageNumber?: number }>;
         };
         if (r.answer) {
           cards.push({
@@ -294,6 +294,18 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
     });
   }
 
+  // Add area plan citation card if we have area plan data with citations
+  if (areaPlanData && areaPlanData.citations && areaPlanData.citations.length > 0) {
+    cards.push({
+      type: 'area-plan-context',
+      data: {
+        answer: areaPlanData.answer,
+        citations: areaPlanData.citations,
+        confidence: 0.7, // Default confidence for area plans
+      },
+    });
+  }
+
   return cards;
 }
 
@@ -311,7 +323,7 @@ function extractCitationsFromToolResults(
 
     // Extract citations from RAG tools
     if (name === 'query_zoning_code' || name === 'query_area_plans') {
-      const toolCitations = (result as { citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }> }).citations;
+      const toolCitations = (result as { citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string; sectionReference?: string; pageNumber?: number }> }).citations;
 
       if (toolCitations && Array.isArray(toolCitations)) {
         for (const citation of toolCitations) {

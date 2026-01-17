@@ -20,6 +20,8 @@ export interface Citation {
   excerpt: string;
   /** Page number if available */
   pageNumber?: number;
+  /** Section reference (e.g., "295-503", "Table 295-503-1") */
+  sectionReference?: string;
 }
 
 /**

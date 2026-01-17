@@ -577,7 +577,7 @@ export default function HomeContent() {
         const data = card.data as {
           answer?: string;
           confidence?: number;
-          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
+          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string; sectionReference?: string; pageNumber?: number }>;
         };
         const isAreaPlan = card.type === 'area-plan-context';
 
@@ -620,7 +620,7 @@ export default function HomeContent() {
                     c.docInfo ? (
                       <button
                         key={`${c.sourceId || c.sourceName}-${i}`}
-                        onClick={() => openPdfViewer(c.docInfo!.url, c.docInfo!.title, 1)}
+                        onClick={() => openPdfViewer(c.docInfo!.url, c.docInfo!.title, c.pageNumber || 1)}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border-2 transition-colors cursor-pointer ${
                           isAreaPlan
                             ? 'border-sky-400 dark:border-sky-600 bg-white dark:bg-sky-900 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-800'
@@ -631,7 +631,17 @@ export default function HomeContent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        View: {c.docInfo.title}
+                        {c.docInfo.title}
+                        {c.sectionReference && (
+                          <span className="text-stone-500 dark:text-stone-400 font-normal">
+                            ({c.sectionReference})
+                          </span>
+                        )}
+                        {c.pageNumber && (
+                          <span className="text-stone-500 dark:text-stone-400 font-normal">
+                            p.{c.pageNumber}
+                          </span>
+                        )}
                       </button>
                     ) : (
                       <span key={`unmatched-${i}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-stone-400 dark:text-stone-500 border border-stone-200 dark:border-stone-700 rounded">
