@@ -8,7 +8,9 @@ import type { Id } from '@/../convex/_generated/dataModel';
 interface UseReportGeneratorReturn {
   isGenerating: boolean;
   error: string | null;
+  pdfUrl: string | null;
   generateReport: (conversationId: Id<'conversations'>) => Promise<void>;
+  clearPdfUrl: () => void;
 }
 
 /**
@@ -18,6 +20,7 @@ interface UseReportGeneratorReturn {
 export function useReportGenerator(): UseReportGeneratorReturn {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const generateReportAction = useAction(api.reports.generateReport);
 
@@ -26,15 +29,16 @@ export function useReportGenerator(): UseReportGeneratorReturn {
       console.log('[useReportGenerator] Starting report generation for:', conversationId);
       setIsGenerating(true);
       setError(null);
+      setPdfUrl(null);
 
       try {
         const result = await generateReportAction({ conversationId });
         console.log('[useReportGenerator] Result:', result);
 
         if (result.success && result.downloadUrl) {
-          // Open the PDF in a new tab for download
-          console.log('[useReportGenerator] Opening PDF:', result.downloadUrl);
-          window.open(result.downloadUrl, '_blank');
+          // Set the PDF URL to display in modal
+          console.log('[useReportGenerator] PDF ready:', result.downloadUrl);
+          setPdfUrl(result.downloadUrl);
         } else {
           const errorMsg = result.error || 'Failed to generate report';
           console.error('[useReportGenerator] Error:', errorMsg);
@@ -53,9 +57,15 @@ export function useReportGenerator(): UseReportGeneratorReturn {
     [generateReportAction]
   );
 
+  const clearPdfUrl = useCallback(() => {
+    setPdfUrl(null);
+  }, []);
+
   return {
     isGenerating,
     error,
+    pdfUrl,
     generateReport,
+    clearPdfUrl,
   };
 }

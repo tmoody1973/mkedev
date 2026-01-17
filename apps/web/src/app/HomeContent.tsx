@@ -99,7 +99,7 @@ export default function HomeContent() {
   } = useConversations()
 
   // Report generation
-  const { isGenerating: isGeneratingReport, generateReport } = useReportGenerator()
+  const { isGenerating: isGeneratingReport, pdfUrl: reportPdfUrl, generateReport, clearPdfUrl: clearReportPdfUrl } = useReportGenerator()
 
   // Convert agent messages to ChatMessage format, combining with persisted conversation
   const messages: ChatMessage[] = useMemo(() => {
@@ -862,7 +862,7 @@ export default function HomeContent() {
           }
         />
 
-        {/* PDF Viewer Modal */}
+        {/* PDF Viewer Modal - for document citations */}
         <PDFViewerModal
           isOpen={pdfModal.isOpen}
           onClose={closePdfViewer}
@@ -870,6 +870,17 @@ export default function HomeContent() {
           title={pdfModal.title}
           initialPage={pdfModal.initialPage}
         />
+
+        {/* PDF Viewer Modal - for generated reports */}
+        {reportPdfUrl && (
+          <PDFViewerModal
+            isOpen={!!reportPdfUrl}
+            onClose={clearReportPdfUrl}
+            pdfUrl={reportPdfUrl}
+            title="MKE.dev Conversation Report"
+            initialPage={1}
+          />
+        )}
       </SignedIn>
     </>
   )

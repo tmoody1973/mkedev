@@ -46,6 +46,14 @@ interface CardData {
 }
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+// Logo hosted on GitHub (public URL for Hybiscus API access)
+const MKEDEV_LOGO_URL =
+  "https://raw.githubusercontent.com/tmoody1973/mkedev/main/apps/web/public/mkedev-logo.svg";
+
+// =============================================================================
 // Helper Functions
 // =============================================================================
 
@@ -467,6 +475,21 @@ export const generateReport = action({
         version_number: "1.0",
       },
       components: [
+        // Logo header
+        {
+          type: "Image",
+          options: {
+            image_url: MKEDEV_LOGO_URL,
+            width: "1/4",
+            align: "center",
+          },
+        },
+        {
+          type: "VerticalSpacer",
+          options: {
+            space: 2,
+          },
+        },
         // Header section
         {
           type: "Section",
