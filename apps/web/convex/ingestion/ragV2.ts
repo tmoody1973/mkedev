@@ -678,6 +678,7 @@ export const testQuery = action({
 
 /**
  * Debug action to inspect raw Gemini response structure.
+ * Use this to see what grounding data Gemini actually returns.
  */
 export const debugRawResponse = action({
   args: {
@@ -693,9 +694,12 @@ export const debugRawResponse = action({
       .map((s) => s.name);
 
     const requestBody: Record<string, unknown> = {
-      contents: [{ parts: [{ text: args.question ?? "What is RS6 zoning?" }] }],
+      contents: [{ parts: [{ text: args.question ?? "What are the permitted uses in RS6?" }] }],
       tools: [{ fileSearch: { fileSearchStoreNames: storeNames } }],
     };
+
+    console.log("[Debug] Using stores:", storeNames);
+    console.log("[Debug] Request body:", JSON.stringify(requestBody, null, 2));
 
     const response: Response = await fetch(
       `${GEMINI_API_BASE}/models/${PRIMARY_MODEL}:generateContent?key=${apiKey}`,
@@ -707,7 +711,8 @@ export const debugRawResponse = action({
     );
 
     if (!response.ok) {
-      return { error: `API error: ${response.status}` };
+      const errorText = await response.text();
+      return { error: `API error: ${response.status}`, details: errorText };
     }
 
     const result = await response.json() as Record<string, unknown>;
@@ -715,19 +720,45 @@ export const debugRawResponse = action({
     const candidate = candidates?.[0] as Record<string, unknown> | undefined;
 
     // Check all possible locations for grounding data
-    const groundingMetadata = candidate?.["groundingMetadata"];
+    const groundingMetadata = candidate?.["groundingMetadata"] as Record<string, unknown> | undefined;
     const citationMetadata = candidate?.["citationMetadata"];
+
+    // Extract and analyze groundingChunks
+    type GroundingChunk = {
+      retrievedContext?: {
+        uri?: string;
+        title?: string;
+        text?: string;
+        fileSearchStore?: string;
+      };
+    };
+    const groundingChunks = (groundingMetadata?.groundingChunks || []) as GroundingChunk[];
+    const chunkAnalysis = groundingChunks.map((chunk, i) => {
+      const ctx = chunk.retrievedContext;
+      return {
+        index: i,
+        hasText: !!ctx?.text,
+        textLength: ctx?.text?.length || 0,
+        textPreview: ctx?.text?.substring(0, 200) || "NO TEXT",
+        fileSearchStore: ctx?.fileSearchStore || "none",
+        title: ctx?.title || "none",
+        // Try to detect subchapter from text
+        detectedSubchapter: ctx?.text ? detectZoningSubchapter(ctx.text) : null,
+      };
+    });
     const providerMetadata = (candidate?.["providerMetadata"] as Record<string, Record<string, unknown>>)?.["google"]?.["groundingMetadata"];
     const fileSearchEntries = result["fileSearchEntries"] || candidate?.["fileSearchEntries"];
 
     return {
+      storesUsed: storeNames,
       topLevelKeys: Object.keys(result),
       candidateKeys: candidate ? Object.keys(candidate) : [],
-      groundingMetadata: groundingMetadata ?? "not present",
+      hasGroundingChunks: groundingChunks.length > 0,
+      groundingChunksCount: groundingChunks.length,
+      chunkAnalysis,  // Shows what text is in each chunk and detected subchapter
       citationMetadata: citationMetadata ?? "not present",
       providerMetadata: providerMetadata ?? "not present",
       fileSearchEntries: fileSearchEntries ?? "not present",
-      hasGroundingChunks: !!(groundingMetadata as Record<string, unknown>)?.groundingChunks,
       modelVersion: result.modelVersion,
       usageMetadata: result.usageMetadata,
       responseText: (candidate?.content as Record<string, unknown[]>)?.parts?.[0] ?
