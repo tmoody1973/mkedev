@@ -76,93 +76,300 @@ function formatReportDate(): string {
 }
 
 /**
- * Convert a card to Hybiscus text content.
+ * Build Hybiscus components for a card with proper formatting and images.
  */
-function formatCardAsText(card: CardData): string {
+function buildCardComponents(card: CardData): HybiscusComponent[] {
   const { type, data } = card;
+  const components: HybiscusComponent[] = [];
 
   switch (type) {
-    case "zone-info":
-      return `**Zoning District:** ${data.zoningDistrict || "Unknown"}\n` +
-        (data.zoningCategory ? `**Category:** ${data.zoningCategory}\n` : "") +
-        (data.overlayZones && Array.isArray(data.overlayZones) && data.overlayZones.length > 0
-          ? `**Overlay Zones:** ${(data.overlayZones as string[]).join(", ")}\n`
-          : "");
+    case "zone-info": {
+      let zoneText = `### Zoning Information\n\n`;
+      zoneText += `**District:** ${data.zoningDistrict || "Unknown"}\n`;
+      if (data.zoningCategory) zoneText += `**Category:** ${data.zoningCategory}\n`;
+      if (data.zoningType) zoneText += `**Type:** ${data.zoningType}\n`;
+      if (data.overlayZones && Array.isArray(data.overlayZones) && data.overlayZones.length > 0) {
+        zoneText += `**Overlay Zones:** ${(data.overlayZones as string[]).join(", ")}\n`;
+      }
+      components.push({
+        type: "Card",
+        options: {
+          bg_colour: "blue-50",
+          border_colour: "blue-200",
+        },
+        components: [{
+          type: "Text",
+          options: { text: zoneText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
 
-    case "parcel-info":
-      let parcelText = `**Address:** ${data.address || "Unknown"}\n`;
-      if (data.zoningDistrict) parcelText += `**Zoning:** ${data.zoningDistrict}\n`;
-      if (data.zoningCategory) parcelText += `**Category:** ${data.zoningCategory}\n`;
+    case "parcel-info": {
+      let parcelText = `### Property Details\n\n`;
+      parcelText += `**Address:** ${data.address || "Unknown"}\n`;
+      if (data.zoningDistrict) parcelText += `**Zoning:** ${data.zoningDistrict}`;
+      if (data.zoningCategory) parcelText += ` (${data.zoningCategory})`;
+      parcelText += "\n";
+      if (data.zoningType) parcelText += `**Type:** ${data.zoningType}\n`;
       if (data.areaPlanName) parcelText += `**Area Plan:** ${data.areaPlanName}\n`;
-      if (data.parkingRequired) parcelText += `**Parking Required:** ${data.parkingRequired}\n`;
-      return parcelText;
+      if (data.areaPlanContext) parcelText += `\n_${data.areaPlanContext}_\n`;
+      if (data.parkingRequired) parcelText += `\n**Parking Required:** ${data.parkingRequired}\n`;
+      if (data.overlayZones && Array.isArray(data.overlayZones) && data.overlayZones.length > 0) {
+        parcelText += `**Overlay Zones:** ${(data.overlayZones as string[]).join(", ")}\n`;
+      }
+      components.push({
+        type: "Card",
+        options: {
+          bg_colour: "green-50",
+          border_colour: "green-200",
+        },
+        components: [{
+          type: "Text",
+          options: { text: parcelText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
 
-    case "code-citation":
-      let citationText = "";
+    case "code-citation": {
+      let citationText = `### Zoning Code Reference\n\n`;
       if (data.answer) citationText += `${data.answer}\n\n`;
       if (data.citations && Array.isArray(data.citations)) {
         citationText += "**Sources:**\n";
-        for (const cite of data.citations as Array<{ sourceName?: string; sectionReference?: string }>) {
+        for (const cite of data.citations as Array<{ sourceName?: string; sectionReference?: string; pageNumber?: number }>) {
           citationText += `- ${cite.sourceName || "Unknown Source"}`;
           if (cite.sectionReference) citationText += ` (${cite.sectionReference})`;
+          if (cite.pageNumber) citationText += ` p.${cite.pageNumber}`;
           citationText += "\n";
         }
       }
-      return citationText;
+      components.push({
+        type: "Card",
+        options: {
+          bg_colour: "amber-50",
+          border_colour: "amber-200",
+        },
+        components: [{
+          type: "Text",
+          options: { text: citationText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
 
-    case "area-plan-context":
-      let areaText = "";
+    case "area-plan-context": {
+      let areaText = `### Area Plan Information\n\n`;
       if (data.answer) areaText += `${data.answer}\n\n`;
       if (data.citations && Array.isArray(data.citations)) {
-        areaText += "**Area Plan Sources:**\n";
-        for (const cite of data.citations as Array<{ sourceName?: string }>) {
-          areaText += `- ${cite.sourceName || "Unknown"}\n`;
+        areaText += "**Sources:**\n";
+        for (const cite of data.citations as Array<{ sourceName?: string; sectionReference?: string }>) {
+          areaText += `- ${cite.sourceName || "Unknown"}`;
+          if (cite.sectionReference) areaText += ` (${cite.sectionReference})`;
+          areaText += "\n";
         }
       }
-      return areaText;
+      components.push({
+        type: "Card",
+        options: {
+          bg_colour: "purple-50",
+          border_colour: "purple-200",
+        },
+        components: [{
+          type: "Text",
+          options: { text: areaText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
 
-    case "home-listing":
-      let homeText = `**Property:** ${data.address || "Unknown Address"}\n`;
+    case "home-listing": {
+      // Build property details text
+      let homeText = `### ${data.address || "Property Listing"}\n\n`;
       if (data.neighborhood) homeText += `**Neighborhood:** ${data.neighborhood}\n`;
-      if (data.bedrooms !== undefined) homeText += `**Bedrooms:** ${data.bedrooms}\n`;
-      if (data.fullBaths !== undefined || data.halfBaths !== undefined) {
-        const baths = [];
-        if (data.fullBaths) baths.push(`${data.fullBaths} full`);
-        if (data.halfBaths) baths.push(`${data.halfBaths} half`);
-        homeText += `**Baths:** ${baths.join(", ")}\n`;
-      }
-      if (data.buildingSqFt) homeText += `**Size:** ${data.buildingSqFt.toLocaleString()} sq ft\n`;
-      if (data.yearBuilt) homeText += `**Year Built:** ${data.yearBuilt}\n`;
-      if (data.narrative) homeText += `\n${data.narrative}\n`;
-      return homeText;
+      if (data.districtName) homeText += `**District:** ${data.districtName}\n`;
 
-    case "homes-list":
-      if (!data.homes || !Array.isArray(data.homes)) return "";
-      let listText = "**Available Homes:**\n";
-      for (const home of data.homes as Array<{
+      // Bed/Bath/SqFt summary
+      const features: string[] = [];
+      if (data.bedrooms !== undefined) features.push(`${data.bedrooms} bed`);
+      if (data.fullBaths !== undefined) features.push(`${data.fullBaths} bath`);
+      if (data.halfBaths) features.push(`${data.halfBaths} half bath`);
+      if (features.length > 0) homeText += `**Layout:** ${features.join(" • ")}\n`;
+
+      if (data.buildingSqFt) homeText += `**Size:** ${(data.buildingSqFt as number).toLocaleString()} sq ft\n`;
+      if (data.lotSizeSqFt) homeText += `**Lot Size:** ${(data.lotSizeSqFt as number).toLocaleString()} sq ft\n`;
+      if (data.yearBuilt) homeText += `**Year Built:** ${data.yearBuilt}\n`;
+      if (data.numberOfUnits && (data.numberOfUnits as number) > 1) homeText += `**Units:** ${data.numberOfUnits}\n`;
+      if (data.developerName) homeText += `**Developer:** ${data.developerName}\n`;
+
+      if (data.narrative) homeText += `\n${data.narrative}\n`;
+
+      if (data.listingUrl) homeText += `\n[View Full Listing](${data.listingUrl})\n`;
+
+      // If we have an image, use a Row layout with image + text
+      if (data.primaryImageUrl) {
+        components.push({
+          type: "Card",
+          options: {
+            bg_colour: "sky-50",
+            border_colour: "sky-200",
+          },
+          components: [
+            {
+              type: "Row",
+              options: { columns: 2, column_spacing: 4 },
+              components: [
+                {
+                  type: "Image",
+                  options: {
+                    image_url: data.primaryImageUrl as string,
+                    width: "1/2",
+                    rounded: true,
+                    caption: data.address as string || "Property Photo",
+                  },
+                },
+                {
+                  type: "Text",
+                  options: { text: homeText, markdown_format: true, size: "sm" },
+                },
+              ],
+            },
+          ],
+        });
+
+        // Add additional images if available
+        if (data.imageUrls && Array.isArray(data.imageUrls) && data.imageUrls.length > 1) {
+          const additionalImages = (data.imageUrls as string[]).slice(1, 4); // Show up to 3 more
+          if (additionalImages.length > 0) {
+            components.push({
+              type: "Row",
+              options: { columns: additionalImages.length, column_spacing: 2 },
+              components: additionalImages.map((url, i) => ({
+                type: "Image",
+                options: {
+                  image_url: url,
+                  rounded: true,
+                  caption: `Photo ${i + 2}`,
+                },
+              })),
+            });
+          }
+        }
+      } else {
+        // No image, just show the text
+        components.push({
+          type: "Card",
+          options: {
+            bg_colour: "sky-50",
+            border_colour: "sky-200",
+          },
+          components: [{
+            type: "Text",
+            options: { text: homeText, markdown_format: true, size: "sm" },
+          }],
+        });
+      }
+      break;
+    }
+
+    case "homes-list": {
+      if (!data.homes || !Array.isArray(data.homes)) break;
+      const homes = data.homes as Array<{
+        id?: string;
         address?: string;
         neighborhood?: string;
         bedrooms?: number;
         fullBaths?: number;
-      }>) {
-        listText += `- ${home.address || "Unknown"}`;
-        if (home.neighborhood) listText += ` (${home.neighborhood})`;
-        if (home.bedrooms !== undefined) listText += ` - ${home.bedrooms} bed`;
-        if (home.fullBaths !== undefined) listText += `, ${home.fullBaths} bath`;
-        listText += "\n";
-      }
-      return listText;
+        halfBaths?: number;
+        primaryImageUrl?: string;
+      }>;
 
-    case "parcel-analysis":
-      let analysisText = "";
-      if (data.requiredSpaces !== undefined) analysisText += `**Required Parking:** ${data.requiredSpaces} spaces\n`;
+      components.push({
+        type: "Text",
+        options: {
+          text: `### Available Homes (${homes.length} listings)\n`,
+          markdown_format: true,
+          size: "sm",
+        },
+      });
+
+      // Create a card for each home with image if available
+      for (const home of homes) {
+        let homeText = `**${home.address || "Unknown Address"}**\n`;
+        if (home.neighborhood) homeText += `${home.neighborhood}\n`;
+        const features: string[] = [];
+        if (home.bedrooms !== undefined) features.push(`${home.bedrooms} bed`);
+        if (home.fullBaths !== undefined) features.push(`${home.fullBaths} bath`);
+        if (features.length > 0) homeText += features.join(" • ");
+
+        if (home.primaryImageUrl) {
+          components.push({
+            type: "Card",
+            options: {
+              bg_colour: "stone-50",
+              vertical_margin: 1,
+            },
+            components: [{
+              type: "Row",
+              options: { columns: 2, column_spacing: 3 },
+              components: [
+                {
+                  type: "Image",
+                  options: {
+                    image_url: home.primaryImageUrl,
+                    width: "1/3",
+                    rounded: true,
+                  },
+                },
+                {
+                  type: "Text",
+                  options: { text: homeText, markdown_format: true, size: "sm" },
+                },
+              ],
+            }],
+          });
+        } else {
+          components.push({
+            type: "Card",
+            options: {
+              bg_colour: "stone-50",
+              vertical_margin: 1,
+            },
+            components: [{
+              type: "Text",
+              options: { text: homeText, markdown_format: true, size: "sm" },
+            }],
+          });
+        }
+      }
+      break;
+    }
+
+    case "parcel-analysis": {
+      let analysisText = `### Parking Analysis\n\n`;
+      if (data.requiredSpaces !== undefined) analysisText += `**Required Spaces:** ${data.requiredSpaces}\n`;
       if (data.calculation) analysisText += `**Calculation:** ${data.calculation}\n`;
       if (data.codeReference) analysisText += `**Code Reference:** ${data.codeReference}\n`;
-      return analysisText;
+      if (data.isReducedDistrict) analysisText += `\n_Note: Property is in a reduced parking district._\n`;
+      components.push({
+        type: "Card",
+        options: {
+          bg_colour: "orange-50",
+          border_colour: "orange-200",
+        },
+        components: [{
+          type: "Text",
+          options: { text: analysisText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
 
     default:
-      return "";
+      break;
   }
+
+  return components;
 }
 
 /**
@@ -185,17 +392,26 @@ function buildReportComponents(
     const roleIcon = isUser ? "user" : "robot";
     const bgColor = isUser ? "background-muted" : "background-faded";
 
-    // Build message content with any cards
-    let messageContent = message.content;
+    // Build section components array
+    const sectionComponents: HybiscusComponent[] = [];
 
-    // Add card content as formatted text
+    // Add main message text
+    sectionComponents.push({
+      type: "Text",
+      options: {
+        text: message.content,
+        bg_colour: bgColor,
+        inner_padding: 4,
+        markdown_format: true,
+        size: "sm",
+      },
+    });
+
+    // Add card components (with images, proper formatting)
     if (message.cards && message.cards.length > 0) {
-      messageContent += "\n\n---\n\n";
       for (const card of message.cards) {
-        const cardText = formatCardAsText(card);
-        if (cardText) {
-          messageContent += cardText + "\n";
-        }
+        const cardComponents = buildCardComponents(card);
+        sectionComponents.push(...cardComponents);
       }
     }
 
@@ -209,18 +425,7 @@ function buildReportComponents(
         horizontal_margin: 2,
         vertical_margin: 1,
       },
-      components: [
-        {
-          type: "Text",
-          options: {
-            text: messageContent,
-            bg_colour: bgColor,
-            inner_padding: 4,
-            markdown_format: true,
-            size: "sm",
-          },
-        },
-      ],
+      components: sectionComponents,
     };
 
     components.push(section);
