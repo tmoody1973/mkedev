@@ -544,15 +544,16 @@ export const queryWithFileSearch = action({
       const confidence = calculateConfidenceFromGrounding(groundingMetadata);
 
       // If no grounding citations, create fallback citations from the category
+      // Use valid sourceIds that match documentUrls.ts keys
       if (citations.length === 0 && args.category) {
         console.log("No grounding citations found, using fallback citations for category:", args.category);
         if (args.category === "zoning-codes") {
           citations = [
-            { sourceId: "ch295", sourceName: "Milwaukee Zoning Code Chapter 295", excerpt: "" },
+            { sourceId: "zoning-general", sourceName: "Chapter 295 - General Provisions", excerpt: "" },
           ];
         } else if (args.category === "area-plans") {
           citations = [
-            { sourceId: "area-plans", sourceName: "Milwaukee Area Plans", excerpt: "" },
+            { sourceId: "citywide-plan", sourceName: "Citywide Plan", excerpt: "" },
           ];
         }
       }
