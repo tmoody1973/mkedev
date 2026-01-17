@@ -315,7 +315,7 @@ export const generateReport = action({
         {
           type: "VerticalSpacer",
           options: {
-            size: 4,
+            space: 4,
           },
         },
         // Message transcript
@@ -329,7 +329,7 @@ export const generateReport = action({
         {
           type: "VerticalSpacer",
           options: {
-            size: 4,
+            space: 4,
           },
         },
         {
