@@ -70,7 +70,7 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
 
   let areaPlanData: {
     answer?: string;
-    citations?: Array<{ sourceName?: string }>;
+    citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
   } | null = null;
 
   let parkingData: {
@@ -120,7 +120,7 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
       case 'query_area_plans': {
         const r = result as {
           answer?: string;
-          citations?: Array<{ sourceName?: string }>;
+          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
         };
         if (r.answer) {
           areaPlanData = {
@@ -151,7 +151,7 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
         const r = result as {
           answer?: string;
           confidence?: number;
-          citations?: Array<{ sourceName?: string }>;
+          citations?: Array<{ sourceId?: string; sourceName?: string; excerpt?: string }>;
         };
         if (r.answer) {
           cards.push({

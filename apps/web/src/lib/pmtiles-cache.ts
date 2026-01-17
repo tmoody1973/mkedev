@@ -181,7 +181,7 @@ export async function cleanExpiredTiles(): Promise<number> {
  * Create a cached fetch function for PMTiles
  * Wraps fetch to use IndexedDB cache
  */
-export function createCachedFetch(): typeof fetch {
+export function createCachedFetch(): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
 
