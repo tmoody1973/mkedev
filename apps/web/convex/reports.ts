@@ -313,7 +313,7 @@ export const generateReport = action({
         },
         // Add a vertical spacer
         {
-          type: "Vertical Spacer",
+          type: "VerticalSpacer",
           options: {
             size: 4,
           },
@@ -327,7 +327,7 @@ export const generateReport = action({
         }>),
         // Footer
         {
-          type: "Vertical Spacer",
+          type: "VerticalSpacer",
           options: {
             size: 4,
           },
