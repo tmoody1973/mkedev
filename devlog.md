@@ -876,4 +876,216 @@ if (isDuplicate) return existingMsg?._id;
 
 ---
 
+## 2026-01-17 - Citation System Improvements
+
+### Completed
+- [x] Fix citation links showing "0 VIEWABLE" with no clickable PDFs
+- [x] Add section references (e.g., "295-503", "Table 295-503-1") to citations
+- [x] Add page number extraction from grounding chunks
+- [x] Fix area plan detection for "Fond du Lac & North" and other plans
+- [x] Add area-plan-context cards for area plan citations
+- [x] Deploy to correct Convex deployment (sleek-possum-794)
+
+### Root Cause Analysis
+
+**Citation Links Not Working**
+
+The `useZoningAgent.ts` hook was dropping `sourceId` from citations:
+```typescript
+// Before (broken)
+citations?: Array<{ sourceName?: string }>;
+
+// After (fixed)
+citations?: Array<{
+  sourceId?: string;
+  sourceName?: string;
+  excerpt?: string;
+  sectionReference?: string;
+  pageNumber?: number;
+}>;
+```
+
+**Wrong Convex Deployment**
+
+`npx convex deploy` was pushing to `hip-meadowlark-762` but users connect to `sleek-possum-794`. Fixed by using `npx convex dev --once` for development deployment.
+
+### Section Reference Extraction
+
+Added `extractSectionReference()` function in `ragV2.ts`:
+```typescript
+const patterns = [
+  /Table\s*295-\d{3}(?:-\d+)?/gi,  // Table 295-503-1
+  /Section\s*295-\d{3}/gi,         // Section 295-503
+  /295-\d{3}(?:-\d+)?/g,           // 295-503 or 295-503-1
+  /Subchapter\s*\d+/gi,            // Subchapter 5
+];
+```
+
+### Page Number Extraction
+
+Added `extractPageHint()` function:
+```typescript
+const patterns = [
+  /Page\s*(\d+)/i,     // Page 5
+  /pg\.?\s*(\d+)/i,    // pg. 5
+  /-\s*(\d+)\s*-/,     // - 5 -
+];
+```
+
+### Area Plan Detection Fix
+
+Improved pattern matching in `detectAreaPlan()`:
+```typescript
+// Before (missed many plans)
+{ patterns: ['fondy'], key: 'fondy-north-plan', ... }
+
+// After (comprehensive)
+{
+  patterns: [
+    'fond du lac & north',
+    'fond du lac and north',
+    'fondy',
+    'fondy north',
+    'north avenue corridor'
+  ],
+  key: 'fondy-north-plan',
+  title: 'Fond du Lac & North Area Plan'
+}
+```
+
+### Area Plan Context Cards
+
+Added card creation in `useZoningAgent.ts`:
+```typescript
+if (areaPlanData && areaPlanData.citations?.length > 0) {
+  cards.push({
+    type: 'area-plan-context',
+    data: {
+      answer: areaPlanData.answer,
+      citations: areaPlanData.citations,
+      confidence: 0.7,
+    },
+  });
+}
+```
+
+### UI Improvements
+
+Citation buttons now display:
+- Document title (clickable)
+- Section reference in parentheses (e.g., "(Table 295-503-1)")
+- Page number (e.g., "p.5")
+
+Example: `[View] Residential Districts (295-503) p.12`
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `convex/ingestion/ragV2.ts` | extractSectionReference(), extractPageHint(), improved detectAreaPlan() |
+| `convex/ingestion/types.ts` | Added pageNumber, sectionReference to Citation interface |
+| `src/hooks/useZoningAgent.ts` | Fixed citation types, added area-plan-context card creation |
+| `src/app/HomeContent.tsx` | Display section reference and page number in citation buttons |
+
+### Commits
+- `543ddce` fix(citations): Include sourceId in citation types for PDF URL matching
+- `62c6529` feat(citations): Add section references, page numbers, and area plan citations
+
+### Lessons Learned
+
+1. **Type preservation matters** - Dropping fields in intermediate types breaks downstream features
+2. **Multiple Convex deployments** - Dev and prod use different URLs; verify deployment target
+3. **Pattern matching flexibility** - Area plan detection needs multiple patterns per plan
+4. **Grounding chunk analysis** - Section references and page hints exist in RAG response text
+
+---
+
+## 2026-01-17 - PDF Report Generation with Hybiscus
+
+### Completed
+- [x] Research Hybiscus API documentation and endpoints
+- [x] Create Convex action for PDF report generation
+- [x] Design report template structure for conversations
+- [x] Create React hook for report generation state management
+- [x] Add "Download Report" button to ChatPanel UI
+- [x] Wire up report generation to HomeContent
+
+### Implementation Summary
+
+**Hybiscus API Integration**
+
+The [Hybiscus API](https://hybiscus.dev) provides a three-step process:
+1. POST to `/api/v1/build-report` with JSON payload
+2. Poll `/api/v1/get-task-status` until SUCCESS
+3. Retrieve PDF from `/api/v1/get-report`
+
+**New Files Created:**
+
+| File | Purpose |
+|------|---------|
+| `convex/reports.ts` | Convex action that builds and fetches PDF reports |
+| `src/hooks/useReportGenerator.ts` | React hook for report generation state |
+
+**Modified Files:**
+
+| File | Changes |
+|------|---------|
+| `src/components/chat/ChatPanel.tsx` | Added Download icon, report button, loading state |
+| `src/app/HomeContent.tsx` | Integrated useReportGenerator hook |
+
+### Report Structure
+
+The generated PDF includes:
+- **Title**: "MKE.dev Conversation Report"
+- **Byline**: Conversation title + generation date
+- **Summary Section**: Message count and introduction
+- **Message Transcript**: Each message as a Section component with:
+  - Role label (You / MKE.dev Assistant)
+  - Timestamp
+  - Markdown-formatted content
+  - Generative UI card data converted to text
+- **Footer**: MKE.dev branding
+
+### Card Type Support
+
+All generative UI cards are converted to readable text:
+- `zone-info` → Zoning district, category, overlays
+- `parcel-info` → Address, zoning, area plan, parking
+- `code-citation` → Answer text with source references
+- `area-plan-context` → Area plan answer with sources
+- `home-listing` → Property details (beds, baths, sqft, year)
+- `homes-list` → List of available homes
+- `parcel-analysis` → Parking calculations
+
+### UI Features
+
+- Download button appears in chat header when messages exist
+- Button disabled during loading or report generation
+- Loading spinner shows "Generating..." during API call
+- PDF opens in new browser tab for download
+- 30-second timeout with polling
+
+### Environment Variable
+
+```bash
+HYBISCUS_API_KEY=your_api_key_here
+```
+
+Get API key from [hybiscus.dev](https://hybiscus.dev)
+
+### Technical Notes
+
+1. **Convex action** handles external API calls (Hybiscus requires server-side)
+2. **Polling interval**: 1 second with max 30 attempts
+3. **Report components**: Using Section, Text, Vertical Spacer
+4. **Markdown support**: `markdown_format: true` for text blocks
+5. **Build verified**: TypeScript passes, Next.js builds successfully
+
+### Next Up
+- [ ] Voice interface with Gemini Live API
+- [ ] CopilotKit generative UI polish
+- [ ] Production deployment preparation
+
+---
+
 *Log entries below will be added as development progresses*

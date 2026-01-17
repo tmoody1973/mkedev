@@ -7,6 +7,7 @@ import type { ParcelData } from '@/components/map'
 import { ChatPanel, ConversationSidebar, type ChatMessage, type GenerativeCard } from '@/components/chat'
 import { useZoningAgent } from '@/hooks/useZoningAgent'
 import { useConversations } from '@/hooks/useConversations'
+import { useReportGenerator } from '@/hooks/useReportGenerator'
 import { useMap } from '@/contexts/MapContext'
 import { ZoneInfoCard, ParcelCard, HomeCard, HomesListCard, type HomeListItem } from '@/components/copilot'
 import { LandingPage } from '@/components/landing'
@@ -96,6 +97,9 @@ export default function HomeContent() {
     deleteConversation,
     startNewConversation,
   } = useConversations()
+
+  // Report generation
+  const { isGenerating: isGeneratingReport, generateReport } = useReportGenerator()
 
   // Convert agent messages to ChatMessage format, combining with persisted conversation
   const messages: ChatMessage[] = useMemo(() => {
@@ -464,6 +468,16 @@ export default function HomeContent() {
     // Send a message about voice
     sendMessage('Tell me about voice input capabilities')
   }, [sendMessage])
+
+  /**
+   * Handle download report button click.
+   * Generates a PDF report from the current conversation.
+   */
+  const handleDownloadReport = useCallback(() => {
+    if (currentConversationId) {
+      generateReport(currentConversationId)
+    }
+  }, [currentConversationId, generateReport])
 
   // Handle parcel selection from map
   const handleParcelSelect = useCallback((parcel: ParcelData) => {
@@ -834,6 +848,8 @@ export default function HomeContent() {
               agentStatus={agentStatus}
               placeholder="Ask about zoning, permits, or any property in Milwaukee..."
               renderCard={renderCard}
+              onDownloadReport={currentConversationId ? handleDownloadReport : undefined}
+              isGeneratingReport={isGeneratingReport}
             />
           }
           mapPanel={
