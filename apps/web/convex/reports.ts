@@ -77,6 +77,7 @@ function formatReportDate(): string {
 
 /**
  * Build Hybiscus components for a card with proper formatting and images.
+ * Note: Hybiscus "Card" is for KPIs (title+value), so we use Section/Text for content.
  */
 function buildCardComponents(card: CardData): HybiscusComponent[] {
   const { type, data } = card;
@@ -84,18 +85,18 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
 
   switch (type) {
     case "zone-info": {
-      let zoneText = `### Zoning Information\n\n`;
-      zoneText += `**District:** ${data.zoningDistrict || "Unknown"}\n`;
+      let zoneText = `**District:** ${data.zoningDistrict || "Unknown"}\n`;
       if (data.zoningCategory) zoneText += `**Category:** ${data.zoningCategory}\n`;
       if (data.zoningType) zoneText += `**Type:** ${data.zoningType}\n`;
       if (data.overlayZones && Array.isArray(data.overlayZones) && data.overlayZones.length > 0) {
         zoneText += `**Overlay Zones:** ${(data.overlayZones as string[]).join(", ")}\n`;
       }
       components.push({
-        type: "Card",
+        type: "Section",
         options: {
-          bg_colour: "blue-50",
-          border_colour: "blue-200",
+          section_title: "Zoning Information",
+          icon: "map-pin",
+          highlighted: true,
         },
         components: [{
           type: "Text",
@@ -106,8 +107,7 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
     }
 
     case "parcel-info": {
-      let parcelText = `### Property Details\n\n`;
-      parcelText += `**Address:** ${data.address || "Unknown"}\n`;
+      let parcelText = `**Address:** ${data.address || "Unknown"}\n`;
       if (data.zoningDistrict) parcelText += `**Zoning:** ${data.zoningDistrict}`;
       if (data.zoningCategory) parcelText += ` (${data.zoningCategory})`;
       parcelText += "\n";
@@ -119,10 +119,11 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
         parcelText += `**Overlay Zones:** ${(data.overlayZones as string[]).join(", ")}\n`;
       }
       components.push({
-        type: "Card",
+        type: "Section",
         options: {
-          bg_colour: "green-50",
-          border_colour: "green-200",
+          section_title: "Property Details",
+          icon: "building",
+          highlighted: true,
         },
         components: [{
           type: "Text",
@@ -133,7 +134,7 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
     }
 
     case "code-citation": {
-      let citationText = `### Zoning Code Reference\n\n`;
+      let citationText = "";
       if (data.answer) citationText += `${data.answer}\n\n`;
       if (data.citations && Array.isArray(data.citations)) {
         citationText += "**Sources:**\n";
@@ -145,10 +146,11 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
         }
       }
       components.push({
-        type: "Card",
+        type: "Section",
         options: {
-          bg_colour: "amber-50",
-          border_colour: "amber-200",
+          section_title: "Zoning Code Reference",
+          icon: "book",
+          highlighted: true,
         },
         components: [{
           type: "Text",
@@ -159,7 +161,7 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
     }
 
     case "area-plan-context": {
-      let areaText = `### Area Plan Information\n\n`;
+      let areaText = "";
       if (data.answer) areaText += `${data.answer}\n\n`;
       if (data.citations && Array.isArray(data.citations)) {
         areaText += "**Sources:**\n";
@@ -170,10 +172,11 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
         }
       }
       components.push({
-        type: "Card",
+        type: "Section",
         options: {
-          bg_colour: "purple-50",
-          border_colour: "purple-200",
+          section_title: "Area Plan Information",
+          icon: "file-text",
+          highlighted: true,
         },
         components: [{
           type: "Text",
@@ -185,7 +188,7 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
 
     case "home-listing": {
       // Build property details text
-      let homeText = `### ${data.address || "Property Listing"}\n\n`;
+      let homeText = "";
       if (data.neighborhood) homeText += `**Neighborhood:** ${data.neighborhood}\n`;
       if (data.districtName) homeText += `**District:** ${data.districtName}\n`;
 
@@ -206,69 +209,50 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
 
       if (data.listingUrl) homeText += `\n[View Full Listing](${data.listingUrl})\n`;
 
-      // If we have an image, use a Row layout with image + text
-      if (data.primaryImageUrl) {
-        components.push({
-          type: "Card",
-          options: {
-            bg_colour: "sky-50",
-            border_colour: "sky-200",
-          },
-          components: [
-            {
-              type: "Row",
-              options: { columns: 2, column_spacing: 4 },
-              components: [
-                {
-                  type: "Image",
-                  options: {
-                    image_url: data.primaryImageUrl as string,
-                    width: "1/2",
-                    rounded: true,
-                    caption: data.address as string || "Property Photo",
-                  },
-                },
-                {
-                  type: "Text",
-                  options: { text: homeText, markdown_format: true, size: "sm" },
-                },
-              ],
-            },
-          ],
-        });
+      const sectionComponents: HybiscusComponent[] = [];
 
-        // Add additional images if available
-        if (data.imageUrls && Array.isArray(data.imageUrls) && data.imageUrls.length > 1) {
-          const additionalImages = (data.imageUrls as string[]).slice(1, 4); // Show up to 3 more
-          if (additionalImages.length > 0) {
-            components.push({
-              type: "Row",
-              options: { columns: additionalImages.length, column_spacing: 2 },
-              components: additionalImages.map((url, i) => ({
-                type: "Image",
-                options: {
-                  image_url: url,
-                  rounded: true,
-                  caption: `Photo ${i + 2}`,
-                },
-              })),
-            });
-          }
-        }
-      } else {
-        // No image, just show the text
-        components.push({
-          type: "Card",
+      // If we have an image, add it first
+      if (data.primaryImageUrl) {
+        sectionComponents.push({
+          type: "Image",
           options: {
-            bg_colour: "sky-50",
-            border_colour: "sky-200",
+            image_url: data.primaryImageUrl as string,
+            width: "1/2",
+            rounded: true,
+            caption: data.address as string || "Property Photo",
           },
-          components: [{
-            type: "Text",
-            options: { text: homeText, markdown_format: true, size: "sm" },
-          }],
         });
       }
+
+      sectionComponents.push({
+        type: "Text",
+        options: { text: homeText, markdown_format: true, size: "sm" },
+      });
+
+      // Add additional images if available
+      if (data.imageUrls && Array.isArray(data.imageUrls) && data.imageUrls.length > 1) {
+        const additionalImages = (data.imageUrls as string[]).slice(1, 4);
+        for (const url of additionalImages) {
+          sectionComponents.push({
+            type: "Image",
+            options: {
+              image_url: url,
+              width: "1/4",
+              rounded: true,
+            },
+          });
+        }
+      }
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: data.address as string || "Property Listing",
+          icon: "home",
+          highlighted: true,
+        },
+        components: sectionComponents,
+      });
       break;
     }
 
@@ -284,78 +268,65 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
         primaryImageUrl?: string;
       }>;
 
-      components.push({
-        type: "Text",
-        options: {
-          text: `### Available Homes (${homes.length} listings)\n`,
-          markdown_format: true,
-          size: "sm",
-        },
-      });
-
-      // Create a card for each home with image if available
+      // Build a list of all homes as text
+      let listText = "";
       for (const home of homes) {
-        let homeText = `**${home.address || "Unknown Address"}**\n`;
-        if (home.neighborhood) homeText += `${home.neighborhood}\n`;
+        listText += `**${home.address || "Unknown Address"}**\n`;
+        if (home.neighborhood) listText += `${home.neighborhood}\n`;
         const features: string[] = [];
         if (home.bedrooms !== undefined) features.push(`${home.bedrooms} bed`);
         if (home.fullBaths !== undefined) features.push(`${home.fullBaths} bath`);
-        if (features.length > 0) homeText += features.join(" • ");
+        if (features.length > 0) listText += features.join(" • ") + "\n";
+        listText += "\n";
+      }
 
-        if (home.primaryImageUrl) {
-          components.push({
-            type: "Card",
+      const sectionComponents: HybiscusComponent[] = [];
+
+      // Add images for homes that have them (max 4)
+      const homesWithImages = homes.filter(h => h.primaryImageUrl).slice(0, 4);
+      if (homesWithImages.length > 0) {
+        for (const home of homesWithImages) {
+          sectionComponents.push({
+            type: "Image",
             options: {
-              bg_colour: "stone-50",
-              vertical_margin: 1,
+              image_url: home.primaryImageUrl!,
+              width: "1/4",
+              rounded: true,
+              caption: home.address || "Home",
             },
-            components: [{
-              type: "Row",
-              options: { columns: 2, column_spacing: 3 },
-              components: [
-                {
-                  type: "Image",
-                  options: {
-                    image_url: home.primaryImageUrl,
-                    width: "1/3",
-                    rounded: true,
-                  },
-                },
-                {
-                  type: "Text",
-                  options: { text: homeText, markdown_format: true, size: "sm" },
-                },
-              ],
-            }],
-          });
-        } else {
-          components.push({
-            type: "Card",
-            options: {
-              bg_colour: "stone-50",
-              vertical_margin: 1,
-            },
-            components: [{
-              type: "Text",
-              options: { text: homeText, markdown_format: true, size: "sm" },
-            }],
           });
         }
       }
+
+      sectionComponents.push({
+        type: "Text",
+        options: { text: listText, markdown_format: true, size: "sm" },
+      });
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: `Available Homes (${homes.length} listings)`,
+          icon: "home",
+          highlighted: true,
+        },
+        components: sectionComponents,
+      });
       break;
     }
 
     case "parcel-analysis": {
-      let analysisText = `### Parking Analysis\n\n`;
+      let analysisText = "";
       if (data.requiredSpaces !== undefined) analysisText += `**Required Spaces:** ${data.requiredSpaces}\n`;
       if (data.calculation) analysisText += `**Calculation:** ${data.calculation}\n`;
       if (data.codeReference) analysisText += `**Code Reference:** ${data.codeReference}\n`;
       if (data.isReducedDistrict) analysisText += `\n_Note: Property is in a reduced parking district._\n`;
       components.push({
-        type: "Card",
+        type: "Section",
         options: {
-          bg_colour: "orange-50",
-          border_colour: "orange-200",
+          section_title: "Parking Analysis",
+          icon: "car",
+          highlighted: true,
         },
         components: [{
           type: "Text",
