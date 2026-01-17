@@ -245,14 +245,18 @@ export const generateReport = action({
     downloadUrl?: string;
     error?: string;
   }> => {
+    console.log("[reports] Starting report generation for:", args.conversationId);
+
     // Get Hybiscus API key
     const apiKey = process.env.HYBISCUS_API_KEY;
     if (!apiKey) {
+      console.error("[reports] HYBISCUS_API_KEY not configured");
       return {
         success: false,
         error: "HYBISCUS_API_KEY not configured",
       };
     }
+    console.log("[reports] API key found");
 
     // Fetch conversation with messages
     const result = await ctx.runQuery(api.conversations.getWithMessages, {
@@ -260,6 +264,7 @@ export const generateReport = action({
     });
 
     if (!result) {
+      console.error("[reports] Conversation not found");
       return {
         success: false,
         error: "Conversation not found or access denied",
@@ -267,8 +272,10 @@ export const generateReport = action({
     }
 
     const { title, messages } = result;
+    console.log("[reports] Conversation found:", title, "with", messages?.length, "messages");
 
     if (!messages || messages.length === 0) {
+      console.error("[reports] No messages in conversation");
       return {
         success: false,
         error: "No messages in conversation",
@@ -339,6 +346,8 @@ export const generateReport = action({
     };
 
     try {
+      console.log("[reports] Submitting to Hybiscus API...");
+
       // Step 1: Submit report job
       const buildResponse = await fetch(
         "https://api.hybiscus.dev/api/v1/build-report",
@@ -352,8 +361,11 @@ export const generateReport = action({
         }
       );
 
+      console.log("[reports] Hybiscus response status:", buildResponse.status);
+
       if (!buildResponse.ok) {
         const errorText = await buildResponse.text();
+        console.error("[reports] Hybiscus error:", errorText);
         return {
           success: false,
           error: `Failed to submit report job: ${errorText}`,
@@ -362,6 +374,7 @@ export const generateReport = action({
 
       const buildResult: HybiscusBuildResponse = await buildResponse.json();
       const taskId = buildResult.task_id;
+      console.log("[reports] Task ID:", taskId, "Status:", buildResult.status);
 
       // Step 2: Poll for completion (max 30 seconds)
       const maxAttempts = 30;

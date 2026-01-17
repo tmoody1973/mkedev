@@ -23,21 +23,29 @@ export function useReportGenerator(): UseReportGeneratorReturn {
 
   const generateReport = useCallback(
     async (conversationId: Id<'conversations'>) => {
+      console.log('[useReportGenerator] Starting report generation for:', conversationId);
       setIsGenerating(true);
       setError(null);
 
       try {
         const result = await generateReportAction({ conversationId });
+        console.log('[useReportGenerator] Result:', result);
 
         if (result.success && result.downloadUrl) {
           // Open the PDF in a new tab for download
+          console.log('[useReportGenerator] Opening PDF:', result.downloadUrl);
           window.open(result.downloadUrl, '_blank');
         } else {
-          setError(result.error || 'Failed to generate report');
+          const errorMsg = result.error || 'Failed to generate report';
+          console.error('[useReportGenerator] Error:', errorMsg);
+          setError(errorMsg);
+          alert(`Report generation failed: ${errorMsg}`);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+        console.error('[useReportGenerator] Exception:', errorMessage);
         setError(errorMessage);
+        alert(`Report generation failed: ${errorMessage}`);
       } finally {
         setIsGenerating(false);
       }
