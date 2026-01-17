@@ -131,8 +131,88 @@ function getGeminiApiKey(): string {
 }
 
 /**
+ * Detect specific zoning subchapter from chunk text content.
+ * Returns the subchapter key (e.g., "residential", "commercial") or null.
+ */
+function detectZoningSubchapter(text: string): { key: string; title: string } | null {
+  const normalized = text.toLowerCase();
+
+  // Pattern matching for specific subchapters based on section numbers and keywords
+  const patterns: Array<{ pattern: RegExp | string[]; key: string; title: string }> = [
+    // Subchapter 5 - Residential Districts
+    { pattern: ['section 5', 'subchapter 5', 'residential district', 'rs1', 'rs2', 'rs3', 'rs4', 'rs5', 'rs6', 'rt1', 'rt2', 'rt3', 'rt4', 'rm1', 'rm2', 'rm3', 'rm4', 'rm5', 'rm6', 'rm7'], key: 'residential', title: 'Residential Districts' },
+    // Subchapter 6 - Commercial Districts
+    { pattern: ['section 6', 'subchapter 6', 'commercial district', 'ns1', 'ns2', 'lb1', 'lb2', 'lb3', 'lb4', 'lob1', 'lob2', 'cs1', 'cs2', 'cs3', 'cs4', 'cx1', 'cx2', 'cx3', 'cx4'], key: 'commercial', title: 'Commercial Districts' },
+    // Subchapter 7 - Downtown Districts
+    { pattern: ['section 7', 'subchapter 7', 'downtown district', 'c9a', 'c9b', 'c9c', 'c9d', 'c9e', 'c9f', 'c9g', 'c9h', 'c9i', 'c9j', 'c9k', 'c9l', 'c9m', 'c9n', 'c9o', 'c9p'], key: 'downtown', title: 'Downtown Districts' },
+    // Subchapter 8 - Industrial Districts
+    { pattern: ['section 8', 'subchapter 8', 'industrial district', 'il1', 'il2', 'im', 'ih1', 'ih2', 'ic'], key: 'industrial', title: 'Industrial Districts' },
+    // Subchapter 9 - Special Districts
+    { pattern: ['section 9', 'subchapter 9', 'special district', 'institutional', 'parks and recreation', 'pd-planned development'], key: 'special', title: 'Special Districts' },
+    // Subchapter 10 - Overlay Zones
+    { pattern: ['section 10', 'subchapter 10', 'overlay zone', 'historic district', 'design review', 'shoreland'], key: 'overlay', title: 'Overlay Zones' },
+    // Subchapter 11 - Additional Regulations
+    { pattern: ['section 11', 'subchapter 11', 'additional regulations', 'accessory', 'temporary use', 'nonconforming'], key: 'additional', title: 'Additional Regulations' },
+    // Subchapter 2 - Definitions
+    { pattern: ['section 2', 'subchapter 2', '295-201', 'definition'], key: 'definitions', title: 'Definitions' },
+    // Subchapter 3 - Zoning Map
+    { pattern: ['section 3', 'subchapter 3', 'zoning map', 'boundaries'], key: 'map', title: 'Zoning Map' },
+    // Subchapter 4 - General Provisions (parking, signs, etc.)
+    { pattern: ['section 4', 'subchapter 4', 'general provisions', 'parking', '295-403', '295-404', '295-405', 'off-street parking', 'bicycle parking', 'loading'], key: 'general', title: 'General Provisions' },
+    // Subchapter 1 - Introduction
+    { pattern: ['section 1', 'subchapter 1', 'purpose', 'applicability', 'compliance'], key: 'introduction', title: 'Introduction' },
+    // Tables
+    { pattern: ['table 295', 'dimensional standards'], key: 'tables', title: 'Zoning Tables' },
+  ];
+
+  for (const { pattern, key, title } of patterns) {
+    if (Array.isArray(pattern)) {
+      if (pattern.some(p => normalized.includes(p))) {
+        return { key, title };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect specific area plan from chunk text content.
+ */
+function detectAreaPlan(text: string): { key: string; title: string } | null {
+  const normalized = text.toLowerCase();
+
+  const plans: Array<{ patterns: string[]; key: string; title: string }> = [
+    { patterns: ['menomonee valley', 'menomonee river'], key: 'menomonee-valley-plan', title: 'Menomonee Valley Plan' },
+    { patterns: ['near west side', 'near west'], key: 'near-west-plan', title: 'Near West Side Plan' },
+    { patterns: ['near north side', 'near north'], key: 'near-north-plan', title: 'Near North Side Plan' },
+    { patterns: ['southeast side', 'seplan'], key: 'southeast-plan', title: 'Southeast Side Plan' },
+    { patterns: ['southwest side', 'swplan'], key: 'southwest-plan', title: 'Southwest Side Plan' },
+    { patterns: ['northeast side', 'nesplan'], key: 'northeast-plan', title: 'Northeast Side Plan' },
+    { patterns: ['northwest side', 'nwsplan'], key: 'northwest-plan', title: 'Northwest Side Plan' },
+    { patterns: ['north side plan', 'nsplan'], key: 'north-side-plan', title: 'North Side Plan' },
+    { patterns: ['fondy', 'north avenue'], key: 'fondy-north-plan', title: 'Fondy & North Plan' },
+    { patterns: ['harbor district', 'inner harbor'], key: 'harbor-district-plan', title: 'Harbor District Plan' },
+    { patterns: ['third ward', 'historic third'], key: 'third-ward-plan', title: 'Third Ward Plan' },
+    { patterns: ['washington park'], key: 'washington-park-plan', title: 'Washington Park Plan' },
+    { patterns: ['downtown milwaukee', 'downtown plan'], key: 'downtown-plan', title: 'Downtown Milwaukee Plan' },
+    { patterns: ['housing element', 'affordable housing'], key: 'housing-element', title: 'Housing Element Plan' },
+    { patterns: ['citywide policy', 'comprehensive plan'], key: 'citywide-plan', title: 'Citywide Plan' },
+  ];
+
+  for (const { patterns, key, title } of plans) {
+    if (patterns.some(p => normalized.includes(p))) {
+      return { key, title };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Extract citations from grounding metadata in response.
  * Handles File Search Store format with retrievedContext.
+ * Now parses chunk text to identify specific subchapters/documents.
  */
 function extractCitationsFromGrounding(
   groundingMetadata: {
@@ -162,34 +242,56 @@ function extractCitationsFromGrounding(
   const citations: Citation[] = [];
   const seen = new Set<string>();
 
-  // Process groundingChunks
-  for (const chunk of groundingMetadata.groundingChunks) {
+  // Process each groundingChunk - these correspond to retrieved document chunks
+  for (let i = 0; i < groundingMetadata.groundingChunks.length; i++) {
+    const chunk = groundingMetadata.groundingChunks[i];
+
     // Check retrievedContext format (File Search)
     if (chunk.retrievedContext) {
       const fileId = chunk.retrievedContext.title; // File ID like "tbdlh4mvlmpr"
       const storeName = chunk.retrievedContext.fileSearchStore;
-      const text = chunk.retrievedContext.text;
+      const text = chunk.retrievedContext.text || "";
 
-      // Use store name as source identifier
-      const sourceId = storeName || fileId || "unknown";
+      // Determine the specific document from chunk text
+      let sourceId: string;
+      let sourceName: string;
 
+      if (storeName?.includes("zoningcodes")) {
+        // Parse the chunk text to determine which subchapter
+        const subchapter = detectZoningSubchapter(text);
+        if (subchapter) {
+          sourceId = `zoning-${subchapter.key}`;
+          sourceName = `Chapter 295 - ${subchapter.title}`;
+        } else {
+          // Fallback to general if can't determine
+          sourceId = `zoning-general-${i}`;
+          sourceName = "Chapter 295 - General Provisions";
+        }
+      } else if (storeName?.includes("areaplans")) {
+        // Parse chunk text to determine which area plan
+        const plan = detectAreaPlan(text);
+        if (plan) {
+          sourceId = plan.key;
+          sourceName = plan.title;
+        } else {
+          sourceId = `area-plan-${i}`;
+          sourceName = "Milwaukee Area Plans";
+        }
+      } else if (storeName?.includes("policies")) {
+        sourceId = `policy-${i}`;
+        sourceName = "Milwaukee Policy Documents";
+      } else {
+        sourceId = fileId || `unknown-${i}`;
+        sourceName = "Milwaukee Zoning Code";
+      }
+
+      // Only add unique citations (by sourceId)
       if (!seen.has(sourceId)) {
         seen.add(sourceId);
-
-        // Determine source name from store or file ID
-        let sourceName = "Milwaukee Zoning Code";
-        if (storeName?.includes("zoningcodes")) {
-          sourceName = "Milwaukee Zoning Code Chapter 295";
-        } else if (storeName?.includes("areaplans")) {
-          sourceName = "Milwaukee Area Plans";
-        } else if (storeName?.includes("policies")) {
-          sourceName = "Milwaukee Policy Documents";
-        }
-
         citations.push({
           sourceId,
           sourceName,
-          excerpt: text?.substring(0, 200) || "",
+          excerpt: text.substring(0, 300) || "",
         });
       }
     }
@@ -208,6 +310,10 @@ function extractCitationsFromGrounding(
       }
     }
   }
+
+  // Log what we extracted for debugging
+  console.log(`[RAG] Extracted ${citations.length} unique citations:`,
+    citations.map(c => c.sourceName).join(', '));
 
   return citations;
 }

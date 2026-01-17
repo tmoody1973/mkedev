@@ -582,10 +582,19 @@ export default function HomeContent() {
         const isAreaPlan = card.type === 'area-plan-context';
 
         // Match citations to downloadable PDFs
+        // Try sourceId first (more precise), then sourceName
         const citationsWithUrls = data.citations?.map(c => {
-          const docInfo = matchDocumentUrl(c.sourceName || c.sourceId || '');
+          // Try sourceId first - it's the structured key like "zoning-residential"
+          let docInfo = c.sourceId ? matchDocumentUrl(c.sourceId) : null;
+          // Fall back to sourceName if sourceId didn't match
+          if (!docInfo && c.sourceName) {
+            docInfo = matchDocumentUrl(c.sourceName);
+          }
           return { ...c, docInfo };
         }) || [];
+
+        // Filter out citations without matching documents to avoid showing "undefined"
+        const validCitations = citationsWithUrls.filter(c => c.docInfo || c.sourceName);
 
         return (
           <div className={`p-4 border-2 ${isAreaPlan ? 'border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20' : 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'} rounded-lg`}>
@@ -601,16 +610,16 @@ export default function HomeContent() {
             </div>
 
             {/* Viewable source documents */}
-            {citationsWithUrls.length > 0 && (
+            {validCitations.length > 0 && (
               <div className="mt-3 space-y-2">
                 <span className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wide">
-                  Source Documents:
+                  Source Documents ({validCitations.filter(c => c.docInfo).length} viewable):
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {citationsWithUrls.map((c, i) => (
+                  {validCitations.map((c, i) => (
                     c.docInfo ? (
                       <button
-                        key={i}
+                        key={`${c.sourceId || c.sourceName}-${i}`}
                         onClick={() => openPdfViewer(c.docInfo!.url, c.docInfo!.title, 1)}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border-2 transition-colors cursor-pointer ${
                           isAreaPlan
@@ -625,7 +634,7 @@ export default function HomeContent() {
                         View: {c.docInfo.title}
                       </button>
                     ) : (
-                      <span key={i} className="text-xs text-stone-400 dark:text-stone-500">
+                      <span key={`unmatched-${i}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-stone-400 dark:text-stone-500 border border-stone-200 dark:border-stone-700 rounded">
                         {c.sourceName}
                       </span>
                     )

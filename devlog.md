@@ -749,4 +749,131 @@ Dev Environment:
 
 ---
 
+## 2026-01-16 - Map Performance & Chat Bug Fixes
+
+### Completed
+- [x] Parcel layer styling - transparent fill with outline only
+- [x] PMTiles service worker caching for faster loads
+- [x] Homes layer re-initialization after 3D mode toggle
+- [x] Retry logic for failed map tile fetches
+- [x] Service-specific error messages in map UI
+- [x] Fix duplicate chat message persistence
+
+### Parcel Layer Styling
+
+**Problem:** Parcel layer was too dark/prominent, obscuring the base map.
+
+**Root Cause:** The app uses PMTiles (not ESRI REST) for parcel rendering with hardcoded styles in `pmtiles-layer-manager.ts`, not the shared `layer-config.ts`.
+
+**Fix Applied:**
+```typescript
+// pmtiles-layer-manager.ts
+parcels: {
+  type: 'fill',
+  paint: {
+    'fill-color': '#78716C',
+    'fill-opacity': 0,  // Transparent fill - outline only
+    'fill-outline-color': '#57534E',  // stone-600
+  },
+}
+```
+
+Also fixed `?? 1` instead of `|| 1` to properly handle opacity 0.
+
+### PMTiles Service Worker Caching
+
+**New Files:**
+- `apps/web/public/pmtiles-sw.js` - Service worker with 7-day cache
+- `apps/web/src/components/map/PMTilesCacheProvider.tsx` - SW registration
+- `apps/web/src/lib/pmtiles-cache.ts` - IndexedDB utilities
+
+**Features:**
+- 7-day cache expiration
+- Automatic retry with exponential backoff (1s, 2s, 4s)
+- Stale cache fallback when network fails
+- Unique cache keys including Range headers
+
+### Homes Layer Fix
+
+**Problem:** Home markers disappeared after toggling 3D mode.
+
+**Root Cause:** `HomesLayerLoader` wasn't re-initializing after map style changes.
+
+**Fix Applied:**
+- Added `reinitializeLayers()` to `useHomesLayer` hook
+- Added `isStyleChanging` prop to `HomesLayerLoader`
+- `MapContainer` now passes `isStyleChanging` to both layer loaders
+
+### Retry Logic & Error Messages
+
+**PMTiles Layer Manager:**
+- 3 retry attempts with exponential backoff on initialization
+- Clear error message: "PMTiles tile server unreachable after 3 attempts"
+
+**Service Worker:**
+- `fetchWithRetry()` with 3 attempts and exponential backoff
+- Falls back to stale cache on total failure
+- Returns 503 with structured error JSON if no cache
+
+**UI Error Messages:**
+- Identifies failing service: PMTiles, ESRI, or Mapbox
+- Shows service name in error footer
+- "Refresh Page" button in error overlay
+
+### Duplicate Chat Messages Fix
+
+**Problem:** Asking about homes/parcels created duplicate responses in chat.
+
+**Root Causes:**
+1. `persistMessage` in effect dependencies caused re-runs
+2. Non-awaited async persistence calls raced
+3. No deduplication in Convex mutation
+
+**Fixes Applied:**
+
+**Convex `addMessage` mutation:**
+```typescript
+// Check last 5 messages within 10 seconds for duplicates
+const isDuplicate = recentMessages.some(
+  (msg) =>
+    msg.role === args.role &&
+    msg.content === args.content &&
+    now - msg.timestamp < 10000
+);
+if (isDuplicate) return existingMsg?._id;
+```
+
+**HomeContent.tsx persistence effect:**
+- Use `persistMessageRef` to avoid dependency array issues
+- Add `isPersistingRef` to prevent concurrent calls
+- Await persistence calls sequentially
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `pmtiles-layer-manager.ts` | Outline-only parcels, retry logic |
+| `public/pmtiles-sw.js` | Service worker with caching + retry |
+| `PMTilesCacheProvider.tsx` | SW registration component |
+| `pmtiles-cache.ts` | IndexedDB cache utilities |
+| `ClientProviders.tsx` | Added PMTilesCacheProvider |
+| `useHomesLayer.ts` | Added reinitializeLayers |
+| `HomesLayerLoader.tsx` | Added isStyleChanging prop |
+| `MapContainer.tsx` | Better errors, pass isStyleChanging |
+| `ESRILayerLoader.tsx` | Service-specific error messages |
+| `conversations.ts` | Deduplication in addMessage |
+| `HomeContent.tsx` | Fixed persistence effect |
+
+### Commits
+- `feat(map): Make parcel layer outline-only for better visibility`
+- `feat(map): Add retry logic and improved error handling for map layers`
+- `fix(chat): Prevent duplicate message persistence`
+
+### Next Up
+- [ ] Voice interface with Gemini Live API
+- [ ] CopilotKit generative UI polish
+- [ ] Production deployment preparation
+
+---
+
 *Log entries below will be added as development progresses*

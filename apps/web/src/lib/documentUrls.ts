@@ -140,112 +140,131 @@ export function getDocumentInfo(sourceId: string): { url: string; title: string 
 }
 
 /**
- * Try to match a source name to a document URL
- * Handles fuzzy matching for RAG citations
+ * Try to match a source name OR sourceId to a document URL.
+ * Handles both the new sourceId format (e.g., "zoning-residential")
+ * and fuzzy matching for display names.
  */
-export function matchDocumentUrl(sourceName: string): { url: string; title: string } | null {
-  const normalized = sourceName.toLowerCase();
+export function matchDocumentUrl(sourceNameOrId: string): { url: string; title: string } | null {
+  const normalized = sourceNameOrId.toLowerCase();
 
-  // Direct filename match
-  for (const [id, doc] of Object.entries(ALL_DOCS)) {
-    if (normalized.includes(id.replace(/-/g, ' ')) ||
-        normalized.includes(doc.title.toLowerCase()) ||
-        doc.url.toLowerCase().includes(normalized)) {
-      return doc;
-    }
+  // ==========================================================================
+  // PRIORITY 1: Direct sourceId match (from new RAG extraction)
+  // These sourceIds come from ragV2.ts detectZoningSubchapter/detectAreaPlan
+  // ==========================================================================
+
+  // Direct key lookup - handles sourceIds like "zoning-residential", "menomonee-valley-plan"
+  if (ALL_DOCS[sourceNameOrId]) {
+    return ALL_DOCS[sourceNameOrId];
   }
 
-  // Partial matches
-  if (normalized.includes('ch295') || normalized.includes('chapter 295')) {
-    // Try to match specific subchapter
-    if (normalized.includes('residential') || normalized.includes('sub5')) {
+  // Handle sourceId patterns from RAG (e.g., "zoning-general-0" -> "zoning-general")
+  const baseId = sourceNameOrId.replace(/-\d+$/, ''); // Remove trailing -N suffix
+  if (ALL_DOCS[baseId]) {
+    return ALL_DOCS[baseId];
+  }
+
+  // ==========================================================================
+  // PRIORITY 2: Zoning Code Subchapter Matching (from sourceName)
+  // ==========================================================================
+
+  if (normalized.includes('chapter 295') || normalized.includes('ch295') || normalized.includes('zoning')) {
+    // Match specific subchapters by keywords in title
+    if (normalized.includes('residential')) {
       return ZONING_CODE_DOCS['zoning-residential'];
     }
-    if (normalized.includes('commercial') || normalized.includes('sub6')) {
+    if (normalized.includes('commercial')) {
       return ZONING_CODE_DOCS['zoning-commercial'];
     }
-    if (normalized.includes('downtown') || normalized.includes('sub7')) {
+    if (normalized.includes('downtown')) {
       return ZONING_CODE_DOCS['zoning-downtown'];
     }
-    if (normalized.includes('industrial') || normalized.includes('sub8')) {
+    if (normalized.includes('industrial')) {
       return ZONING_CODE_DOCS['zoning-industrial'];
     }
-    if (normalized.includes('definition') || normalized.includes('sub2')) {
-      return ZONING_CODE_DOCS['zoning-definitions'];
-    }
-    if (normalized.includes('special') || normalized.includes('institutional') || normalized.includes('sub9')) {
+    if (normalized.includes('special')) {
       return ZONING_CODE_DOCS['zoning-special'];
     }
-    if (normalized.includes('overlay') || normalized.includes('sub10')) {
+    if (normalized.includes('overlay')) {
       return ZONING_CODE_DOCS['zoning-overlay'];
     }
-    if (normalized.includes('additional') || normalized.includes('sub11')) {
+    if (normalized.includes('additional')) {
       return ZONING_CODE_DOCS['zoning-additional'];
+    }
+    if (normalized.includes('definition')) {
+      return ZONING_CODE_DOCS['zoning-definitions'];
     }
     if (normalized.includes('table')) {
       return ZONING_CODE_DOCS['zoning-tables'];
     }
-    if (normalized.includes('introduction') || normalized.includes('sub1')) {
+    if (normalized.includes('introduction')) {
       return ZONING_CODE_DOCS['zoning-introduction'];
     }
-    if (normalized.includes('map') || normalized.includes('sub3')) {
+    if (normalized.includes('map') && !normalized.includes('area')) {
       return ZONING_CODE_DOCS['zoning-map'];
     }
-    // Default to general provisions
-    return ZONING_CODE_DOCS['zoning-general'];
+    if (normalized.includes('general') || normalized.includes('parking')) {
+      return ZONING_CODE_DOCS['zoning-general'];
+    }
+    // Don't fallback for zoning - return null so we don't show wrong doc
+    // Only return general if explicitly mentioned
   }
 
-  // Area plan matches
-  if (normalized.includes('menomonee') || normalized.includes('valley')) {
+  // ==========================================================================
+  // PRIORITY 3: Area Plan Matching (from sourceName)
+  // ==========================================================================
+
+  if (normalized.includes('menomonee') || normalized.includes('valley plan')) {
     return AREA_PLAN_DOCS['menomonee-valley-plan'];
-  }
-  if (normalized.includes('downtown') && !normalized.includes('sub7')) {
-    return AREA_PLAN_DOCS['downtown-plan'];
   }
   if (normalized.includes('near west')) {
     return AREA_PLAN_DOCS['near-west-plan'];
   }
-  if (normalized.includes('southeast') || normalized.includes('seplan')) {
+  if (normalized.includes('near north')) {
+    return AREA_PLAN_DOCS['near-north-plan'];
+  }
+  if (normalized.includes('southeast')) {
     return AREA_PLAN_DOCS['southeast-plan'];
   }
-  if (normalized.includes('southwest') || normalized.includes('swplan')) {
+  if (normalized.includes('southwest')) {
     return AREA_PLAN_DOCS['southwest-plan'];
   }
-  if (normalized.includes('northeast') || normalized.includes('nesplan')) {
+  if (normalized.includes('northeast')) {
     return AREA_PLAN_DOCS['northeast-plan'];
   }
-  if (normalized.includes('fondy')) {
-    return AREA_PLAN_DOCS['fondy-north-plan'];
-  }
-  if (normalized.includes('citywide')) {
-    return AREA_PLAN_DOCS['citywide-plan'];
-  }
-  if (normalized.includes('harbor') || normalized.includes('waterfront')) {
-    return AREA_PLAN_DOCS['harbor-district-plan'];
-  }
-  if (normalized.includes('housing element') || normalized.includes('housing-element')) {
-    return AREA_PLAN_DOCS['housing-element'];
-  }
-  if (normalized.includes('near north') || normalized.includes('nearnorth')) {
-    return AREA_PLAN_DOCS['near-north-plan'];
+  if (normalized.includes('northwest')) {
+    return AREA_PLAN_DOCS['northwest-plan'];
   }
   if (normalized.includes('north side') && !normalized.includes('near')) {
     return AREA_PLAN_DOCS['north-side-plan'];
   }
-  if (normalized.includes('northwest') || normalized.includes('nwsplan')) {
-    return AREA_PLAN_DOCS['northwest-plan'];
+  if (normalized.includes('fondy')) {
+    return AREA_PLAN_DOCS['fondy-north-plan'];
   }
-  if (normalized.includes('third ward') || normalized.includes('twplan')) {
+  if (normalized.includes('harbor')) {
+    return AREA_PLAN_DOCS['harbor-district-plan'];
+  }
+  if (normalized.includes('third ward')) {
     return AREA_PLAN_DOCS['third-ward-plan'];
   }
-  if (normalized.includes('washington park') || normalized.includes('wpplan')) {
+  if (normalized.includes('washington park')) {
     return AREA_PLAN_DOCS['washington-park-plan'];
   }
-  // Generic north - fallback to North Side Plan
-  if (normalized.includes('nsplan')) {
-    return AREA_PLAN_DOCS['north-side-plan'];
+  if (normalized.includes('downtown') && normalized.includes('plan')) {
+    return AREA_PLAN_DOCS['downtown-plan'];
+  }
+  if (normalized.includes('housing element')) {
+    return AREA_PLAN_DOCS['housing-element'];
+  }
+  if (normalized.includes('citywide')) {
+    return AREA_PLAN_DOCS['citywide-plan'];
   }
 
+  // ==========================================================================
+  // FALLBACK: Return null instead of generic doc
+  // This is better than showing the wrong document
+  // ==========================================================================
+
+  console.log(`[documentUrls] No match found for: "${sourceNameOrId}"`);
   return null;
 }
 
