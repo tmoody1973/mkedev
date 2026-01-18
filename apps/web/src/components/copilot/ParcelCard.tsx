@@ -16,7 +16,7 @@
  */
 
 import { useState } from "react";
-import { MapPin, Navigation, Copy, ExternalLink, ChevronLeft, ChevronRight, Building2, FileText, Compass } from "lucide-react";
+import { MapPin, Navigation, Copy, ExternalLink, ChevronLeft, ChevronRight, Building2, FileText, Compass, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Google Street View Static API
@@ -48,6 +48,9 @@ interface ParcelCardProps {
 
   // Loading state
   status?: "inProgress" | "executing" | "complete";
+
+  // Actions
+  onOpenStreetView?: (coordinates: { latitude: number; longitude: number }, address: string) => void;
 }
 
 type TabType = "overview" | "zoning" | "area-plans" | "development";
@@ -69,6 +72,7 @@ export function ParcelCard({
   parkingRequired,
   permittedUses = [],
   status = "complete",
+  onOpenStreetView,
 }: ParcelCardProps) {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [streetViewHeading, setStreetViewHeading] = useState(0);
@@ -213,6 +217,15 @@ export function ParcelCard({
 
       {/* Quick Actions */}
       <div className="flex items-center gap-2 p-3 border-b-2 border-black dark:border-white bg-stone-50 dark:bg-stone-800">
+        {coordinates && onOpenStreetView && (
+          <button
+            onClick={() => onOpenStreetView(coordinates, address)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border-2 border-black dark:border-white bg-sky-500 hover:bg-sky-600 text-white transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            Street View
+          </button>
+        )}
         <button
           onClick={openInMaps}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border-2 border-black dark:border-white bg-white dark:bg-stone-700 hover:bg-stone-100 dark:hover:bg-stone-600 transition-colors"

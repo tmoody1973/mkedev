@@ -29,7 +29,8 @@ import {
   LandPlot,
   Building2,
   Warehouse,
-  User
+  User,
+  Eye
 } from "lucide-react";
 
 export interface HomeCardProps {
@@ -63,6 +64,7 @@ export interface HomeCardProps {
 
   // Actions
   onFlyTo?: (coordinates: [number, number]) => void;
+  onOpenStreetView?: (coordinates: [number, number], address: string) => void;
 }
 
 export function HomeCard({
@@ -85,6 +87,7 @@ export function HomeCard({
   imageUrls,
   status = "complete",
   onFlyTo,
+  onOpenStreetView,
 }: HomeCardProps) {
   const isLoading = status === "inProgress" || status === "executing";
 
@@ -369,6 +372,15 @@ export function HomeCard({
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-2 p-4 bg-stone-50 dark:bg-stone-800">
+        {coordinates && onOpenStreetView && (
+          <button
+            onClick={() => onOpenStreetView(coordinates, address)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded border-2 border-black dark:border-white shadow-[2px_2px_0_0_black] dark:shadow-[2px_2px_0_0_white] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_black] dark:hover:shadow-[3px_3px_0_0_white] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_black] dark:active:shadow-[1px_1px_0_0_white] transition-all"
+          >
+            <Eye className="w-4 h-4" />
+            Street View
+          </button>
+        )}
         {listingUrl && (
           <button
             onClick={handleViewListing}

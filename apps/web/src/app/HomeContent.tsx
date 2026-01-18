@@ -24,6 +24,12 @@ const PDFViewerModal = dynamic(
   () => import('@/components/ui/PDFViewerModal').then(mod => mod.PDFViewerModal),
   { ssr: false }
 )
+
+// Dynamic import for Street View modal (client-side only - Google Maps API needs DOM)
+const StreetViewModal = dynamic(
+  () => import('@/components/ui/StreetViewModal').then(mod => mod.StreetViewModal),
+  { ssr: false }
+)
 import { matchDocumentUrl } from '@/lib/documentUrls'
 
 // PDF viewer modal state type
@@ -32,6 +38,13 @@ interface PDFModalState {
   pdfUrl: string
   title: string
   initialPage: number
+}
+
+// Street View modal state type
+interface StreetViewModalState {
+  isOpen: boolean
+  address: string
+  coordinates: { latitude: number; longitude: number } | [number, number] | null
 }
 
 /**
@@ -76,6 +89,26 @@ export default function HomeContent() {
   // Close PDF modal
   const closePdfViewer = useCallback(() => {
     setPdfModal(prev => ({ ...prev, isOpen: false }))
+  }, [])
+
+  // Street View modal state
+  const [streetViewModal, setStreetViewModal] = useState<StreetViewModalState>({
+    isOpen: false,
+    address: '',
+    coordinates: null,
+  })
+
+  // Open Street View modal - handles both coordinate formats
+  const openStreetView = useCallback((
+    coordinates: { latitude: number; longitude: number } | [number, number],
+    address: string
+  ) => {
+    setStreetViewModal({ isOpen: true, address, coordinates })
+  }, [])
+
+  // Close Street View modal
+  const closeStreetView = useCallback(() => {
+    setStreetViewModal(prev => ({ ...prev, isOpen: false }))
   }, [])
 
   // Use the Zoning Agent for chat
@@ -706,6 +739,7 @@ export default function HomeContent() {
             parkingRequired={data.parkingRequired}
             permittedUses={data.permittedUses}
             status="complete"
+            onOpenStreetView={openStreetView}
           />
         );
       }
@@ -755,6 +789,7 @@ export default function HomeContent() {
             imageUrls={data.imageUrls}
             status="complete"
             onFlyTo={handleHomeFlyTo}
+            onOpenStreetView={openStreetView}
           />
         );
       }
@@ -879,6 +914,16 @@ export default function HomeContent() {
             pdfUrl={reportPdfUrl}
             title="MKE.dev Conversation Report"
             initialPage={1}
+          />
+        )}
+
+        {/* Street View Modal */}
+        {streetViewModal.coordinates && (
+          <StreetViewModal
+            isOpen={streetViewModal.isOpen}
+            onClose={closeStreetView}
+            address={streetViewModal.address}
+            coordinates={streetViewModal.coordinates}
           />
         )}
       </SignedIn>
