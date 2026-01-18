@@ -37,6 +37,7 @@ export interface ScreenshotEntry {
   image: string;
   address?: string;
   zoneCode?: string;
+  coordinates?: [number, number];
   timestamp: number;
 }
 
@@ -117,7 +118,7 @@ export interface VisualizerState {
   canRedo: () => boolean;
 
   // Screenshot gallery actions
-  addScreenshot: (image: string, context?: { address?: string; zoneCode?: string }) => void;
+  addScreenshot: (image: string, context?: { address?: string; zoneCode?: string; coordinates?: [number, number] }) => void;
   removeScreenshot: (id: string) => void;
   selectScreenshot: (id: string) => void;
   clearScreenshots: () => void;
@@ -262,6 +263,7 @@ export const useVisualizerStore = create<VisualizerState>()(
           image,
           address: context?.address,
           zoneCode: context?.zoneCode,
+          coordinates: context?.coordinates,
           timestamp: Date.now(),
         };
         set((state) => ({
@@ -281,6 +283,7 @@ export const useVisualizerStore = create<VisualizerState>()(
           set({
             sourceImage: screenshot.image,
             address: screenshot.address || null,
+            coordinates: screenshot.coordinates || null,
             zoningContext: screenshot.zoneCode
               ? { zoningDistrict: screenshot.zoneCode }
               : null,

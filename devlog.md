@@ -1413,4 +1413,163 @@ This implementation showcases Gemini 3's unique capabilities:
 
 ---
 
+## 2026-01-18 - AI Site Visualizer with Gemini 3 Pro Image
+
+### Completed
+- [x] Build complete Site Visualizer with Gemini 3 Pro Image (`gemini-3-pro-image-preview`)
+- [x] Implement Konva.js mask painting canvas (brush/eraser tools)
+- [x] Create Zustand store for visualizer state management
+- [x] Add map screenshot capture via camera button
+- [x] Add Street View screenshot capture with "Visualize" button
+- [x] Build screenshot gallery with thumbnail grid
+- [x] Connect Convex action for image generation
+- [x] Fix environment variable name (`GEMINI_API_KEY`)
+- [x] Add error display UI and debug logging
+
+### Implementation Summary
+
+**Site Visualizer Feature** - Core Hackathon Showcase
+
+This is a KEY feature for the Gemini 3 Hackathon, demonstrating:
+1. **Gemini 3 Pro Image** (`gemini-3-pro-image-preview`) for architectural visualization
+2. **Inpainting with masks** - Paint areas to modify, AI generates contextual architecture
+3. **Zoning-aware generation** - Prompts enhanced with Milwaukee zoning constraints
+
+**New Components Created:**
+
+| Component | Purpose |
+|-----------|---------|
+| `SiteVisualizer.tsx` | Full-screen modal with mode switching |
+| `VisualizerCanvas.tsx` | Konva.js canvas for image + mask layer |
+| `MaskToolbar.tsx` | Brush/eraser tools with size slider |
+| `ImageCapture.tsx` | Screenshot gallery + file upload |
+| `PromptInput.tsx` | Prompt textarea with generate button |
+| `GenerationResult.tsx` | Side-by-side Original vs AI comparison |
+| `MapScreenshotButton.tsx` | Purple camera button on map |
+
+**Screenshot Capture Flow:**
+
+| Source | Capture Method | Result |
+|--------|----------------|--------|
+| Map | Camera button (bottom-left) | Added to gallery |
+| Street View | Capture → Visualize button | Added to gallery + opens visualizer |
+| File Upload | Click upload button | Opens file picker |
+
+**Zustand Store:** `visualizerStore.ts`
+
+State managed:
+- `mode`: 'idle' | 'capture' | 'edit' | 'generate' | 'result'
+- `sourceImage`, `maskImage`, `generatedImage`: Base64 strings
+- `screenshots`: Array of `ScreenshotEntry` (up to 20)
+- `activeTool`, `brushSize`, `isDrawing`: Canvas editing state
+- `prompt`, `isGenerating`, `generationError`: Generation state
+- `history`, `historyIndex`: Undo/redo support
+
+**Convex Action:** `convex/visualization/generate.ts`
+
+```typescript
+// Gemini 3 Pro Image generation
+const model = genAI.getGenerativeModel({
+  model: "gemini-3-pro-image-preview"
+});
+
+const result = await model.generateContent({
+  contents: [{
+    role: "user",
+    parts: [
+      { inlineData: { mimeType: "image/png", data: sourceImageBase64 } },
+      { inlineData: { mimeType: "image/png", data: maskImageBase64 } },
+      { text: enhancedPrompt }
+    ]
+  }],
+  generationConfig: {
+    responseModalities: ["TEXT", "IMAGE"]
+  }
+});
+```
+
+### Screenshot Gallery
+
+**Problem:** Original design had capture directly open visualizer, but users wanted to:
+1. Take multiple screenshots at different angles
+2. Browse and select the best one for visualization
+
+**Solution:** Gallery approach with persistent storage:
+- Camera button on map saves to gallery instantly (green checkmark feedback)
+- Street View "Visualize" button converts static image to base64 and saves
+- Gallery shows thumbnails with address and timestamp
+- Click any thumbnail to use for visualization
+- Hover reveals delete button
+
+**Gallery Features:**
+- Max 20 screenshots stored in session
+- Grid layout with responsive columns (2/3/4 based on screen)
+- Hover overlay shows address and time
+- Screenshots persist in visualizer store (not localStorage - too large)
+
+### Key Files Created/Modified
+
+**New Files:**
+- `src/stores/visualizerStore.ts` - Zustand store
+- `src/stores/index.ts` - Store exports
+- `src/components/visualizer/*.tsx` - 6 components
+- `src/components/map/MapScreenshotButton.tsx` - Camera button
+- `convex/visualization/generate.ts` - Gemini API action
+
+**Modified Files:**
+- `src/contexts/MapContext.tsx` - Added `captureMapScreenshot()`
+- `src/components/map/MapContainer.tsx` - Added `MapScreenshotButton`, `onParcelVisualize`
+- `src/components/ui/StreetViewModal.tsx` - Added "Visualize" button with gallery integration
+- `src/components/map/ParcelPopup.tsx` - Added "Visualize this site" button
+- `src/app/HomeContent.tsx` - Visualizer modal state and handlers
+
+### Bug Fixes
+
+| Bug | Root Cause | Fix |
+|-----|------------|-----|
+| "Nothing generated" | Placeholder code returning original image | Connected actual Convex action |
+| API key not found | Wrong env var name | Changed to `GEMINI_API_KEY` |
+| Map capture null | `mapRef.current` not updating | Added camera button approach |
+| Street View not in gallery | Only download option | Added "Visualize" button |
+
+### Git Commits
+
+```
+d55efcc feat(visualizer): Add Street View capture to visualizer gallery
+328e5ed feat(visualizer): Add screenshot gallery for map captures
+4a6e0d4 feat(visualizer): Connect map capture to visualizer
+3d128e9 fix(visualizer): Use correct env var name GEMINI_API_KEY
+d7b7e90 fix(visualizer): Add error display and debug logging
+524c4ea fix(visualizer): Connect PromptInput to actual Gemini 3 Pro Image API
+efedeae feat(visualizer): Add AI Site Visualizer with Gemini 3 Pro Image
+```
+
+### Hackathon Differentiation
+
+The Site Visualizer showcases Gemini 3's unique capabilities:
+- **Image generation** - Not just text, actual architectural visualization
+- **Inpainting** - Mask-based editing for precise modifications
+- **Contextual awareness** - Zoning data influences generation
+- **Milwaukee-specific** - Generates contextually appropriate architecture
+
+### User Flow
+
+1. Navigate to any location on the map
+2. Click purple camera button (bottom-left) to take screenshot
+3. Optionally: Open Street View → Navigate → Capture → Visualize
+4. Open Site Visualizer (from header or gallery)
+5. Select a screenshot from gallery
+6. Paint mask over area to modify
+7. Enter prompt: "Add a 4-story mixed-use building"
+8. Click Generate → Wait for Gemini 3 Pro Image
+9. View side-by-side comparison
+10. Download or try again with different prompt
+
+### Next Up
+- [ ] Voice interface with Gemini Live API
+- [ ] Test with various Milwaukee locations
+- [ ] Add zoning constraint display in visualizer sidebar
+
+---
+
 *Log entries below will be added as development progresses*
