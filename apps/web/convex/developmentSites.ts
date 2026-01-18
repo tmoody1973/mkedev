@@ -5,7 +5,7 @@
  * access to Browse.ai scraped development site listings.
  */
 
-import { query, action } from "./_generated/server";
+import { query, action, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -148,6 +148,27 @@ export const getForMap = query({
       askingPrice: s.askingPrice,
       incentives: s.incentives,
     }));
+  },
+});
+
+// =============================================================================
+// Mutation: Update Coordinates
+// =============================================================================
+
+/**
+ * Update coordinates for a development site.
+ * Used by re-geocoding scripts to fix incorrect coordinates.
+ */
+export const updateCoordinates = mutation({
+  args: {
+    id: v.id("developmentSites"),
+    coordinates: v.array(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      coordinates: args.coordinates as [number, number],
+      updatedAt: Date.now(),
+    });
   },
 });
 

@@ -5,7 +5,7 @@
  * access to Browse.ai scraped commercial property listings.
  */
 
-import { query, action } from "./_generated/server";
+import { query, action, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -182,6 +182,27 @@ export const getForMap = query({
       buildingSqFt: p.buildingSqFt,
       askingPrice: p.askingPrice,
     }));
+  },
+});
+
+// =============================================================================
+// Mutation: Update Coordinates
+// =============================================================================
+
+/**
+ * Update coordinates for a commercial property.
+ * Used by re-geocoding scripts to fix incorrect coordinates.
+ */
+export const updateCoordinates = mutation({
+  args: {
+    id: v.id("commercialProperties"),
+    coordinates: v.array(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      coordinates: args.coordinates as [number, number],
+      updatedAt: Date.now(),
+    });
   },
 });
 
