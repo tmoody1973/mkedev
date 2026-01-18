@@ -1192,4 +1192,101 @@ Screenshots renamed for clarity:
 
 ---
 
+## 2026-01-18 - Incentives RAG & Chat Onboarding
+
+### Completed
+- [x] Add "incentives" category to Convex schema (documents, storeDocuments, fileSearchStores)
+- [x] Update all category validators in fileSearchStores.ts
+- [x] Create upload-incentives.ts script for HTML and PDF files
+- [x] Upload 8 incentive documents to new mkedev-incentives File Search Store
+- [x] Add suggested prompts to ChatPanel for user onboarding
+- [x] Update Planning Ingestion Agent to use Playwright instead of Firecrawl
+- [x] Test RAG queries against incentives store
+
+### Incentives File Search Store
+
+**Problem:** Users asking about Milwaukee housing incentive programs had no RAG source to query.
+
+**Solution:** Created new "incentives" category and uploaded 8 documents covering:
+- $25,000 STRONG Homes Loan Program (HTML + PDF brochure)
+- $35,000 Homebuyer Assistance Program (HTML + PDF brochure)
+- ARCH Program (HTML + PDF application)
+- Milwaukee Home Down Payment Assistance (HTML + PDF guidelines)
+
+**Store:** `fileSearchStores/mkedevincentives-v06gcynm7nyc`
+
+**Script:** `apps/web/scripts/upload-incentives.ts`
+- Handles both HTML and PDF files with dynamic MIME type detection
+- Creates store, uploads all documents, registers in Convex
+
+### Schema Updates
+
+Added "incentives" to multiple validators:
+- `convex/schema.ts` - documents table, storeDocuments table, fileSearchStores table
+- `convex/ingestion/fileSearchStores.ts` - 6 category validators
+- `convex/ingestion/rag.ts` - category union
+- `convex/ingestion/ragV2.ts` - category union
+- `convex/ingestion/documents.ts` - documentCategory union
+
+### Chat Onboarding
+
+**Problem:** Users didn't know what questions to ask or what information was available.
+
+**Solution:** Added suggested prompts to ChatPanel empty state with 4 clickable buttons:
+
+| Category | Prompt |
+|----------|--------|
+| Zoning | "What are the zoning requirements for opening a restaurant in the Third Ward?" |
+| Housing | "What are the requirements for building a home on a city-owned lot?" |
+| Incentives | "What TIF districts and financial incentives are available in Milwaukee?" |
+| Area Plans | "What development opportunities are in the Menomonee Valley?" |
+
+Each button sends the prompt directly to the chat input on click.
+
+### Planning Ingestion Agent
+
+**Problem:** Firecrawl was removed from requirements; needed alternative for web scraping.
+
+**Solution:** Created `playwright_scraper.py` tool for the Planning Ingestion Agent:
+- Uses Playwright for reliable page rendering
+- Handles bot detection with realistic user agent and wait strategies
+- Converts HTML to markdown using markdownify
+- Extracts PDF links from pages for separate download
+
+### RAG Test Results
+
+```
+Query: "What is the STRONG Homes Loan Program?"
+Store: fileSearchStores/mkedevincentives-v06gcynm7nyc
+Response: Detailed answer with eligibility requirements, loan amounts ($1,000-$25,000),
+          interest rates (0% for <60% AMI, 3% for 60-150% AMI),
+          homeownership retention credit (25% forgiven after 10 years)
+Citations: STRONG Homes Loan Brochure, $25,000 STRONG Homes Loan Program
+```
+
+### Git Commits
+
+```
+9bc0b17 feat(incentives): Add incentives document category and File Search Store
+37b80a2 docs(readme): Update with incentives RAG and chat onboarding features
+```
+
+### RAG Document Corpus Now
+
+| Store | Documents | Status |
+|-------|-----------|--------|
+| mkedev-zoning-codes | 12 PDFs | Active |
+| mkedev-area-plans | 13 PDFs | Active |
+| mkedev-policies | 2 PDFs | Active |
+| Milwaukee Planning Documents | 7 docs | Active |
+| mkedev-incentives | 8 docs | Active |
+| **Total** | **42 documents** | |
+
+### Next Up
+- [ ] Voice interface with Gemini Live API
+- [ ] Test query_incentives tool in zoning agent
+- [ ] Production deployment preparation
+
+---
+
 *Log entries below will be added as development progresses*
