@@ -21,13 +21,15 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 
 - **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG
 - **Interactive Map** - Mapbox GL JS with 7 Milwaukee ESRI data layers and PMTiles
-- **File Search RAG** - 12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores
+- **File Search RAG** - 25+ documents across 5 categories in Gemini File Search Stores (zoning codes, area plans, policies, guides, incentives)
 - **Real-Time Geocoding** - Address to zoning lookup via Mapbox + Milwaukee ESRI integration
 - **Generative UI Cards** - Rich property cards with Street View, zoning details, and area plans
 - **Interactive Street View** - Google Maps integration with 360° navigation and screenshot capture
 - **Homes For Sale** - Browse city-owned properties synced from Milwaukee ESRI FeatureServer
 - **PDF Report Generation** - Export research as professional PDF reports via Hybiscus API
 - **Conversation History** - Persistent chat sessions with search, star, and sidebar navigation
+- **Housing Incentives** - Information on STRONG Homes, Homebuyer Assistance, ARCH, and Down Payment programs
+- **Chat Onboarding** - Suggested prompts help users discover available information
 - **High-Performance Tiles** - PMTiles (313,000+ features) for instant map rendering
 - **Voice-First Interface** - Real-time voice conversations via Gemini Live API (in progress)
 
@@ -183,9 +185,10 @@ mkedev/
 ├── agent-os/                   # Specs and documentation
 │   ├── product/                # Mission, roadmap, tech stack
 │   └── specs/                  # Feature specifications
-└── data/                       # PDF documents for RAG
+└── data/                       # Documents for RAG
     ├── zoning-code-pdfs/       # Milwaukee Zoning Code (12 PDFs)
-    └── plans/                  # City area plans
+    ├── plans/                  # City area plans (13 PDFs)
+    └── incentives/             # Housing incentive programs (8 docs)
 ```
 
 ---
@@ -222,6 +225,7 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 | `query_zoning_code` | RAG search against 12 zoning code PDFs |
 | `query_area_plans` | Search area plan context for a location |
 | `search_homes_for_sale` | Find city-owned properties for sale |
+| `query_incentives` | Search housing incentive programs (STRONG Homes, etc.) |
 
 ### Example Queries
 
@@ -237,13 +241,22 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 
 "Show me homes for sale in Harambee"
 → [List of available properties with photos and details]
+
+"What housing assistance programs are available in Milwaukee?"
+→ [Details on STRONG Homes Loan, Homebuyer Assistance, ARCH, Down Payment programs]
 ```
 
 ### RAG Document Corpus
 
-12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores:
-- CH295 Subchapters 1-11 (General, Residential, Commercial, Downtown, Industrial, Special, Overlay, Site Development, Parking, Signs, Administration)
-- CH295 Use Tables
+25+ documents indexed across 5 Gemini File Search Stores:
+
+| Store | Documents | Content |
+|-------|-----------|---------|
+| **zoning-codes** | 12 PDFs | CH295 Subchapters 1-11 + Use Tables |
+| **area-plans** | 13 PDFs | Neighborhood comprehensive plans |
+| **policies** | 2 PDFs | Housing Element, Citywide Policy Plan |
+| **guides** | 7 docs | Milwaukee Planning Department guides |
+| **incentives** | 8 docs | STRONG Homes, Homebuyer Assistance, ARCH, Down Payment programs |
 
 ---
 
@@ -294,8 +307,9 @@ pnpm typecheck            # Run TypeScript type checking
 pnpm test                 # Run tests
 
 # RAG Setup (in apps/web directory)
-pnpm upload-file-search   # Upload PDFs to Gemini File Search
+pnpm upload-file-search   # Upload all docs to Gemini File Search
 pnpm upload-file-search:status  # Check upload status
+npx tsx scripts/upload-incentives.ts  # Upload incentives docs only
 
 # Tile Building (requires tippecanoe)
 pnpm --filter tile-builder export    # Export ESRI → GeoJSON
@@ -326,6 +340,9 @@ pnpm --filter tile-builder upload    # Upload to R2
 - [x] **PDF Report Generation** - Export research via Hybiscus API
 - [x] **Interactive Street View** - Modal with 360° navigation and screenshot capture
 - [x] **Landing Page** - Feature showcase with app screenshots
+- [x] **Housing Incentives RAG** - 8 documents on STRONG Homes, Homebuyer Assistance, ARCH, Down Payment
+- [x] **Chat Onboarding** - Suggested prompts for zoning, housing, incentives, area plans
+- [x] **Planning Ingestion Agent** - Playwright-based web scraping for Milwaukee planning docs
 - [ ] Gemini Live API integration
 - [ ] Voice activity detection
 
