@@ -34,7 +34,7 @@ async function callGeminiWithFallback(
   apiKey: string,
   requestBody: Record<string, unknown>,
   primaryModel: string,
-  fallbackModel: string
+  _fallbackModel: string // Kept for API compatibility but currently unused
 ): Promise<{ response: Record<string, unknown>; modelUsed: string }> {
   const models = [primaryModel]; // Only primary model - fallback doesn't help for File Search
   const maxRetries = 1; // No retries - timeouts mean real issues, not transient failures

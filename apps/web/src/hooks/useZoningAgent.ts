@@ -55,6 +55,9 @@ export interface UseZoningAgentReturn {
 function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
   const cards: GenerativeCard[] = [];
 
+  // Debug: Log incoming tool results
+  console.log('[mapToolResultsToCards] Received tool results:', toolResults.map(t => ({ name: t.name, resultKeys: Object.keys(t.result || {}) })));
+
   // Extract data from each tool result
   let geocodeData: {
     formattedAddress?: string;
@@ -330,6 +333,7 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
       // ========================================================================
 
       case 'search_development_sites': {
+        console.log('[mapToolResultsToCards] Processing search_development_sites, result:', result);
         const r = result as {
           success?: boolean;
           count?: number;
@@ -343,7 +347,9 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
             coordinates?: [number, number];
           }>;
         };
+        console.log('[mapToolResultsToCards] search_development_sites parsed:', { success: r.success, sitesCount: r.sites?.length });
         if (r.success && r.sites && r.sites.length > 0) {
+          console.log('[mapToolResultsToCards] Adding development-sites-list card');
           cards.push({
             type: 'development-sites-list',
             data: {
@@ -586,9 +592,11 @@ export function useZoningAgent(): UseZoningAgentReturn {
 
         // Map tool results to generative UI cards
         const toolResultsList = result.toolResults as ToolResult[] | undefined;
+        console.log('[useZoningAgent] toolResultsList:', toolResultsList?.length || 0, 'results');
         const cards = toolResultsList
           ? mapToolResultsToCards(toolResultsList)
           : [];
+        console.log('[useZoningAgent] Generated cards:', cards.length, cards.map(c => c.type));
 
         // Extract citations from RAG tool results
         const citations = toolResultsList

@@ -276,8 +276,9 @@ function mapPropertyType(
 
 /**
  * Parse incentives string to array (e.g., "TIF, Opportunity Zone" -> ["TIF", "Opportunity Zone"])
+ * Note: Prefixed with underscore as currently unused but kept for future use
  */
-function parseIncentives(incentivesStr: string | undefined): string[] | undefined {
+function _parseIncentives(incentivesStr: string | undefined): string[] | undefined {
   if (!incentivesStr) return undefined;
   const incentives = incentivesStr
     .split(/[,;]/)
