@@ -6,6 +6,73 @@ import { useVisualizerStore } from '@/stores';
 import { useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 
+/**
+ * Analyze the mask to describe the region to modify (client-side).
+ * Returns a description of where the mask is positioned in the image.
+ */
+function analyzeMask(maskBase64: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve("the highlighted area");
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Find white pixels (mask area) - calculate bounding box and coverage
+      let minX = canvas.width, maxX = 0, minY = canvas.height, maxY = 0;
+      let whitePixels = 0;
+      const totalPixels = canvas.width * canvas.height;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        if (r > 128) { // White pixel
+          whitePixels++;
+          const pixelIndex = i / 4;
+          const x = pixelIndex % canvas.width;
+          const y = Math.floor(pixelIndex / canvas.width);
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+        }
+      }
+
+      const coverage = whitePixels / totalPixels;
+
+      // Describe position
+      const centerX = (minX + maxX) / 2 / canvas.width;
+      const centerY = (minY + maxY) / 2 / canvas.height;
+
+      const horizontalPos = centerX < 0.33 ? "left" : centerX > 0.66 ? "right" : "center";
+      const verticalPos = centerY < 0.33 ? "top" : centerY > 0.66 ? "bottom" : "middle";
+
+      let description: string;
+      if (coverage > 0.5) {
+        description = "most of the image";
+      } else if (coverage < 0.1) {
+        description = `a small area in the ${verticalPos}-${horizontalPos}`;
+      } else {
+        description = `the ${verticalPos}-${horizontalPos} portion of the image`;
+      }
+
+      resolve(description);
+    };
+    img.onerror = () => {
+      resolve("the highlighted area");
+    };
+    img.src = maskBase64;
+  });
+}
+
 const PROMPT_SUGGESTIONS = [
   { label: 'Modern townhomes', prompt: 'Add modern 3-story townhomes with contemporary design' },
   { label: 'Mixed-use building', prompt: 'Replace with a 4-story mixed-use building with retail on ground floor' },
@@ -31,6 +98,7 @@ export function PromptInput() {
     zoningContext,
     address,
     coordinates,
+    sourceType,
     setGeneratedImage,
   } = useVisualizerStore();
 
@@ -69,6 +137,13 @@ export function PromptInput() {
     setMode('generate');
 
     try {
+      // Analyze the mask to get a description of where to edit
+      let maskDescription: string | undefined;
+      if (maskImage) {
+        maskDescription = await analyzeMask(maskImage);
+        console.log('[PromptInput] Mask description:', maskDescription);
+      }
+
       // Call Convex action for Gemini 3 Pro Image generation
       const result = await generateVisualization({
         sourceImageBase64: sourceImage,
@@ -77,6 +152,8 @@ export function PromptInput() {
         zoningContext: zoningContext || undefined,
         address: address || undefined,
         coordinates: coordinates || undefined,
+        sourceType: sourceType || undefined,
+        maskDescription: maskDescription,
       });
 
       if (result.success && result.generatedImageBase64) {
@@ -101,6 +178,7 @@ export function PromptInput() {
     zoningContext,
     address,
     coordinates,
+    sourceType,
     generateVisualization,
     setIsGenerating,
     setGenerationError,

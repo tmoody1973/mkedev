@@ -5,5 +5,6 @@ export type {
   ZoningContext,
   HistoryEntry,
   ScreenshotEntry,
+  ScreenshotSourceType,
   VisualizerState,
 } from './visualizerStore';

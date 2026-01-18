@@ -260,7 +260,7 @@ export function StreetViewModal({
         const base64Data = reader.result as string;
 
         // Add to visualizer gallery
-        addScreenshot(base64Data, { address });
+        addScreenshot(base64Data, { address, sourceType: 'street_view' });
 
         // Close the preview and modal
         setCapturedImageUrl(null);

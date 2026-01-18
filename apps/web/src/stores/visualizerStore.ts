@@ -32,12 +32,15 @@ export interface HistoryEntry {
   timestamp: number;
 }
 
+export type ScreenshotSourceType = 'map' | 'street_view' | 'upload';
+
 export interface ScreenshotEntry {
   id: string;
   image: string;
   address?: string;
   zoneCode?: string;
   coordinates?: [number, number];
+  sourceType?: ScreenshotSourceType;
   timestamp: number;
 }
 
@@ -56,6 +59,7 @@ export interface VisualizerState {
   address: string | null;
   coordinates: [number, number] | null;
   zoningContext: ZoningContext | null;
+  sourceType: ScreenshotSourceType | null;
 
   // Canvas/editing state
   activeTool: ToolType;
@@ -118,7 +122,7 @@ export interface VisualizerState {
   canRedo: () => boolean;
 
   // Screenshot gallery actions
-  addScreenshot: (image: string, context?: { address?: string; zoneCode?: string; coordinates?: [number, number] }) => void;
+  addScreenshot: (image: string, context?: { address?: string; zoneCode?: string; coordinates?: [number, number]; sourceType?: ScreenshotSourceType }) => void;
   removeScreenshot: (id: string) => void;
   selectScreenshot: (id: string) => void;
   clearScreenshots: () => void;
@@ -137,6 +141,7 @@ const initialState = {
   address: null,
   coordinates: null,
   zoningContext: null,
+  sourceType: null as ScreenshotSourceType | null,
   activeTool: 'brush' as ToolType,
   brushSize: 20,
   isDrawing: false,
@@ -264,6 +269,7 @@ export const useVisualizerStore = create<VisualizerState>()(
           address: context?.address,
           zoneCode: context?.zoneCode,
           coordinates: context?.coordinates,
+          sourceType: context?.sourceType,
           timestamp: Date.now(),
         };
         set((state) => ({
@@ -287,6 +293,7 @@ export const useVisualizerStore = create<VisualizerState>()(
             zoningContext: screenshot.zoneCode
               ? { zoningDistrict: screenshot.zoneCode }
               : null,
+            sourceType: screenshot.sourceType || null,
             mode: 'edit',
           });
         }

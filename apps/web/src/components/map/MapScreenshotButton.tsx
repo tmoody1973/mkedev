@@ -88,6 +88,7 @@ export function MapScreenshotButton() {
         address,
         zoneCode,
         coordinates: [lng, lat],
+        sourceType: 'map',
       })
 
       // Show success feedback

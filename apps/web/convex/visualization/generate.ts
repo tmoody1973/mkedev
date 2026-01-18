@@ -47,17 +47,40 @@ function buildEnhancedPrompt(
     historicDistrict?: boolean;
     neighborhood?: string;
   },
-  address?: string
+  address?: string,
+  maskDescription?: string,
+  viewType?: 'aerial' | 'street' | 'unknown'
 ): string {
   const parts: string[] = [];
 
+  // View/Scale context - CRITICAL for proper generation
+  parts.push("IMAGE CONTEXT:");
+  if (viewType === 'aerial') {
+    parts.push("- View Type: Aerial/satellite view from above");
+    parts.push("- Scale: Buildings should appear as they would from above, showing rooftops");
+  } else if (viewType === 'street') {
+    parts.push("- View Type: Street-level perspective view");
+    parts.push("- Scale: Buildings should appear at human scale, showing facades");
+  } else {
+    parts.push("- View Type: Map screenshot - treat as aerial/birds-eye view");
+    parts.push("- Scale: Match the scale of existing buildings visible in the image");
+  }
+
   // Site context
-  parts.push("SITE CONTEXT:");
+  parts.push("\nSITE CONTEXT:");
   if (address) {
     parts.push(`- Address: ${address}, Milwaukee, WI`);
   }
   if (zoningContext?.neighborhood) {
     parts.push(`- Neighborhood: ${zoningContext.neighborhood}`);
+  }
+
+  // Mask/Edit region - CRITICAL for telling Gemini WHERE to modify
+  if (maskDescription) {
+    parts.push("\nEDIT REGION:");
+    parts.push(`- Modify ONLY ${maskDescription}`);
+    parts.push("- Keep all other areas of the image EXACTLY as they are");
+    parts.push("- The second image shows the mask: white areas = MODIFY, black areas = KEEP UNCHANGED");
   }
 
   // Zoning constraints
@@ -99,8 +122,8 @@ function buildEnhancedPrompt(
   // Architectural context
   parts.push("\nARCHITECTURAL CONTEXT:");
   parts.push("- Milwaukee urban context");
-  parts.push("- Match neighborhood character and scale");
-  parts.push("- Consider surrounding buildings and streetscape");
+  parts.push("- Match the EXACT scale of surrounding buildings in the image");
+  parts.push("- Ensure new structures are proportional to existing ones");
 
   // User request
   parts.push("\nUSER REQUEST:");
@@ -109,11 +132,12 @@ function buildEnhancedPrompt(
   // Generation instructions
   parts.push("\nGENERATION INSTRUCTIONS:");
   parts.push("Generate a photorealistic architectural visualization that:");
-  parts.push("1. Fits naturally into the existing streetscape");
-  parts.push("2. Complies with all zoning constraints listed above");
-  parts.push("3. Shows the proposed development from a similar angle to the source image");
-  parts.push("4. Uses realistic materials, lighting, and architectural details");
-  parts.push("5. Maintains the surrounding context and buildings");
+  parts.push("1. ONLY modifies the specified edit region (masked area)");
+  parts.push("2. Preserves ALL existing buildings, streets, and features outside the mask");
+  parts.push("3. Matches the EXACT perspective and lighting of the source image");
+  parts.push("4. Uses the SAME scale as existing buildings visible in the image");
+  parts.push("5. Blends seamlessly with the surrounding context");
+  parts.push("6. Complies with all zoning constraints listed above");
 
   return parts.join("\n");
 }
@@ -130,11 +154,19 @@ export const generate = action({
     zoningContext: zoningContextValidator,
     address: v.optional(v.string()),
     coordinates: v.optional(v.array(v.number())),
+    sourceType: v.optional(v.union(
+      v.literal("map"),
+      v.literal("street_view"),
+      v.literal("upload")
+    )),
+    maskDescription: v.optional(v.string()), // Client-side description of mask location
   },
   handler: async (_ctx, args) => {
     console.log("[visualization/generate] Starting generation...");
     console.log("[visualization/generate] Prompt:", args.prompt);
     console.log("[visualization/generate] Has mask:", !!args.maskImageBase64);
+    console.log("[visualization/generate] Source type:", args.sourceType);
+    console.log("[visualization/generate] Mask description:", args.maskDescription);
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -145,11 +177,17 @@ export const generate = action({
     console.log("[visualization/generate] API key found (length:", apiKey.length, ")");
     const startTime = Date.now();
 
-    // Build enhanced prompt with zoning context
+    // Determine view type based on source
+    const viewType = args.sourceType === 'street_view' ? 'street' :
+                     args.sourceType === 'map' ? 'aerial' : 'unknown';
+
+    // Build enhanced prompt with zoning context, mask description, and view type
     const enhancedPrompt = buildEnhancedPrompt(
       args.prompt,
       args.zoningContext,
-      args.address
+      args.address,
+      args.maskDescription || (args.maskImageBase64 ? "the masked/highlighted region" : undefined),
+      viewType
     );
 
     console.log("[visualization/generate] Enhanced prompt:", enhancedPrompt);
