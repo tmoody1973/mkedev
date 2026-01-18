@@ -136,10 +136,10 @@ export const generate = action({
     console.log("[visualization/generate] Prompt:", args.prompt);
     console.log("[visualization/generate] Has mask:", !!args.maskImageBase64);
 
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("[visualization/generate] GOOGLE_GEMINI_API_KEY not configured!");
-      throw new Error("GOOGLE_GEMINI_API_KEY not configured - please add it to your Convex environment variables");
+      console.error("[visualization/generate] GEMINI_API_KEY not configured!");
+      throw new Error("GEMINI_API_KEY not configured - please add it to your Convex environment variables");
     }
 
     console.log("[visualization/generate] API key found (length:", apiKey.length, ")");
