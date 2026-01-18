@@ -274,18 +274,6 @@ function mapPropertyType(
   return undefined;
 }
 
-/**
- * Parse incentives string to array (e.g., "TIF, Opportunity Zone" -> ["TIF", "Opportunity Zone"])
- * Note: Prefixed with underscore as currently unused but kept for future use
- */
-function _parseIncentives(incentivesStr: string | undefined): string[] | undefined {
-  if (!incentivesStr) return undefined;
-  const incentives = incentivesStr
-    .split(/[,;]/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  return incentives.length > 0 ? incentives : undefined;
-}
 
 /**
  * Fetch tasks from Browse.ai robot
