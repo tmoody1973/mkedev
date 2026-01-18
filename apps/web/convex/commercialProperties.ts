@@ -213,3 +213,41 @@ export const triggerSync = action({
     );
   },
 });
+
+/**
+ * Debug: Check what Browse.ai robots return
+ */
+export const debugBrowseAi = action({
+  args: {},
+  handler: async (): Promise<{
+    commercialRobot: unknown;
+    developmentRobot: unknown;
+  }> => {
+    const apiKey = process.env.BROWSEAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("BROWSEAI_API_KEY not set");
+    }
+
+    const COMMERCIAL_ROBOT_ID = "019bd1dc-df2e-7747-8e54-142a383e8822";
+    const DEVELOPMENT_SITES_ROBOT_ID = "019bd1ff-bd45-7594-a466-ed701e505915";
+
+    const fetchRobot = async (robotId: string) => {
+      const url = `https://api.browse.ai/v2/robots/${robotId}/tasks?page=1`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+      return await response.json();
+    };
+
+    const [commercialRobot, developmentRobot] = await Promise.all([
+      fetchRobot(COMMERCIAL_ROBOT_ID),
+      fetchRobot(DEVELOPMENT_SITES_ROBOT_ID),
+    ]);
+
+    return { commercialRobot, developmentRobot };
+  },
+});

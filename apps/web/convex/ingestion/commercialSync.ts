@@ -43,37 +43,40 @@ interface BrowseAiTask {
   status: string;
   createdAt: string;
   finishedAt?: string;
-  capturedLists?: {
-    Properties?: BrowseAiProperty[];
-    Sites?: BrowseAiSite[];
-  };
+  // Browse.ai uses dynamic list names based on robot configuration
+  capturedLists?: Record<string, unknown[]>;
 }
 
 interface BrowseAiProperty {
-  Address?: string;
-  "Building Type"?: string;
+  // Actual field names from Browse.ai robot
+  "Property Address"?: string;
+  "Property Type"?: string;
   "Square Footage"?: string;
-  "Lot Size"?: string;
-  Zoning?: string;
-  Price?: string;
-  "Price Per Sq Ft"?: string;
-  Contact?: string;
-  Description?: string;
-  Link?: string;
+  "Asking Price"?: string;
+  "Neighborhood Description"?: string;
+  "Listing Sheet Link"?: string;
+  "Property Image"?: string;
+  "Image Alt Text"?: string;
+  "Additional Photos Link"?: string;
+  "Assessor Page Link"?: string;
+  "Historic Land Use Investigation Link"?: string;
+  "Proposal Summary Link"?: string;
+  "Proposal Due Date"?: string;
+  Position?: string;
 }
 
 interface BrowseAiSite {
+  // Actual field names from Browse.ai development sites robot
   Address?: string;
-  "Site Name"?: string;
-  "Lot Size"?: string;
-  Zoning?: string;
-  Price?: string;
-  "Current Use"?: string;
-  "Proposed Use"?: string;
-  Incentives?: string;
-  Contact?: string;
-  Description?: string;
-  Link?: string;
+  "Asking Price"?: string;
+  "Development Type"?: string;
+  Neighborhood?: string;
+  "Square Footage"?: string;
+  "RFP Link"?: string;
+  "Property Photo"?: string;
+  "Assessor Page Link"?: string;
+  "Historical Land Use Link"?: string;
+  Position?: string;
 }
 
 interface BrowseAiTasksResponse {
@@ -329,15 +332,21 @@ export const syncCommercialProperties = internalAction({
       console.log(`Fetched ${tasks.length} completed tasks from Browse.ai`);
 
       // Extract all properties from tasks
+      // Browse.ai uses "Commercial Property Listings" as the list name
       const allProperties: BrowseAiProperty[] = [];
       const taskIdMap = new Map<string, string>(); // address -> taskId
 
       for (const task of tasks) {
-        const properties = task.capturedLists?.Properties || [];
+        // Try multiple possible list names
+        const capturedLists = task.capturedLists as Record<string, BrowseAiProperty[]> | undefined;
+        const properties = capturedLists?.["Commercial Property Listings"] ||
+                          capturedLists?.Properties ||
+                          [];
         for (const prop of properties) {
-          if (prop.Address) {
+          const address = prop["Property Address"];
+          if (address) {
             allProperties.push(prop);
-            taskIdMap.set(prop.Address, task.id);
+            taskIdMap.set(address, task.id);
           }
         }
       }
@@ -354,7 +363,7 @@ export const syncCommercialProperties = internalAction({
         const batch = allProperties.slice(i, i + GEOCODE_BATCH_SIZE);
 
         const geocodePromises = batch.map(async (prop) => {
-          const address = prop.Address!;
+          const address = prop["Property Address"]!;
           const coordinates = await geocodeAddress(address, mapboxToken);
 
           if (!coordinates) {
@@ -369,15 +378,15 @@ export const syncCommercialProperties = internalAction({
             browseAiTaskId: taskId,
             address,
             coordinates,
-            propertyType: mapPropertyType(prop["Building Type"]),
+            propertyType: mapPropertyType(prop["Property Type"]),
             buildingSqFt: parseSqFt(prop["Square Footage"]),
-            lotSizeSqFt: parseSqFt(prop["Lot Size"]),
-            zoning: prop.Zoning || undefined,
-            askingPrice: parsePrice(prop.Price),
-            pricePerSqFt: parsePrice(prop["Price Per Sq Ft"]),
-            contactInfo: prop.Contact || undefined,
-            listingUrl: prop.Link || undefined,
-            description: prop.Description || undefined,
+            lotSizeSqFt: undefined, // Not in the scrape
+            zoning: undefined, // Not in the scrape
+            askingPrice: parsePrice(prop["Asking Price"]),
+            pricePerSqFt: undefined, // Not in the scrape
+            contactInfo: undefined, // Not in the scrape
+            listingUrl: prop["Listing Sheet Link"] || undefined,
+            description: prop["Neighborhood Description"] || undefined,
             status: "available" as const,
             lastSyncedAt: syncTimestamp,
             createdAt: syncTimestamp,
@@ -462,14 +471,19 @@ export const syncDevelopmentSites = internalAction({
       console.log(`Fetched ${tasks.length} completed tasks from Browse.ai`);
 
       // Extract all sites from tasks
+      // Browse.ai uses "Development Sites" as the list name
       const allSites: BrowseAiSite[] = [];
       const taskIdMap = new Map<string, string>();
 
       for (const task of tasks) {
-        const sites = task.capturedLists?.Sites || task.capturedLists?.Properties || [];
+        // Try multiple possible list names
+        const capturedLists = task.capturedLists as Record<string, BrowseAiSite[]> | undefined;
+        const sites = capturedLists?.["Development Sites"] ||
+                     capturedLists?.Sites ||
+                     [];
         for (const site of sites) {
           if (site.Address) {
-            allSites.push(site as BrowseAiSite);
+            allSites.push(site);
             taskIdMap.set(site.Address, task.id);
           }
         }
@@ -498,20 +512,24 @@ export const syncDevelopmentSites = internalAction({
           geocodedCount++;
           const taskId = taskIdMap.get(address) || `unknown-${Date.now()}`;
 
+          // Extract neighborhood name from the Neighborhood field (e.g., "541 North 20th Street\nAvenues West Neighborhood\n...")
+          const neighborhoodParts = site.Neighborhood?.split('\n') || [];
+          const siteName = neighborhoodParts.length > 1 ? neighborhoodParts[1] : undefined;
+
           return {
             browseAiTaskId: taskId,
             address,
             coordinates,
-            siteName: site["Site Name"] || undefined,
-            lotSizeSqFt: parseSqFt(site["Lot Size"]),
-            zoning: site.Zoning || undefined,
-            currentUse: site["Current Use"] || undefined,
-            proposedUse: site["Proposed Use"] || undefined,
-            askingPrice: parsePrice(site.Price),
-            incentives: parseIncentives(site.Incentives),
-            contactInfo: site.Contact || undefined,
-            listingUrl: site.Link || undefined,
-            description: site.Description || undefined,
+            siteName: siteName || undefined,
+            lotSizeSqFt: parseSqFt(site["Square Footage"]),
+            zoning: undefined, // Not in the scrape
+            currentUse: undefined, // Not in the scrape
+            proposedUse: site["Development Type"] || undefined,
+            askingPrice: parsePrice(site["Asking Price"]),
+            incentives: undefined, // Not in the scrape
+            contactInfo: undefined, // Not in the scrape
+            listingUrl: site["RFP Link"] || undefined,
+            description: site.Neighborhood || undefined,
             status: "available" as const,
             lastSyncedAt: syncTimestamp,
             createdAt: syncTimestamp,
