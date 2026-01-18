@@ -475,6 +475,13 @@ export default defineSchema({
     listingUrl: v.optional(v.string()),
     description: v.optional(v.string()),
 
+    // PDF links from Browse.ai scrape
+    additionalPhotosUrl: v.optional(v.string()),
+    assessorPageUrl: v.optional(v.string()),
+    historicLandUseUrl: v.optional(v.string()),
+    proposalSummaryUrl: v.optional(v.string()),
+    propertyImageUrl: v.optional(v.string()),
+
     // Status
     status: v.union(
       v.literal("available"),
@@ -521,6 +528,12 @@ export default defineSchema({
     contactInfo: v.optional(v.string()),
     listingUrl: v.optional(v.string()),
     description: v.optional(v.string()),
+
+    // PDF links from Browse.ai scrape
+    rfpUrl: v.optional(v.string()),
+    assessorPageUrl: v.optional(v.string()),
+    historicLandUseUrl: v.optional(v.string()),
+    propertyImageUrl: v.optional(v.string()),
 
     // Status
     status: v.union(

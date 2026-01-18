@@ -730,3 +730,68 @@ export const syncStoresFromGemini = action({
     }
   },
 });
+
+/**
+ * Clear all stale File Search Store records from Convex.
+ * Use this before re-running the setup script when stores have been deleted from Gemini.
+ */
+export const clearStaleStores = action({
+  args: {},
+  handler: async (ctx): Promise<{
+    success: boolean;
+    deleted: number;
+    message: string;
+  }> => {
+    try {
+      // Get all Convex store records
+      const convexStores: Array<{ _id: string; name: string; displayName: string }> = await ctx.runQuery(
+        api.ingestion.fileSearchStores.listStores,
+        {}
+      );
+
+      // Get all Gemini stores
+      const geminiResult = await ctx.runAction(
+        api.ingestion.fileSearchStores.listGeminiStores,
+        {}
+      ) as { success: boolean; stores?: Array<{ name: string }> };
+
+      if (!geminiResult.success) {
+        return {
+          success: false,
+          deleted: 0,
+          message: "Failed to list Gemini stores",
+        };
+      }
+
+      const geminiStoreNames = new Set(
+        geminiResult.stores?.map(s => s.name) ?? []
+      );
+
+      // Delete Convex records that don't exist in Gemini
+      let deleted = 0;
+      for (const store of convexStores) {
+        if (!geminiStoreNames.has(store.name)) {
+          console.log(`Deleting stale store record: ${store.displayName}`);
+          await ctx.runMutation(
+            api.ingestion.fileSearchStores.deleteStoreRecord,
+            { storeId: store._id as Id<"fileSearchStores"> }
+          );
+          deleted++;
+        }
+      }
+
+      return {
+        success: true,
+        deleted,
+        message: `Deleted ${deleted} stale store records from Convex`,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return {
+        success: false,
+        deleted: 0,
+        message: `Failed to clear stale stores: ${message}`,
+      };
+    }
+  },
+});

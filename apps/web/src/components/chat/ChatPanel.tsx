@@ -32,6 +32,10 @@ export interface GenerativeCard {
     | 'opportunity-list'
     | 'home-listing'
     | 'homes-list'
+    | 'commercial-properties-list'
+    | 'commercial-property'
+    | 'development-sites-list'
+    | 'development-site'
   data: unknown
 }
 

@@ -45,7 +45,7 @@ export interface GroundedResponse {
  */
 export interface RAGError {
   /** Error code */
-  code: "NO_DOCUMENTS" | "API_ERROR" | "INVALID_QUERY" | "TIMEOUT";
+  code: "NO_DOCUMENTS" | "API_ERROR" | "INVALID_QUERY" | "TIMEOUT" | "STORES_NOT_FOUND";
   /** Error message */
   message: string;
   /** Additional details */

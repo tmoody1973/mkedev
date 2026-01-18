@@ -252,6 +252,154 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
         }
         break;
       }
+
+      // ========================================================================
+      // Commercial Properties Tools - Convert to generative UI cards
+      // ========================================================================
+
+      case 'search_commercial_properties': {
+        const r = result as {
+          success?: boolean;
+          count?: number;
+          properties?: Array<{
+            propertyId: string;
+            address: string;
+            propertyType?: string;
+            buildingSqFt?: number;
+            askingPrice?: number;
+            coordinates?: [number, number];
+          }>;
+        };
+        if (r.success && r.properties && r.properties.length > 0) {
+          cards.push({
+            type: 'commercial-properties-list',
+            data: {
+              properties: r.properties.map((p) => ({
+                id: p.propertyId,
+                address: p.address,
+                propertyType: p.propertyType || 'Commercial',
+                buildingSqFt: p.buildingSqFt,
+                askingPrice: p.askingPrice,
+                coordinates: p.coordinates || [-87.9065, 43.0389],
+              })),
+            },
+          });
+        }
+        break;
+      }
+
+      case 'get_commercial_property_details': {
+        const r = result as {
+          success?: boolean;
+          property?: {
+            propertyId: string;
+            address: string;
+            propertyType?: string;
+            buildingSqFt?: number;
+            lotSizeSqFt?: number;
+            askingPrice?: number;
+            zoning?: string;
+            description?: string;
+            listingUrl?: string;
+            propertyImageUrl?: string;
+            coordinates?: [number, number];
+          };
+        };
+        if (r.success && r.property) {
+          cards.push({
+            type: 'commercial-property',
+            data: {
+              address: r.property.address,
+              propertyType: r.property.propertyType,
+              buildingSqFt: r.property.buildingSqFt,
+              lotSizeSqFt: r.property.lotSizeSqFt,
+              askingPrice: r.property.askingPrice,
+              zoning: r.property.zoning,
+              description: r.property.description,
+              listingUrl: r.property.listingUrl,
+              propertyImageUrl: r.property.propertyImageUrl,
+              coordinates: r.property.coordinates,
+            },
+          });
+        }
+        break;
+      }
+
+      // ========================================================================
+      // Development Sites Tools - Convert to generative UI cards
+      // ========================================================================
+
+      case 'search_development_sites': {
+        const r = result as {
+          success?: boolean;
+          count?: number;
+          sites?: Array<{
+            siteId: string;
+            address: string;
+            siteName?: string;
+            lotSizeSqFt?: number;
+            askingPrice?: number;
+            incentives?: string[];
+            coordinates?: [number, number];
+          }>;
+        };
+        if (r.success && r.sites && r.sites.length > 0) {
+          cards.push({
+            type: 'development-sites-list',
+            data: {
+              sites: r.sites.map((s) => ({
+                id: s.siteId,
+                address: s.address,
+                siteName: s.siteName,
+                lotSizeSqFt: s.lotSizeSqFt,
+                askingPrice: s.askingPrice,
+                incentives: s.incentives || [],
+                coordinates: s.coordinates || [-87.9065, 43.0389],
+              })),
+            },
+          });
+        }
+        break;
+      }
+
+      case 'get_development_site_details': {
+        const r = result as {
+          success?: boolean;
+          site?: {
+            siteId: string;
+            address: string;
+            siteName?: string;
+            lotSizeSqFt?: number;
+            askingPrice?: number;
+            zoning?: string;
+            incentives?: string[];
+            proposedUse?: string;
+            description?: string;
+            listingUrl?: string;
+            propertyImageUrl?: string;
+            coordinates?: [number, number];
+          };
+        };
+        if (r.success && r.site) {
+          cards.push({
+            type: 'development-site',
+            data: {
+              address: r.site.address,
+              siteName: r.site.siteName,
+              lotSizeSqFt: r.site.lotSizeSqFt,
+              askingPrice: r.site.askingPrice,
+              zoning: r.site.zoning,
+              incentives: r.site.incentives || [],
+              proposedUse: r.site.proposedUse,
+              description: r.site.description,
+              listingUrl: r.site.listingUrl,
+              propertyImageUrl: r.site.propertyImageUrl,
+              coordinates: r.site.coordinates,
+            },
+          });
+        }
+        break;
+      }
     }
   }
 

@@ -19,8 +19,10 @@ import type { GroundedResponse, RAGResult, Citation } from "./types";
 // Configuration
 // =============================================================================
 
+// Note: File Search only works with gemini-3 models
+// gemini-2.5-flash returns 403 permission denied for File Search Stores
 const PRIMARY_MODEL = "gemini-3-flash-preview";
-const FALLBACK_MODEL = "gemini-2.5-flash";
+const FALLBACK_MODEL = "gemini-3-flash-preview"; // Same model, no fallback for File Search
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_OUTPUT_TOKENS = 2048;
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
@@ -34,23 +36,37 @@ async function callGeminiWithFallback(
   primaryModel: string,
   fallbackModel: string
 ): Promise<{ response: Record<string, unknown>; modelUsed: string }> {
-  const models = [primaryModel, fallbackModel];
-  const maxRetries = 2;
+  const models = [primaryModel]; // Only primary model - fallback doesn't help for File Search
+  const maxRetries = 1; // No retries - timeouts mean real issues, not transient failures
+  const TIMEOUT_MS = 90000; // 90 second timeout for File Search queries
 
   for (const model of models) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        console.log(`[RAG] Calling ${model}, attempt ${attempt}...`);
+        const startTime = Date.now();
+
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
         const response = await fetch(
           `${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
+            signal: controller.signal,
           }
         );
 
+        clearTimeout(timeoutId);
+        const elapsed = Date.now() - startTime;
+        console.log(`[RAG] Response received in ${elapsed}ms, status: ${response.status}`);
+
         if (!response.ok) {
-          console.error(`Gemini API error (${model}, attempt ${attempt}):`, response.status);
+          const errorBody = await response.text();
+          console.error(`Gemini API error (${model}, attempt ${attempt}):`, response.status, errorBody.substring(0, 500));
           if (response.status >= 500 || response.status === 429) {
             if (attempt < maxRetries) {
               await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
@@ -64,6 +80,7 @@ async function callGeminiWithFallback(
         const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (responseText) {
+          console.log(`[RAG] Got valid response (${responseText.length} chars)`);
           return { response: result, modelUsed: model };
         }
 
@@ -73,7 +90,11 @@ async function callGeminiWithFallback(
           continue;
         }
       } catch (error) {
-        console.error(`Network error (${model}, attempt ${attempt}):`, error);
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error(`[RAG] Request timeout after ${TIMEOUT_MS}ms (${model}, attempt ${attempt})`);
+        } else {
+          console.error(`Network error (${model}, attempt ${attempt}):`, error);
+        }
         if (attempt < maxRetries) {
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           continue;
@@ -475,10 +496,34 @@ export const queryWithFileSearch = action({
 
       if (storeNames.length === 0) {
         // Fall back to legacy RAG if no File Search Stores available
+        console.log("[RAG] No File Search Stores found, falling back to legacy RAG");
         return await ctx.runAction(api.ingestion.rag.queryDocuments, {
           question: args.question,
           category: args.category,
         });
+      }
+
+      // Verify stores actually exist in Gemini before querying
+      // This prevents long timeouts when stores are deleted
+      const geminiStoresResult = await ctx.runAction(
+        api.ingestion.fileSearchStores.listGeminiStores,
+        {}
+      ) as { success: boolean; stores?: Array<{ name: string }> };
+
+      if (geminiStoresResult.success && geminiStoresResult.stores) {
+        const geminiStoreNames = new Set(geminiStoresResult.stores.map(s => s.name));
+        const missingStores = storeNames.filter(name => !geminiStoreNames.has(name));
+
+        if (missingStores.length > 0) {
+          console.error("[RAG] File Search Stores missing from Gemini:", missingStores);
+          return {
+            success: false,
+            error: {
+              code: "STORES_NOT_FOUND",
+              message: `File Search Stores no longer exist in Gemini. They may have expired or been deleted. Please re-run the setup script to recreate them.`,
+            },
+          };
+        }
       }
 
       // Build system prompt based on category
@@ -499,11 +544,11 @@ export const queryWithFileSearch = action({
         },
       };
 
-      // Add metadata filter if provided (disabled for now as we use separate stores per category)
+      // Add metadata filter if provided
       if (args.metadataFilter) {
         fileSearchTool.fileSearch.metadataFilter = args.metadataFilter;
       }
-      // Note: We don't auto-filter by category since we're using category-specific stores
+      // Note: We use category-specific stores, so metadata filtering is optional
 
       // Build request body for Gemini
       const requestBody = {

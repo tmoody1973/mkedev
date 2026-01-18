@@ -9,7 +9,19 @@ import { useZoningAgent } from '@/hooks/useZoningAgent'
 import { useConversations } from '@/hooks/useConversations'
 import { useReportGenerator } from '@/hooks/useReportGenerator'
 import { useMap } from '@/contexts/MapContext'
-import { ZoneInfoCard, ParcelCard, HomeCard, HomesListCard, type HomeListItem } from '@/components/copilot'
+import {
+  ZoneInfoCard,
+  ParcelCard,
+  HomeCard,
+  HomesListCard,
+  CommercialPropertyCard,
+  CommercialPropertiesListCard,
+  DevelopmentSiteCard,
+  DevelopmentSitesListCard,
+  type HomeListItem,
+  type CommercialPropertyListItem,
+  type DevelopmentSiteListItem,
+} from '@/components/copilot'
 import { LandingPage } from '@/components/landing'
 import dynamic from 'next/dynamic'
 
@@ -561,6 +573,66 @@ export default function HomeContent() {
   }, [flyTo])
 
   /**
+   * Handle commercial property selection from list.
+   * Flies to the property and asks agent for details.
+   */
+  const handleCommercialPropertySelect = useCallback((property: CommercialPropertyListItem) => {
+    console.log('[handleCommercialPropertySelect] Property selected:', property.address, property.coordinates)
+
+    // Fly to the selected property
+    if (property.coordinates && Array.isArray(property.coordinates)) {
+      console.log('[handleCommercialPropertySelect] Flying to:', property.coordinates)
+      flyTo(property.coordinates, 17, {
+        pitch: 45,
+        duration: 2000,
+      })
+    }
+
+    // Ask agent for detailed property info
+    sendMessage(`Tell me more about the commercial property at ${property.address}`)
+  }, [flyTo, sendMessage])
+
+  /**
+   * Handle fly to location from CommercialPropertyCard.
+   */
+  const handleCommercialFlyTo = useCallback((coordinates: [number, number]) => {
+    flyTo(coordinates, 17, {
+      pitch: 45,
+      duration: 2000,
+    })
+  }, [flyTo])
+
+  /**
+   * Handle development site selection from list.
+   * Flies to the site and asks agent for details.
+   */
+  const handleDevelopmentSiteSelect = useCallback((site: DevelopmentSiteListItem) => {
+    console.log('[handleDevelopmentSiteSelect] Site selected:', site.address, site.coordinates)
+
+    // Fly to the selected site
+    if (site.coordinates && Array.isArray(site.coordinates)) {
+      console.log('[handleDevelopmentSiteSelect] Flying to:', site.coordinates)
+      flyTo(site.coordinates, 17, {
+        pitch: 45,
+        duration: 2000,
+      })
+    }
+
+    // Ask agent for detailed site info
+    sendMessage(`Tell me more about the development site at ${site.address}`)
+  }, [flyTo, sendMessage])
+
+  /**
+   * Handle fly to location from DevelopmentSiteCard.
+   */
+  const handleDevelopmentSiteFlyTo = useCallback((coordinates: [number, number]) => {
+    flyTo(coordinates, 17, {
+      pitch: 45,
+      duration: 2000,
+    })
+  }, [flyTo])
+
+  /**
    * Render generative UI cards based on tool results.
    */
   const renderCard = useCallback((card: GenerativeCard): ReactNode => {
@@ -815,10 +887,121 @@ export default function HomeContent() {
         );
       }
 
+      // ========================================================================
+      // Commercial Properties Cards
+      // ========================================================================
+
+      case 'commercial-properties-list': {
+        const data = card.data as {
+          properties: Array<{
+            id: string;
+            address: string;
+            propertyType?: string;
+            buildingSqFt?: number;
+            askingPrice?: number;
+            coordinates: [number, number];
+          }>;
+        };
+        return (
+          <CommercialPropertiesListCard
+            properties={data.properties}
+            onPropertySelect={handleCommercialPropertySelect}
+            status="complete"
+          />
+        );
+      }
+
+      case 'commercial-property': {
+        const data = card.data as {
+          address: string;
+          propertyType?: string;
+          buildingSqFt?: number;
+          lotSizeSqFt?: number;
+          askingPrice?: number;
+          zoning?: string;
+          description?: string;
+          listingUrl?: string;
+          propertyImageUrl?: string;
+          coordinates?: [number, number];
+        };
+        return (
+          <CommercialPropertyCard
+            address={data.address}
+            propertyType={data.propertyType}
+            buildingSqFt={data.buildingSqFt}
+            lotSizeSqFt={data.lotSizeSqFt}
+            askingPrice={data.askingPrice}
+            zoning={data.zoning}
+            description={data.description}
+            listingUrl={data.listingUrl}
+            coordinates={data.coordinates}
+            status="complete"
+            onFlyTo={handleCommercialFlyTo}
+          />
+        );
+      }
+
+      // ========================================================================
+      // Development Sites Cards
+      // ========================================================================
+
+      case 'development-sites-list': {
+        const data = card.data as {
+          sites: Array<{
+            id: string;
+            address: string;
+            siteName?: string;
+            lotSizeSqFt?: number;
+            askingPrice?: number;
+            incentives?: string[];
+            coordinates: [number, number];
+          }>;
+        };
+        return (
+          <DevelopmentSitesListCard
+            sites={data.sites}
+            onSiteSelect={handleDevelopmentSiteSelect}
+            status="complete"
+          />
+        );
+      }
+
+      case 'development-site': {
+        const data = card.data as {
+          address: string;
+          siteName?: string;
+          lotSizeSqFt?: number;
+          askingPrice?: number;
+          zoning?: string;
+          incentives?: string[];
+          proposedUse?: string;
+          description?: string;
+          listingUrl?: string;
+          propertyImageUrl?: string;
+          coordinates?: [number, number];
+        };
+        return (
+          <DevelopmentSiteCard
+            address={data.address}
+            siteName={data.siteName}
+            lotSizeSqFt={data.lotSizeSqFt}
+            askingPrice={data.askingPrice}
+            zoning={data.zoning}
+            incentives={data.incentives}
+            proposedUse={data.proposedUse}
+            description={data.description}
+            listingUrl={data.listingUrl}
+            coordinates={data.coordinates}
+            status="complete"
+            onFlyTo={handleDevelopmentSiteFlyTo}
+          />
+        );
+      }
+
       default:
         return null;
     }
-  }, [openPdfViewer, handleHomeFlyTo, handleHomeSelect])
+  }, [openPdfViewer, handleHomeFlyTo, handleHomeSelect, handleCommercialPropertySelect, handleCommercialFlyTo, handleDevelopmentSiteSelect, handleDevelopmentSiteFlyTo])
 
   // Show loading skeleton while auth state is being determined
   // This prevents hydration mismatch between server and client

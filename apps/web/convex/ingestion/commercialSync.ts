@@ -387,6 +387,12 @@ export const syncCommercialProperties = internalAction({
             contactInfo: undefined, // Not in the scrape
             listingUrl: prop["Listing Sheet Link"] || undefined,
             description: prop["Neighborhood Description"] || undefined,
+            // PDF links
+            additionalPhotosUrl: prop["Additional Photos Link"] || undefined,
+            assessorPageUrl: prop["Assessor Page Link"] || undefined,
+            historicLandUseUrl: prop["Historic Land Use Investigation Link"] || undefined,
+            proposalSummaryUrl: prop["Proposal Summary Link"] || undefined,
+            propertyImageUrl: prop["Property Image"] || undefined,
             status: "available" as const,
             lastSyncedAt: syncTimestamp,
             createdAt: syncTimestamp,
@@ -530,6 +536,11 @@ export const syncDevelopmentSites = internalAction({
             contactInfo: undefined, // Not in the scrape
             listingUrl: site["RFP Link"] || undefined,
             description: site.Neighborhood || undefined,
+            // PDF links
+            rfpUrl: site["RFP Link"] || undefined,
+            assessorPageUrl: site["Assessor Page Link"] || undefined,
+            historicLandUseUrl: site["Historical Land Use Link"] || undefined,
+            propertyImageUrl: site["Property Photo"] || undefined,
             status: "available" as const,
             lastSyncedAt: syncTimestamp,
             createdAt: syncTimestamp,

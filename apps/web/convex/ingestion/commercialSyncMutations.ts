@@ -37,6 +37,12 @@ export const upsertCommercialProperties = internalMutation({
         contactInfo: v.optional(v.string()),
         listingUrl: v.optional(v.string()),
         description: v.optional(v.string()),
+        // PDF links
+        additionalPhotosUrl: v.optional(v.string()),
+        assessorPageUrl: v.optional(v.string()),
+        historicLandUseUrl: v.optional(v.string()),
+        proposalSummaryUrl: v.optional(v.string()),
+        propertyImageUrl: v.optional(v.string()),
         status: v.union(
           v.literal("available"),
           v.literal("sold"),
@@ -74,6 +80,12 @@ export const upsertCommercialProperties = internalMutation({
           contactInfo: property.contactInfo,
           listingUrl: property.listingUrl,
           description: property.description,
+          // PDF links
+          additionalPhotosUrl: property.additionalPhotosUrl,
+          assessorPageUrl: property.assessorPageUrl,
+          historicLandUseUrl: property.historicLandUseUrl,
+          proposalSummaryUrl: property.proposalSummaryUrl,
+          propertyImageUrl: property.propertyImageUrl,
           status: property.status,
           lastSyncedAt: property.lastSyncedAt,
           updatedAt: property.updatedAt,
@@ -111,6 +123,11 @@ export const upsertDevelopmentSites = internalMutation({
         contactInfo: v.optional(v.string()),
         listingUrl: v.optional(v.string()),
         description: v.optional(v.string()),
+        // PDF links
+        rfpUrl: v.optional(v.string()),
+        assessorPageUrl: v.optional(v.string()),
+        historicLandUseUrl: v.optional(v.string()),
+        propertyImageUrl: v.optional(v.string()),
         status: v.union(
           v.literal("available"),
           v.literal("sold"),
@@ -149,6 +166,11 @@ export const upsertDevelopmentSites = internalMutation({
           contactInfo: site.contactInfo,
           listingUrl: site.listingUrl,
           description: site.description,
+          // PDF links
+          rfpUrl: site.rfpUrl,
+          assessorPageUrl: site.assessorPageUrl,
+          historicLandUseUrl: site.historicLandUseUrl,
+          propertyImageUrl: site.propertyImageUrl,
           status: site.status,
           lastSyncedAt: site.lastSyncedAt,
           updatedAt: site.updatedAt,

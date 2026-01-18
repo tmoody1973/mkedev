@@ -14,6 +14,11 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import * as dotenv from "dotenv";
+
+// Load environment variables from .env.local and .env
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 // Configuration
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
