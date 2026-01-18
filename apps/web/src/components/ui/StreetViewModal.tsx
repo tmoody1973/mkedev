@@ -11,8 +11,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { X, Camera, Download, Loader2, Maximize2 } from "lucide-react";
+import { X, Camera, Download, Loader2, Maximize2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useVisualizerStore } from "@/stores";
 
 interface StreetViewModalProps {
   isOpen: boolean;
@@ -71,9 +72,11 @@ export function StreetViewModal({
   const [error, setError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
+  const [isSavingToGallery, setIsSavingToGallery] = useState(false);
   const streetViewRef = useRef<HTMLDivElement>(null);
   const panoramaRef = useRef<StreetViewPanoramaInstance | null>(null);
 
+  const { addScreenshot, openVisualizer } = useVisualizerStore();
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // Parse coordinates
@@ -240,6 +243,45 @@ export function StreetViewModal({
     }
   }, [capturedImageUrl, address]);
 
+  // Save to visualizer gallery and open visualizer
+  const useForVisualization = useCallback(async () => {
+    if (!capturedImageUrl) return;
+
+    setIsSavingToGallery(true);
+
+    try {
+      // Fetch the image and convert to base64
+      const response = await fetch(capturedImageUrl);
+      const blob = await response.blob();
+
+      // Convert blob to base64 data URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Data = reader.result as string;
+
+        // Add to visualizer gallery
+        addScreenshot(base64Data, { address });
+
+        // Close the preview and modal
+        setCapturedImageUrl(null);
+        onClose();
+
+        // Open the visualizer
+        openVisualizer();
+
+        setIsSavingToGallery(false);
+      };
+      reader.onerror = () => {
+        console.error("Failed to convert image to base64");
+        setIsSavingToGallery(false);
+      };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      console.error("Failed to save to gallery:", err);
+      setIsSavingToGallery(false);
+    }
+  }, [capturedImageUrl, address, addScreenshot, onClose, openVisualizer]);
+
   // Reset state when closed
   useEffect(() => {
     if (!isOpen) {
@@ -373,6 +415,18 @@ export function StreetViewModal({
                 Screenshot Preview
               </h3>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={useForVisualization}
+                  disabled={isSavingToGallery}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-sm font-medium rounded border-2 border-black dark:border-white shadow-[2px_2px_0_0_black] dark:shadow-[2px_2px_0_0_white]"
+                >
+                  {isSavingToGallery ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  Visualize
+                </button>
                 <button
                   onClick={downloadImage}
                   className="flex items-center gap-2 px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium rounded border-2 border-black dark:border-white"
