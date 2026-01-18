@@ -143,6 +143,26 @@ export const TOOL_DECLARATIONS = [
       required: ["question"],
     },
   },
+  {
+    name: "query_incentives",
+    description:
+      "Query Milwaukee housing incentive and assistance programs. Use this for questions about down payment assistance, home repair loans, homebuyer programs, STRONG Homes, ARCH, and other financial assistance for homeowners and buyers in Milwaukee.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: "The specific question about housing incentives or assistance programs",
+        },
+        programType: {
+          type: "string",
+          enum: ["down-payment", "home-repair", "homebuyer", "all"],
+          description: "Type of program to focus on (optional, defaults to searching all programs)",
+        },
+      },
+      required: ["question"],
+    },
+  },
   // ---------------------------------------------------------------------------
   // Homes MKE Tools
   // ---------------------------------------------------------------------------

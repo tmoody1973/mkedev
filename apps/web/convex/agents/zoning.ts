@@ -40,8 +40,9 @@ You have access to these tools:
 3. **calculate_parking** - Calculate required parking spaces
 4. **query_zoning_code** - Search the Milwaukee zoning code for detailed regulations
 5. **query_area_plans** - Search neighborhood area plans for development goals, housing strategies, and community vision
-6. **search_homes_for_sale** - Search for available homes in Milwaukee with optional filters (neighborhood, bedrooms, bathrooms)
-7. **get_home_details** - Get detailed information about a specific home including description, listing URL, and location
+6. **query_incentives** - Search Milwaukee housing assistance programs (STRONG Homes, Homebuyer Assistance, ARCH, Down Payment Assistance)
+7. **search_homes_for_sale** - Search for available homes in Milwaukee with optional filters (neighborhood, bedrooms, bathrooms)
+8. **get_home_details** - Get detailed information about a specific home including description, listing URL, and location
 
 ## Home Search Capabilities
 
@@ -92,6 +93,29 @@ Area plans are available for these neighborhoods:
 - **Southeast Side, Southwest Side** - Industrial and residential mix
 - **Washington Park** - Historic district, housing strategies
 - **Fondy/North** - Commercial corridor revitalization
+
+## Housing Incentives & Assistance
+
+When users ask about financial assistance, loans, or incentive programs for homeownership:
+- Use **query_incentives** to search available programs
+
+**Available Programs:**
+- **STRONG Homes Loan** - Up to $25,000 for home repairs, 0-3% interest, partially forgivable
+- **Homebuyer Assistance Program** - Up to $35,000 for down payment and closing costs
+- **ARCH Program** - Affordable Rehabilitation for Homeowners
+- **Milwaukee Home Down Payment Assistance** - First-time homebuyer support
+
+**When to Use query_incentives:**
+- "What financial help is available for home repairs?"
+- "How do I qualify for down payment assistance?"
+- "What programs help first-time homebuyers in Milwaukee?"
+- "Tell me about the STRONG Homes loan"
+- Any questions about housing grants, loans, or financial assistance
+
+**Combining with Home Search:**
+When a user is looking at homes AND asks about financial assistance, use both tools:
+1. search_homes_for_sale to find properties
+2. query_incentives to explain available assistance programs
 
 ## Interaction Guidelines
 
@@ -564,6 +588,42 @@ export const chat = action({
                   toolSuccess = true;
                 } else {
                   toolResult = { success: false, error: areaPlanResult.error?.message || "Area plans query failed" };
+                  toolSuccess = false;
+                }
+                break;
+              }
+
+              case "query_incentives": {
+                // Query housing incentive and assistance programs
+                const incentiveArgs = fnArgs as { question: string; programType?: string };
+                const enhancedQuestion = incentiveArgs.programType && incentiveArgs.programType !== "all"
+                  ? `Regarding ${incentiveArgs.programType} programs: ${incentiveArgs.question}`
+                  : incentiveArgs.question;
+
+                const incentiveResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+                  question: enhancedQuestion,
+                  category: "incentives",
+                }) as RAGResult;
+
+                if (incentiveResult.success && incentiveResult.response) {
+                  // Format citations for Gemini to use
+                  const citations = incentiveResult.response.citations || [];
+                  const citationGuide = citations.length > 0
+                    ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
+                        `[${i + 1}] ${c.sourceName}`
+                      ).join('\n')}`
+                    : '';
+
+                  toolResult = {
+                    success: true,
+                    answer: incentiveResult.response.answer + citationGuide,
+                    confidence: incentiveResult.response.confidence,
+                    citations,
+                    citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
+                  };
+                  toolSuccess = true;
+                } else {
+                  toolResult = { success: false, error: incentiveResult.error?.message || "Incentives query failed" };
                   toolSuccess = false;
                 }
                 break;
