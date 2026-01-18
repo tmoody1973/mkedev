@@ -26,7 +26,8 @@ const documentCategory = v.union(
   v.literal("area-plans"),
   v.literal("policies"),
   v.literal("ordinances"),
-  v.literal("guides")
+  v.literal("guides"),
+  v.literal("incentives")
 );
 
 // =============================================================================

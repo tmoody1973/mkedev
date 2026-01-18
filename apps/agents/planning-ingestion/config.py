@@ -111,43 +111,45 @@ PLANNING_SOURCES: list[PlanningSource] = [
 
     # -------------------------------------------------------------------------
     # PDF Documents - Monthly Sync (static content)
+    # NOTE: These PDF URLs are currently returning 404 - city may have moved files
+    # TODO: Find updated PDF URLs from Milwaukee city website
     # -------------------------------------------------------------------------
-    PlanningSource(
-        id="house-design-standards",
-        url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/pdfs/Neighborhood-House-Design-Stds-Rev-July-3-2024.pdf",
-        title="Neighborhood House Design Standards",
-        content_type=ContentType.PDF,
-        sync_frequency=SyncFrequency.MONTHLY,
-        category="home-building",
-        description="Design standards for new home construction in Milwaukee neighborhoods",
-    ),
-    PlanningSource(
-        id="green-milwaukee-house",
-        url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/Develop/PDF/GreenYourMilwHouse.pdf",
-        title="Green Your Milwaukee House",
-        content_type=ContentType.PDF,
-        sync_frequency=SyncFrequency.MONTHLY,
-        category="home-building",
-        description="Guide to sustainable home improvements and green building practices",
-    ),
-    PlanningSource(
-        id="vacant-lot-offer",
-        url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/realestate/PDF/Buildable-Vacant-Lot-Offer---KB-Title.pdf",
-        title="Buildable Vacant Lot Offer Form",
-        content_type=ContentType.PDF,
-        sync_frequency=SyncFrequency.MONTHLY,
-        category="vacant-lots",
-        description="Application form for purchasing buildable vacant lots",
-    ),
-    PlanningSource(
-        id="vacant-lot-handbook",
-        url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/realestate/PDF/VacantLotHandbook.pdf",
-        title="Vacant Lot Handbook",
-        content_type=ContentType.PDF,
-        sync_frequency=SyncFrequency.MONTHLY,
-        category="vacant-lots",
-        description="Comprehensive guide to vacant lot programs and requirements",
-    ),
+    # PlanningSource(
+    #     id="house-design-standards",
+    #     url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/pdfs/Neighborhood-House-Design-Stds-Rev-July-3-2024.pdf",
+    #     title="Neighborhood House Design Standards",
+    #     content_type=ContentType.PDF,
+    #     sync_frequency=SyncFrequency.MONTHLY,
+    #     category="home-building",
+    #     description="Design standards for new home construction in Milwaukee neighborhoods",
+    # ),
+    # PlanningSource(
+    #     id="green-milwaukee-house",
+    #     url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/Develop/PDF/GreenYourMilwHouse.pdf",
+    #     title="Green Your Milwaukee House",
+    #     content_type=ContentType.PDF,
+    #     sync_frequency=SyncFrequency.MONTHLY,
+    #     category="home-building",
+    #     description="Guide to sustainable home improvements and green building practices",
+    # ),
+    # PlanningSource(
+    #     id="vacant-lot-offer",
+    #     url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/realestate/PDF/Buildable-Vacant-Lot-Offer---KB-Title.pdf",
+    #     title="Buildable Vacant Lot Offer Form",
+    #     content_type=ContentType.PDF,
+    #     sync_frequency=SyncFrequency.MONTHLY,
+    #     category="vacant-lots",
+    #     description="Application form for purchasing buildable vacant lots",
+    # ),
+    # PlanningSource(
+    #     id="vacant-lot-handbook",
+    #     url="https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/realestate/PDF/VacantLotHandbook.pdf",
+    #     title="Vacant Lot Handbook",
+    #     content_type=ContentType.PDF,
+    #     sync_frequency=SyncFrequency.MONTHLY,
+    #     category="vacant-lots",
+    #     description="Comprehensive guide to vacant lot programs and requirements",
+    # ),
 ]
 
 
@@ -177,9 +179,9 @@ def get_source_by_id(source_id: str) -> Optional[PlanningSource]:
 class EnvConfig:
     """Environment variables for the agent."""
     gemini_api_key: str
-    firecrawl_api_key: str
     convex_url: str
     convex_deploy_key: str
+    firecrawl_api_key: Optional[str] = None  # Optional - only needed if using Firecrawl
     opik_api_key: Optional[str] = None
     opik_workspace: Optional[str] = None
     opik_project_name: str = "mkedev-planning-ingestion"
@@ -191,10 +193,6 @@ def load_env_config() -> EnvConfig:
     if not gemini_key:
         raise ValueError("GEMINI_API_KEY or GOOGLE_GEMINI_API_KEY is required")
 
-    firecrawl_key = os.getenv("FIRECRAWL_API_KEY")
-    if not firecrawl_key:
-        raise ValueError("FIRECRAWL_API_KEY is required")
-
     convex_url = os.getenv("CONVEX_URL") or os.getenv("NEXT_PUBLIC_CONVEX_URL")
     if not convex_url:
         raise ValueError("CONVEX_URL or NEXT_PUBLIC_CONVEX_URL is required")
@@ -205,9 +203,9 @@ def load_env_config() -> EnvConfig:
 
     return EnvConfig(
         gemini_api_key=gemini_key,
-        firecrawl_api_key=firecrawl_key,
         convex_url=convex_url,
         convex_deploy_key=convex_key,
+        firecrawl_api_key=os.getenv("FIRECRAWL_API_KEY"),  # Optional
         opik_api_key=os.getenv("OPIK_API_KEY"),
         opik_workspace=os.getenv("OPIK_WORKSPACE"),
         opik_project_name=os.getenv("OPIK_PROJECT_NAME", "mkedev-planning-ingestion"),

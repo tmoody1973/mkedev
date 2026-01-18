@@ -27,6 +27,7 @@ type StoreCategory =
   | "policies"
   | "ordinances"
   | "guides"
+  | "incentives"
   | "all";
 
 // =============================================================================
@@ -57,6 +58,7 @@ export const listStores = query({
         v.literal("policies"),
         v.literal("ordinances"),
         v.literal("guides"),
+        v.literal("incentives"),
         v.literal("all")
       )
     ),
@@ -83,6 +85,7 @@ export const getStoreByCategory = query({
       v.literal("policies"),
       v.literal("ordinances"),
       v.literal("guides"),
+      v.literal("incentives"),
       v.literal("all")
     ),
   },
@@ -126,6 +129,7 @@ export const createStoreRecord = mutation({
       v.literal("policies"),
       v.literal("ordinances"),
       v.literal("guides"),
+      v.literal("incentives"),
       v.literal("all")
     ),
   },
@@ -187,7 +191,8 @@ export const createDocumentRecord = mutation({
       v.literal("area-plans"),
       v.literal("policies"),
       v.literal("ordinances"),
-      v.literal("guides")
+      v.literal("guides"),
+      v.literal("incentives")
     ),
     mimeType: v.string(),
   },
@@ -283,6 +288,7 @@ export const createStore = action({
       v.literal("policies"),
       v.literal("ordinances"),
       v.literal("guides"),
+      v.literal("incentives"),
       v.literal("all")
     ),
   },
@@ -414,7 +420,8 @@ export const uploadToStore = action({
       v.literal("area-plans"),
       v.literal("policies"),
       v.literal("ordinances"),
-      v.literal("guides")
+      v.literal("guides"),
+      v.literal("incentives")
     ),
     base64Content: v.string(),
     mimeType: v.optional(v.string()),

@@ -251,7 +251,8 @@ export const queryDocuments = action({
         v.literal("area-plans"),
         v.literal("policies"),
         v.literal("ordinances"),
-        v.literal("guides")
+        v.literal("guides"),
+        v.literal("incentives")
       )
     ),
     sourceIds: v.optional(v.array(v.string())),

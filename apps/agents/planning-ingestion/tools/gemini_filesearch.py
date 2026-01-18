@@ -4,6 +4,7 @@ Gemini File Search Tool
 Upload documents to Gemini File Search Stores for RAG.
 """
 
+import io
 from dataclasses import dataclass
 from typing import Optional
 from google import genai
@@ -86,40 +87,41 @@ class GeminiFileSearchTool:
             store_name: Gemini store name (e.g., "fileSearchStores/xxx")
             content: Markdown content to upload
             display_name: Display name for the document
-            metadata: Optional metadata key-value pairs
+            metadata: Optional metadata key-value pairs (currently not used)
 
         Returns:
             UploadResult with file URI
         """
         try:
-            # Create a temporary file-like object
+            # Create a file-like object from content
             content_bytes = content.encode("utf-8")
+            file_obj = io.BytesIO(content_bytes)
 
-            # Build metadata if provided
-            custom_metadata = None
-            if metadata:
-                custom_metadata = [
-                    types.CustomMetadata(key=k, string_value=str(v))
-                    for k, v in metadata.items()
-                ]
-
-            # Upload to store
-            operation = self.client.file_search_stores.upload_to_file_search_store(
-                file=content_bytes,
+            # Upload to store (note: custom_metadata not supported in current SDK)
+            result = self.client.file_search_stores.upload_to_file_search_store(
+                file=file_obj,
                 file_search_store_name=store_name,
                 config=types.UploadFileConfig(
                     display_name=display_name,
                     mime_type="text/markdown",
-                    custom_metadata=custom_metadata,
                 ),
             )
 
-            # Wait for operation to complete
-            result = operation.result()
+            # Check if operation completed with error
+            if hasattr(result, 'error') and result.error:
+                return UploadResult(
+                    success=False,
+                    error=str(result.error),
+                )
+
+            # Get the file URI from the result
+            file_uri = None
+            if hasattr(result, 'name'):
+                file_uri = result.name
 
             return UploadResult(
                 success=True,
-                file_uri=result.name if hasattr(result, 'name') else None,
+                file_uri=file_uri,
                 document_name=display_name,
             )
 
@@ -143,37 +145,40 @@ class GeminiFileSearchTool:
             store_name: Gemini store name
             pdf_content: PDF file content as bytes
             display_name: Display name for the document
-            metadata: Optional metadata key-value pairs
+            metadata: Optional metadata key-value pairs (currently not used)
 
         Returns:
             UploadResult with file URI
         """
         try:
-            # Build metadata if provided
-            custom_metadata = None
-            if metadata:
-                custom_metadata = [
-                    types.CustomMetadata(key=k, string_value=str(v))
-                    for k, v in metadata.items()
-                ]
+            # Create a file-like object from PDF bytes
+            file_obj = io.BytesIO(pdf_content)
 
-            # Upload to store
-            operation = self.client.file_search_stores.upload_to_file_search_store(
-                file=pdf_content,
+            # Upload to store (note: custom_metadata not supported in current SDK)
+            result = self.client.file_search_stores.upload_to_file_search_store(
+                file=file_obj,
                 file_search_store_name=store_name,
                 config=types.UploadFileConfig(
                     display_name=display_name,
                     mime_type="application/pdf",
-                    custom_metadata=custom_metadata,
                 ),
             )
 
-            # Wait for operation to complete
-            result = operation.result()
+            # Check if operation completed with error
+            if hasattr(result, 'error') and result.error:
+                return UploadResult(
+                    success=False,
+                    error=str(result.error),
+                )
+
+            # Get the file URI from the result
+            file_uri = None
+            if hasattr(result, 'name'):
+                file_uri = result.name
 
             return UploadResult(
                 success=True,
-                file_uri=result.name if hasattr(result, 'name') else None,
+                file_uri=file_uri,
                 document_name=display_name,
             )
 

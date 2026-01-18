@@ -32,7 +32,8 @@ class ConvexHTTPClient:
     """
     HTTP client for Convex planning document operations.
 
-    Uses the HTTP actions defined in convex/http/planningIngestion.ts
+    Uses Convex's standard API endpoints (/api/mutation, /api/query)
+    instead of custom HTTP routes for more reliable communication.
     """
 
     def __init__(self, convex_url: str, deploy_key: str):
@@ -41,14 +42,13 @@ class ConvexHTTPClient:
 
         Args:
             convex_url: Convex deployment URL (e.g., https://xxx.convex.cloud)
-            deploy_key: Convex deploy key for authentication
+            deploy_key: Convex deploy key for authentication (not used with standard API)
         """
         self.base_url = convex_url.rstrip("/")
         self.deploy_key = deploy_key
         self.client = httpx.AsyncClient(
             timeout=30.0,
             headers={
-                "Authorization": f"Bearer {deploy_key}",
                 "Content-Type": "application/json",
             },
         )
@@ -141,7 +141,7 @@ class ConvexHTTPClient:
         Returns:
             Response with success status and document ID
         """
-        payload = {
+        args: dict[str, Any] = {
             "sourceId": source_id,
             "sourceUrl": source_url,
             "title": title,
@@ -153,16 +153,20 @@ class ConvexHTTPClient:
         }
 
         if markdown_content is not None:
-            payload["markdownContent"] = markdown_content
+            args["markdownContent"] = markdown_content
         if pdf_storage_id is not None:
-            payload["pdfStorageId"] = pdf_storage_id
+            args["pdfStorageId"] = pdf_storage_id
 
         response = await self._retry_request(
             "POST",
-            self._url("/api/planning/documents/upsert"),
-            json=payload,
+            self._url("/api/mutation"),
+            json={
+                "path": "ingestion/planningDocuments:upsert",
+                "args": args,
+            },
         )
-        return response.json()
+        result = response.json()
+        return {"success": result.get("status") == "success", "docId": result.get("value")}
 
     async def update_status(
         self,
@@ -185,24 +189,27 @@ class ConvexHTTPClient:
         Returns:
             Response with success status
         """
-        payload = {
+        args: dict[str, Any] = {
             "sourceId": source_id,
             "status": status,
         }
 
         if error_message is not None:
-            payload["errorMessage"] = error_message
+            args["errorMessage"] = error_message
         if gemini_file_uri is not None:
-            payload["geminiFileUri"] = gemini_file_uri
-        if file_search_store_id is not None:
-            payload["fileSearchStoreId"] = file_search_store_id
+            args["geminiFileUri"] = gemini_file_uri
+        # Note: file_search_store_id requires a Convex ID format, skip if not valid
 
         response = await self._retry_request(
             "POST",
-            self._url("/api/planning/documents/status"),
-            json=payload,
+            self._url("/api/mutation"),
+            json={
+                "path": "ingestion/planningDocuments:updateStatus",
+                "args": args,
+            },
         )
-        return response.json()
+        result = response.json()
+        return {"success": result.get("status") == "success", "docId": result.get("value")}
 
     async def get_document(self, source_id: str) -> Optional[dict[str, Any]]:
         """
@@ -216,11 +223,17 @@ class ConvexHTTPClient:
         """
         try:
             response = await self._retry_request(
-                "GET",
-                self._url("/api/planning/documents"),
-                params={"sourceId": source_id},
+                "POST",
+                self._url("/api/query"),
+                json={
+                    "path": "ingestion/planningDocuments:getBySourceId",
+                    "args": {"sourceId": source_id},
+                },
             )
-            return response.json()
+            result = response.json()
+            if result.get("status") == "success":
+                return result.get("value")
+            return None
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return None
@@ -242,11 +255,17 @@ class ConvexHTTPClient:
             Dict with exists, changed, and currentHash fields
         """
         response = await self._retry_request(
-            "GET",
-            self._url("/api/planning/documents/check-hash"),
-            params={"sourceId": source_id, "contentHash": content_hash},
+            "POST",
+            self._url("/api/query"),
+            json={
+                "path": "ingestion/planningDocuments:checkContentHash",
+                "args": {"sourceId": source_id, "contentHash": content_hash},
+            },
         )
-        return response.json()
+        result = response.json()
+        if result.get("status") == "success":
+            return result.get("value", {"exists": False, "changed": True})
+        return {"exists": False, "changed": True}
 
     async def list_by_frequency(
         self,
@@ -262,11 +281,17 @@ class ConvexHTTPClient:
             List of documents
         """
         response = await self._retry_request(
-            "GET",
-            self._url("/api/planning/documents/by-frequency"),
-            params={"syncFrequency": sync_frequency},
+            "POST",
+            self._url("/api/query"),
+            json={
+                "path": "ingestion/planningDocuments:listBySyncFrequency",
+                "args": {"syncFrequency": sync_frequency},
+            },
         )
-        return response.json()
+        result = response.json()
+        if result.get("status") == "success":
+            return result.get("value", [])
+        return []
 
 
 def compute_content_hash(content: str | bytes) -> str:

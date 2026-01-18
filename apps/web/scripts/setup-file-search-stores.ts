@@ -24,6 +24,7 @@ const CATEGORIES = [
   "policies",
   "ordinances",
   "guides",
+  "incentives",
 ] as const;
 
 type Category = (typeof CATEGORIES)[number];
@@ -179,6 +180,48 @@ const DOCUMENT_SOURCES: Record<
   ],
   ordinances: [],
   guides: [],
+  incentives: [
+    {
+      id: "strong-homes-loan",
+      title: "$25,000 STRONG Homes Loan Program",
+      path: "data/incentives/$25,000 STRONG Homes Loan Program.html",
+    },
+    {
+      id: "strong-homes-brochure",
+      title: "STRONG Homes Loan Brochure",
+      path: "data/incentives/STRONGHomesLoan_Brochure1.pdf",
+    },
+    {
+      id: "homebuyer-assistance",
+      title: "$35,000 Homebuyer Assistance Program",
+      path: "data/incentives/$35,000 Homebuyer Assistance Program.html",
+    },
+    {
+      id: "homebuyer-assistance-brochure",
+      title: "Homebuyer Assistance Program Brochure",
+      path: "data/incentives/HBA_Brochure.pdf",
+    },
+    {
+      id: "arch-program",
+      title: "ARCH Program",
+      path: "data/incentives/ARCH Program.html",
+    },
+    {
+      id: "arch-application",
+      title: "ARCH Loan Application Form",
+      path: "data/incentives/ARCHLoanApplicationFormUpdated.pdf",
+    },
+    {
+      id: "downpayment-assistance",
+      title: "Milwaukee Home Down Payment Assistance Program",
+      path: "data/incentives/Milwaukee Home Down Payment Assistance Program.html",
+    },
+    {
+      id: "downpayment-assistance-guidelines",
+      title: "Milwaukee Home Down Payment Assistance Guidelines",
+      path: "data/incentives/MILWAUKEEHOMEDOWNPAYMENTASSISTANCEPROGRAMguidelines.pdf",
+    },
+  ],
 };
 
 // =============================================================================
@@ -276,6 +319,26 @@ async function listStores(apiKey: string): Promise<FileSearchStore[]> {
 }
 
 /**
+ * Get MIME type from file extension.
+ */
+function getMimeType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case ".pdf":
+      return "application/pdf";
+    case ".html":
+    case ".htm":
+      return "text/html";
+    case ".txt":
+      return "text/plain";
+    case ".md":
+      return "text/markdown";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+/**
  * Upload a file directly to a File Search Store using the uploadToFileSearchStore endpoint.
  */
 async function uploadDocumentToStore(
@@ -298,8 +361,10 @@ async function uploadDocumentToStore(
     // Read file content
     const content = fs.readFileSync(fullPath);
     const stats = fs.statSync(fullPath);
+    const mimeType = getMimeType(fullPath);
 
     log(`  File size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+    log(`  MIME type: ${mimeType}`);
 
     // Build custom metadata array
     const customMetadata = Object.entries(metadata).map(([key, value]) => ({
@@ -317,12 +382,12 @@ async function uploadDocumentToStore(
           "X-Goog-Upload-Protocol": "resumable",
           "X-Goog-Upload-Command": "start",
           "X-Goog-Upload-Header-Content-Length": stats.size.toString(),
-          "X-Goog-Upload-Header-Content-Type": "application/pdf",
+          "X-Goog-Upload-Header-Content-Type": mimeType,
         },
         body: JSON.stringify({
           displayName: displayName,
           customMetadata: customMetadata,
-          mimeType: "application/pdf",
+          mimeType: mimeType,
         }),
       }
     );
@@ -395,7 +460,7 @@ async function uploadDocumentToStore(
     return {
       name: uploadResult.response?.name ?? displayName,
       displayName: displayName,
-      mimeType: "application/pdf",
+      mimeType: mimeType,
       sizeBytes: stats.size.toString(),
       state: "ACTIVE",
     };

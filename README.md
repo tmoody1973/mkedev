@@ -15,13 +15,18 @@
 
 MKE.dev democratizes access to Milwaukee's civic development information by transforming complex zoning codes, financial incentives, and regulatory data into a single, intuitive, voice-first conversational experience.
 
+![MKE.dev App Screenshot](apps/web/public/screenshots/homes-search-map.png)
+
 ### Key Features
 
 - **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG
-- **Interactive 3D Map** - Mapbox GL JS with 2D/3D toggle and 7 Milwaukee ESRI data layers
+- **Interactive Map** - Mapbox GL JS with 7 Milwaukee ESRI data layers and PMTiles
 - **File Search RAG** - 12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores
 - **Real-Time Geocoding** - Address to zoning lookup via Mapbox + Milwaukee ESRI integration
 - **Generative UI Cards** - Rich property cards with Street View, zoning details, and area plans
+- **Interactive Street View** - Google Maps integration with 360° navigation and screenshot capture
+- **Homes For Sale** - Browse city-owned properties synced from Milwaukee ESRI FeatureServer
+- **PDF Report Generation** - Export research as professional PDF reports via Hybiscus API
 - **Conversation History** - Persistent chat sessions with search, star, and sidebar navigation
 - **High-Performance Tiles** - PMTiles (313,000+ features) for instant map rendering
 - **Voice-First Interface** - Real-time voice conversations via Gemini Live API (in progress)
@@ -32,7 +37,24 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 - **Developers** scouting opportunities and analyzing incentives
 - **Architects** verifying dimensional standards
 - **City Planners** reducing repetitive inquiries
+- **Homebuyers** understanding what they can build before purchasing
 - **Visually Impaired Residents** seeking independent access to property information
+
+---
+
+## Screenshots
+
+### AI Chat Interface
+![AI Chat Interface](apps/web/public/screenshots/chat-zoning-response.png)
+*Ask questions in natural language. Get detailed answers with specific code references.*
+
+### Property Cards with Street View
+![Property Card with Street View](apps/web/public/screenshots/parcel-card-streetview.png)
+*Rich property intelligence with Google Street View, tabbed information, and quick actions.*
+
+### Home Listings
+![Home Listing with Map Layers](apps/web/public/screenshots/home-listing-layers.png)
+*Browse city-owned homes with photos, property details, and interactive map layers.*
 
 ---
 
@@ -42,7 +64,7 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 |-------|------------|
 | Frontend | Next.js 15 (App Router, React 19) |
 | UI Components | RetroUI (neobrutalist design) |
-| Styling | Tailwind CSS 3.4 |
+| Styling | Tailwind CSS 4 |
 | Backend | Convex (real-time database) |
 | Auth | Clerk (Google OAuth + email) |
 | Maps | Mapbox GL JS + Milwaukee ESRI ArcGIS |
@@ -51,6 +73,8 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 | Voice | Gemini Live API |
 | Agents | Google ADK |
 | Generative UI | CopilotKit |
+| PDF Generation | Hybiscus API |
+| Observability | Comet/Opik |
 
 ---
 
@@ -63,6 +87,7 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 - [Mapbox account](https://account.mapbox.com/) (free tier works)
 - [Clerk account](https://clerk.com/) (free tier works)
 - [Convex account](https://convex.dev/) (free tier works)
+- [Google Cloud account](https://console.cloud.google.com/) (for Gemini and Maps APIs)
 
 ### Installation
 
@@ -72,10 +97,11 @@ git clone https://github.com/tmoody1973/mkedev.git
 cd mkedev
 
 # Install dependencies
+cd apps/web
 pnpm install
 
 # Copy environment template
-cp .env.local.example apps/web/.env.local
+cp .env.example .env.local
 ```
 
 ### Configure Environment
@@ -83,16 +109,37 @@ cp .env.local.example apps/web/.env.local
 Edit `apps/web/.env.local` with your API keys:
 
 ```bash
-# Required
+# Required - Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx
 CLERK_SECRET_KEY=sk_test_xxx
+CLERK_WEBHOOK_SECRET=whsec_xxx
+
+# Required - Map
 NEXT_PUBLIC_MAPBOX_TOKEN=pk.xxx
 
-# Optional (for full features)
+# Required - AI
+GEMINI_API_KEY=xxx
+
+# Required - Database
 CONVEX_DEPLOYMENT=dev:xxx
 NEXT_PUBLIC_CONVEX_URL=https://xxx.convex.cloud
-GEMINI_API_KEY=xxx
+
+# Optional - Street View (enable Maps JavaScript API in Google Cloud)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=xxx
+
+# Optional - Performance (falls back to ESRI REST API)
+NEXT_PUBLIC_PMTILES_URL=https://xxx.r2.dev/milwaukee.pmtiles
+
+# Optional - Observability
+OPIK_API_KEY=xxx
+OPIK_PROJECT_NAME=mkedev-civic-ai
 ```
+
+### Google Cloud Setup
+
+For Street View functionality, enable these APIs in [Google Cloud Console](https://console.cloud.google.com/apis/library):
+- Maps JavaScript API
+- Street View Static API
 
 ### Development
 
@@ -100,8 +147,8 @@ GEMINI_API_KEY=xxx
 # Start Next.js dev server
 pnpm dev
 
-# In a separate terminal, start Convex (if using)
-cd apps/web && npx convex dev
+# In a separate terminal, start Convex
+pnpm convex dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000)
@@ -118,14 +165,17 @@ mkedev/
 │   │   │   ├── app/            # App Router pages
 │   │   │   ├── components/     # React components
 │   │   │   │   ├── chat/       # Chat panel components
+│   │   │   │   ├── copilot/    # Generative UI cards (ParcelCard, HomeCard, etc.)
+│   │   │   │   ├── landing/    # Landing page with feature showcase
 │   │   │   │   ├── map/        # Map and layer components
 │   │   │   │   ├── shell/      # App shell and header
-│   │   │   │   └── ui/         # RetroUI components
-│   │   │   ├── contexts/       # React contexts (MapContext with 3D support)
-│   │   │   └── hooks/          # Custom hooks (useZoningAgent)
+│   │   │   │   └── ui/         # RetroUI components (StreetViewModal, etc.)
+│   │   │   ├── contexts/       # React contexts (MapContext)
+│   │   │   └── hooks/          # Custom hooks (useZoningAgent, useReportGenerator)
 │   │   ├── convex/             # Convex schema & functions
 │   │   │   ├── agents/         # Zoning Interpreter Agent
-│   │   │   └── ingestion/      # RAG & File Search Stores
+│   │   │   ├── ingestion/      # RAG & homes sync
+│   │   │   └── http/           # HTTP endpoints (webhooks)
 │   │   └── scripts/            # Setup scripts
 │   └── agents/                 # Google ADK agents (standalone)
 ├── packages/
@@ -152,7 +202,7 @@ MKE.dev integrates 7 Milwaukee GIS data layers:
 | Opportunity Zones | ESRI Layer 9 | Federal opportunity zone boundaries |
 | Historic Districts | ESRI Layer 17 | Historic preservation areas |
 | ARB Areas | ESRI Layer 1 | Architectural Review Board districts |
-| City-Owned | ESRI MapServer | Municipal properties |
+| Homes For Sale | ESRI FeatureServer | City-owned properties available for purchase |
 
 Layers are served via PMTiles for optimal performance (313,000+ features).
 
@@ -170,6 +220,8 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 | `query_zoning_at_point` | Get zoning district + overlays from Milwaukee ESRI |
 | `calculate_parking` | Calculate required parking spaces by use type |
 | `query_zoning_code` | RAG search against 12 zoning code PDFs |
+| `query_area_plans` | Search area plan context for a location |
+| `search_homes_for_sale` | Find city-owned properties for sale |
 
 ### Example Queries
 
@@ -182,6 +234,9 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 
 "What are the setback requirements for RS6 residential?"
 → Front: Average, Side: 3-6 ft, Rear: 20 ft (with code citations)
+
+"Show me homes for sale in Harambee"
+→ [List of available properties with photos and details]
 ```
 
 ### RAG Document Corpus
@@ -192,22 +247,61 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 
 ---
 
+## Generative UI Components
+
+MKE.dev uses CopilotKit for rich, interactive UI cards rendered directly in the chat:
+
+| Component | Description |
+|-----------|-------------|
+| `ParcelCard` | Property analysis with Street View, zoning, area plans, development standards |
+| `HomeCard` | Home listing with photo gallery, property details, map integration |
+| `HomesListCard` | Grid of available homes for sale |
+| `ZoneInfoCard` | Zoning district details and permitted uses |
+| `StreetViewModal` | Interactive 360° Street View with screenshot capture |
+| `PDFViewerModal` | View generated PDF reports in-app |
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key | Yes |
 | `CLERK_SECRET_KEY` | Clerk secret key | Yes |
+| `CLERK_WEBHOOK_SECRET` | Clerk webhook secret | Yes |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox access token | Yes |
-| `CONVEX_DEPLOYMENT` | Convex deployment ID | No* |
-| `NEXT_PUBLIC_CONVEX_URL` | Convex cloud URL | No* |
+| `GEMINI_API_KEY` | Google Gemini API key | Yes |
+| `CONVEX_DEPLOYMENT` | Convex deployment ID | Yes |
+| `NEXT_PUBLIC_CONVEX_URL` | Convex cloud URL | Yes |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API key | No* |
 | `NEXT_PUBLIC_PMTILES_URL` | PMTiles R2 URL | No** |
-| `GEMINI_API_KEY` | Google Gemini API key | No*** |
-| `FIRECRAWL_API_KEY` | Firecrawl API key | No*** |
+| `OPIK_API_KEY` | Comet/Opik API key | No*** |
 
-\* Required for database features
+\* Required for Street View features
 \** Falls back to ESRI REST API if not set
-\*** Required for AI features (Week 2)
+\*** Required for LLM observability
+
+---
+
+## Scripts
+
+```bash
+# Development
+pnpm dev                  # Start Next.js dev server
+pnpm convex dev           # Start Convex dev server
+pnpm lint                 # Run ESLint
+pnpm typecheck            # Run TypeScript type checking
+pnpm test                 # Run tests
+
+# RAG Setup (in apps/web directory)
+pnpm upload-file-search   # Upload PDFs to Gemini File Search
+pnpm upload-file-search:status  # Check upload status
+
+# Tile Building (requires tippecanoe)
+pnpm --filter tile-builder export    # Export ESRI → GeoJSON
+pnpm --filter tile-builder build     # Build PMTiles
+pnpm --filter tile-builder upload    # Upload to R2
+```
 
 ---
 
@@ -222,51 +316,30 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 - [x] Chat panel UI
 - [x] PMTiles pipeline
 
-### Week 2: Voice & AI (In Progress)
-- [x] **Zoning Interpreter Agent** - Gemini function calling with 4 tools
+### Week 2: Voice & AI (Complete)
+- [x] **Zoning Interpreter Agent** - Gemini function calling with tools
 - [x] **File Search RAG** - 12 zoning PDFs in persistent stores
-- [x] **ESRI Integration** - Fixed geocoding + zoning lookup
-- [x] **3D Map Visualization** - Zoning extrusions with category colors
+- [x] **ESRI Integration** - Geocoding + zoning lookup
 - [x] **Conversation History** - Persistent chat with sidebar, search, and star/delete
-- [x] **Generative UI Cards** - ParcelCard, ZoneInfoCard with Street View integration
+- [x] **Generative UI Cards** - ParcelCard, HomeCard with Street View integration
+- [x] **Homes For Sale** - ESRI FeatureServer sync with images
+- [x] **PDF Report Generation** - Export research via Hybiscus API
+- [x] **Interactive Street View** - Modal with 360° navigation and screenshot capture
+- [x] **Landing Page** - Feature showcase with app screenshots
 - [ ] Gemini Live API integration
 - [ ] Voice activity detection
-- [ ] CopilotKit agent coordination
 
 ### Week 3: Advanced Agents
 - [ ] Area Plan Advisor agent
 - [ ] Incentives Navigator agent
 - [ ] Nano Banana architectural preview
 - [ ] Feasibility Analyst meta-agent
+- [ ] CopilotKit agent coordination
 
 ### Week 4: Polish & Submit
 - [ ] Accessibility testing
 - [ ] Demo video
 - [ ] Submission materials
-
----
-
-## Scripts
-
-```bash
-# Development
-pnpm dev                  # Start Next.js dev server
-pnpm lint                 # Run ESLint
-pnpm format               # Run Prettier
-
-# Convex (in apps/web directory)
-npx convex dev            # Start Convex dev server
-npx convex run agents/zoning:chat '{"message": "..."}'  # Test agent
-
-# RAG Setup (one-time)
-npx tsx scripts/setup-file-search-stores.ts  # Upload PDFs to Gemini
-npx convex run ingestion/fileSearchStores:syncStoresFromGemini  # Register stores
-
-# Tile Building (requires tippecanoe)
-pnpm --filter tile-builder export    # Export ESRI → GeoJSON
-pnpm --filter tile-builder build     # Build PMTiles
-pnpm --filter tile-builder upload    # Upload to R2
-```
 
 ---
 
@@ -286,11 +359,19 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
+## Disclaimer
+
+This site is not affiliated with, endorsed by, or connected to the City of Milwaukee. Information provided is for educational purposes only and should not be considered official city guidance.
+
+---
+
 ## Acknowledgments
 
 - **City of Milwaukee** - Open GIS data via [Milwaukee Maps](https://city.milwaukee.gov/DownloadMapData)
 - **RetroUI** - Neobrutalist component library
 - **Mapbox** - Map rendering and interaction
+- **Google** - Gemini AI and Maps APIs
+- **CopilotKit** - Generative UI framework
 - **Anthropic** - Claude AI assistance in development
 
 ---

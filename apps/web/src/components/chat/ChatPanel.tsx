@@ -199,7 +199,7 @@ export function ChatPanel({
         aria-live="polite"
       >
         {messages.length === 0 ? (
-          <EmptyState />
+          <EmptyState onPromptClick={onSendMessage} />
         ) : (
           <>
             {messages.map((message) => (
@@ -312,10 +312,36 @@ export function ChatPanel({
 }
 
 /**
- * Empty state displayed when there are no messages.
- * Features a centered microphone icon with prompt text.
+ * Suggested prompts for users to get started.
  */
-function EmptyState() {
+const SUGGESTED_PROMPTS = [
+  {
+    icon: MapPin,
+    label: 'Zoning',
+    prompt: 'What are the zoning requirements for opening a restaurant in the Third Ward?',
+  },
+  {
+    icon: Home,
+    label: 'Housing',
+    prompt: 'What are the requirements for building a home on a city-owned lot?',
+  },
+  {
+    icon: Calculator,
+    label: 'Incentives',
+    prompt: 'What TIF districts and financial incentives are available in Milwaukee?',
+  },
+  {
+    icon: BookOpen,
+    label: 'Area Plans',
+    prompt: 'What development opportunities are in the Menomonee Valley?',
+  },
+]
+
+/**
+ * Empty state displayed when there are no messages.
+ * Features a centered microphone icon with prompt text and suggested questions.
+ */
+function EmptyState({ onPromptClick }: { onPromptClick?: (prompt: string) => void }) {
   return (
     <div
       className="flex flex-col items-center justify-center h-full text-center px-4"
@@ -344,10 +370,42 @@ function EmptyState() {
       <h2 className="font-heading text-2xl font-bold text-stone-900 dark:text-stone-50 mb-3">
         Hey MKE, what can I build?
       </h2>
-      <p className="text-stone-600 dark:text-stone-400 font-sans max-w-sm leading-relaxed">
+      <p className="text-stone-600 dark:text-stone-400 font-sans max-w-sm leading-relaxed mb-6">
         Ask about zoning rules, financial incentives, permits, or any property in
         Milwaukee. Try voice or type your question below.
       </p>
+
+      {/* Suggested prompts */}
+      <div className="w-full max-w-md space-y-2">
+        <p className="text-xs text-stone-500 dark:text-stone-500 uppercase tracking-wide font-medium mb-3">
+          Try asking about
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {SUGGESTED_PROMPTS.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => onPromptClick?.(item.prompt)}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 text-left text-sm',
+                'bg-white dark:bg-stone-800',
+                'border-2 border-black dark:border-white',
+                'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]',
+                'hover:translate-x-[-1px] hover:translate-y-[-1px]',
+                'hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[3px_3px_0px_0px_rgba(255,255,255,0.2)]',
+                'active:translate-x-[1px] active:translate-y-[1px]',
+                'active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]',
+                'transition-all duration-100',
+                'rounded-none'
+              )}
+            >
+              <item.icon className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0" />
+              <span className="text-stone-700 dark:text-stone-300 font-medium truncate">
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

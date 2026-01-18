@@ -421,7 +421,8 @@ export const queryWithFileSearch = action({
         v.literal("area-plans"),
         v.literal("policies"),
         v.literal("ordinances"),
-        v.literal("guides")
+        v.literal("guides"),
+        v.literal("incentives")
       )
     ),
     metadataFilter: v.optional(v.string()),
@@ -676,7 +677,8 @@ export const queryDocuments = action({
         v.literal("area-plans"),
         v.literal("policies"),
         v.literal("ordinances"),
-        v.literal("guides")
+        v.literal("guides"),
+        v.literal("incentives")
       )
     ),
     maxDocuments: v.optional(v.number()),

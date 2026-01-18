@@ -188,7 +188,8 @@ export default defineSchema({
       v.literal("area-plans"),
       v.literal("policies"),
       v.literal("ordinances"),
-      v.literal("guides")
+      v.literal("guides"),
+      v.literal("incentives")
     ),
     description: v.optional(v.string()),
 
@@ -240,6 +241,7 @@ export default defineSchema({
       v.literal("policies"),
       v.literal("ordinances"),
       v.literal("guides"),
+      v.literal("incentives"),
       v.literal("all") // Combined store for cross-category queries
     ),
 
@@ -282,7 +284,8 @@ export default defineSchema({
       v.literal("area-plans"),
       v.literal("policies"),
       v.literal("ordinances"),
-      v.literal("guides")
+      v.literal("guides"),
+      v.literal("incentives")
     ),
 
     // Status

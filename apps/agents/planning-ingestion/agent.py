@@ -19,7 +19,7 @@ from config import (
     FILE_SEARCH_STORE_DISPLAY_NAME,
 )
 from convex_client import ConvexHTTPClient, compute_content_hash
-from tools.firecrawl_tool import FirecrawlTool
+from tools.playwright_scraper import PlaywrightScraper
 from tools.gemini_filesearch import GeminiFileSearchTool
 
 
@@ -61,18 +61,16 @@ class PlanningIngestionAgent:
     def __init__(
         self,
         gemini_api_key: str,
-        firecrawl_api_key: str,
         convex_url: str,
         convex_deploy_key: str,
     ):
         """Initialize the agent with API credentials."""
         self.gemini_api_key = gemini_api_key
-        self.firecrawl_api_key = firecrawl_api_key
         self.convex_url = convex_url
         self.convex_deploy_key = convex_deploy_key
 
         # Initialize tools
-        self.firecrawl = FirecrawlTool(firecrawl_api_key)
+        self.scraper = PlaywrightScraper()
         self.gemini_fs = GeminiFileSearchTool(gemini_api_key)
         self.convex = ConvexHTTPClient(convex_url, convex_deploy_key)
 
@@ -81,7 +79,7 @@ class PlanningIngestionAgent:
 
     async def close(self):
         """Clean up resources."""
-        await self.firecrawl.close()
+        await self.scraper.close()
         await self.convex.close()
 
     async def __aenter__(self):
@@ -116,17 +114,19 @@ class PlanningIngestionAgent:
         try:
             # Step 1: Scrape content
             if source.content_type == ContentType.HTML:
-                result = await self.firecrawl.scrape_page(source.url)
+                result = await self.scraper.scrape_page(source.url)
             else:
-                result = await self.firecrawl.scrape_pdf(source.url)
+                result = await self.scraper.scrape_pdf(source.url)
 
             if not result.success:
-                # Update status to error
-                await self.convex.update_status(
-                    source_id=source.id,
-                    status="error",
-                    error_message=result.error,
-                )
+                # Check if document exists before trying to update status
+                existing = await self.convex.get_document(source.id)
+                if existing:
+                    await self.convex.update_status(
+                        source_id=source.id,
+                        status="error",
+                        error_message=result.error,
+                    )
                 return SyncResult(
                     source_id=source.id,
                     success=False,
@@ -166,16 +166,33 @@ class PlanningIngestionAgent:
 
             # Step 5: Upload to Gemini File Search
             store_name = await self._get_store_name()
-            upload_result = await self.gemini_fs.upload_markdown(
-                store_name=store_name,
-                content=result.markdown,
-                display_name=f"{source.category}/{source.id}",
-                metadata={
-                    "source_id": source.id,
-                    "category": source.category,
-                    "source_url": source.url,
-                },
-            )
+
+            # Check if this is PDF content (base64 encoded)
+            if result.markdown and result.markdown.startswith("PDF_BASE64:"):
+                import base64
+                pdf_base64 = result.markdown[len("PDF_BASE64:"):]
+                pdf_bytes = base64.b64decode(pdf_base64)
+                upload_result = await self.gemini_fs.upload_pdf(
+                    store_name=store_name,
+                    pdf_content=pdf_bytes,
+                    display_name=f"{source.category}/{source.id}.pdf",
+                    metadata={
+                        "source_id": source.id,
+                        "category": source.category,
+                        "source_url": source.url,
+                    },
+                )
+            else:
+                upload_result = await self.gemini_fs.upload_markdown(
+                    store_name=store_name,
+                    content=result.markdown,
+                    display_name=f"{source.category}/{source.id}",
+                    metadata={
+                        "source_id": source.id,
+                        "category": source.category,
+                        "source_url": source.url,
+                    },
+                )
 
             if not upload_result.success:
                 await self.convex.update_status(
@@ -317,7 +334,6 @@ def create_agent() -> PlanningIngestionAgent:
     config = load_env_config()
     return PlanningIngestionAgent(
         gemini_api_key=config.gemini_api_key,
-        firecrawl_api_key=config.firecrawl_api_key,
         convex_url=config.convex_url,
         convex_deploy_key=config.convex_deploy_key,
     )

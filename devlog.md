@@ -1088,4 +1088,108 @@ Get API key from [hybiscus.dev](https://hybiscus.dev)
 
 ---
 
+## 2026-01-18 - UI Enhancements: Street View, Reports Modal, Landing Page
+
+### Completed
+- [x] Add MKE.dev logo to PDF reports via GitHub raw URL
+- [x] Display generated reports in modal instead of new tab
+- [x] Create interactive Street View modal with Google Maps JavaScript API
+- [x] Add Street View buttons to ParcelCard and HomeCard
+- [x] Implement screenshot capture using Static Street View API
+- [x] Fix Area Plans tab truncation with scrollable container
+- [x] Redesign landing page with real app screenshots
+
+### Implementation Summary
+
+**PDF Report Enhancements**
+
+| Change | Description |
+|--------|-------------|
+| Logo header | MKE.dev logo added via GitHub raw URL |
+| Modal viewer | Reports now open in PDFViewerModal with page nav |
+| Hook updates | `useReportGenerator` returns `pdfUrl` and `clearPdfUrl` |
+
+**Street View Modal** (`/components/ui/StreetViewModal.tsx`)
+
+Features:
+- Interactive Google Street View panorama (pan, zoom, navigate)
+- Screenshot capture button using Static Street View API
+- Preview modal with download functionality
+- Keyboard shortcuts (Escape to close)
+- Fallback to Google Maps if JavaScript API unavailable
+
+Integration:
+- Added `onOpenStreetView` prop to ParcelCard and HomeCard
+- Street View button in ParcelCard Quick Actions (sky blue)
+- Street View button in HomeCard Action Buttons (amber)
+- Modal state managed in HomeContent.tsx
+
+**Note**: Requires enabling Maps JavaScript API in Google Cloud Console for the API key.
+
+**ParcelCard Fix**
+
+- Added `max-h-48 overflow-y-auto` to Area Plans tab
+- Plan name stays sticky at top while scrolling
+- Prevents card from growing too tall with long descriptions
+
+**Landing Page Redesign**
+
+New structure:
+1. **Hero Section** - Centered logo, tagline, full app screenshot
+2. **Feature Showcase** - 3 alternating image/text layouts with:
+   - "Ask Anything About Zoning" - AI chat screenshot
+   - "Rich Property Intelligence" - ParcelCard screenshot
+   - "Discover Homes For Sale" - Home listing screenshot
+3. **Features Grid** - 6 feature cards with new icons
+4. **Use Cases** - Enhanced cards for Developers, Homebuyers, City Staff
+5. **CTA Section** - "Ready to Build in Milwaukee?"
+
+Screenshots renamed for clarity:
+- `chat-zoning-response.png`
+- `parcel-card-streetview.png`
+- `homes-search-map.png`
+- `home-listing-layers.png`
+
+### New Components
+
+| Component | Purpose |
+|-----------|---------|
+| `StreetViewModal` | Interactive Google Street View with screenshot capture |
+| `FeatureShowcase` | Alternating image/text layout for landing page |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `convex/reports.ts` | Added logo constant and Image component |
+| `useReportGenerator.ts` | Added pdfUrl state and clearPdfUrl |
+| `HomeContent.tsx` | Modal states for reports and Street View |
+| `ParcelCard.tsx` | Street View button, scrollable Area Plans |
+| `HomeCard.tsx` | Street View button |
+| `LandingPage.tsx` | Complete redesign with screenshots |
+| `ui/index.ts` | Export StreetViewModal and PDFViewerModal |
+
+### Git Commits
+
+```
+9dea437 feat(landing): Redesign landing page with real app screenshots
+2c3db0b fix(ui): Add scrollable area to ParcelCard Area Plans tab
+70edbdd feat(ui): Add interactive Street View modal with screenshot capture
+0678aa0 feat(reports): Add logo to PDF reports and modal viewer
+```
+
+### Technical Notes
+
+1. **Google Maps API**: JavaScript API needed for interactive Street View (Static API works for screenshots)
+2. **Screenshot workflow**: Captures current position/heading/pitch/zoom and requests from Static API
+3. **Coordinate handling**: StreetViewModal accepts both `{lat, lng}` and `[lng, lat]` formats
+4. **Dark mode**: All new components support light/dark themes
+
+### Next Up
+- [ ] Enable Google Maps JavaScript API for Street View
+- [ ] Voice interface with Gemini Live API
+- [ ] Production deployment preparation
+
+---
+
 *Log entries below will be added as development progresses*
