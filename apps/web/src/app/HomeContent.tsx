@@ -937,6 +937,7 @@ export default function HomeContent() {
             coordinates={data.coordinates}
             status="complete"
             onFlyTo={handleCommercialFlyTo}
+            onOpenStreetView={openStreetView}
           />
         );
       }
@@ -994,6 +995,7 @@ export default function HomeContent() {
             coordinates={data.coordinates}
             status="complete"
             onFlyTo={handleDevelopmentSiteFlyTo}
+            onOpenStreetView={openStreetView}
           />
         );
       }
@@ -1001,7 +1003,7 @@ export default function HomeContent() {
       default:
         return null;
     }
-  }, [openPdfViewer, handleHomeFlyTo, handleHomeSelect, handleCommercialPropertySelect, handleCommercialFlyTo, handleDevelopmentSiteSelect, handleDevelopmentSiteFlyTo])
+  }, [openPdfViewer, openStreetView, handleHomeFlyTo, handleHomeSelect, handleCommercialPropertySelect, handleCommercialFlyTo, handleDevelopmentSiteSelect, handleDevelopmentSiteFlyTo])
 
   // Show loading skeleton while auth state is being determined
   // This prevents hydration mismatch between server and client

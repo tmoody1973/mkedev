@@ -4,16 +4,18 @@
  * CommercialPropertyCard - Generative UI component for displaying commercial property details
  *
  * Displays commercial property information including:
+ * - Street View image with rotation controls
  * - Address and zoning
  * - Property type, building size, lot size
  * - Asking price and price per square foot
  * - Description
  * - Contact info
- * - Actions: View Listing (external URL), Fly to Location (map)
+ * - Actions: Street View (opens modal), View Listing (external URL), Fly to Location (map)
  *
  * Follows RetroUI neobrutalist styling patterns.
  */
 
+import { useState } from "react";
 import {
   Building2,
   Square,
@@ -23,7 +25,13 @@ import {
   Navigation,
   Phone,
   FileText,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
 } from "lucide-react";
+
+// Google Street View Static API
+const STREET_VIEW_BASE = "https://maps.googleapis.com/maps/api/streetview";
 
 export interface CommercialPropertyCardProps {
   // Location
@@ -48,6 +56,7 @@ export interface CommercialPropertyCardProps {
 
   // Actions
   onFlyTo?: (coordinates: [number, number]) => void;
+  onOpenStreetView?: (coordinates: [number, number], address: string) => void;
 }
 
 export function CommercialPropertyCard({
@@ -64,8 +73,30 @@ export function CommercialPropertyCard({
   listingUrl,
   status = "complete",
   onFlyTo,
+  onOpenStreetView,
 }: CommercialPropertyCardProps) {
   const isLoading = status === "inProgress" || status === "executing";
+  const [streetViewHeading, setStreetViewHeading] = useState(0);
+
+  // Get Google Maps API key from environment
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  // Build Street View URL
+  const getStreetViewUrl = (heading: number, size = "400x200") => {
+    if (!apiKey) return null;
+    const location = coordinates
+      ? `${coordinates[1]},${coordinates[0]}` // lat,lng format
+      : `${address}, Milwaukee, WI`;
+    return `${STREET_VIEW_BASE}?size=${size}&location=${encodeURIComponent(location)}&heading=${heading}&pitch=0&fov=90&key=${apiKey}`;
+  };
+
+  // Navigate street view
+  const rotateStreetView = (direction: "left" | "right") => {
+    setStreetViewHeading((prev) => {
+      const delta = direction === "left" ? -45 : 45;
+      return (prev + delta + 360) % 360;
+    });
+  };
 
   // Format property type for display
   const formatPropertyType = (type?: string): string => {
@@ -112,6 +143,9 @@ export function CommercialPropertyCard({
           </div>
         </div>
 
+        {/* Street View skeleton */}
+        <div className="h-32 bg-stone-300 dark:bg-stone-600 rounded mb-4" />
+
         {/* Property details skeleton */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[...Array(3)].map((_, i) => (
@@ -122,12 +156,6 @@ export function CommercialPropertyCard({
           ))}
         </div>
 
-        {/* Description skeleton */}
-        <div className="space-y-2 mb-4">
-          <div className="h-4 bg-stone-300 dark:bg-stone-600 rounded w-full" />
-          <div className="h-4 bg-stone-300 dark:bg-stone-600 rounded w-5/6" />
-        </div>
-
         {/* Buttons skeleton */}
         <div className="flex gap-2 pt-3 border-t border-stone-300 dark:border-stone-600">
           <div className="h-10 bg-stone-300 dark:bg-stone-600 rounded flex-1" />
@@ -136,6 +164,8 @@ export function CommercialPropertyCard({
       </div>
     );
   }
+
+  const streetViewUrl = getStreetViewUrl(streetViewHeading);
 
   return (
     <div className="border-2 border-black dark:border-white rounded-lg bg-white dark:bg-stone-900 shadow-[4px_4px_0_0_black] dark:shadow-[4px_4px_0_0_white] overflow-hidden">
@@ -164,6 +194,39 @@ export function CommercialPropertyCard({
           </div>
         </div>
       </div>
+
+      {/* Street View Image */}
+      {streetViewUrl && (
+        <div className="relative border-b-2 border-black dark:border-white">
+          <img
+            src={streetViewUrl}
+            alt={`Street view of ${address}`}
+            className="w-full h-40 object-cover"
+            loading="lazy"
+          />
+          {/* Rotation Controls */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+            <button
+              onClick={() => rotateStreetView("left")}
+              className="p-1.5 bg-white/90 hover:bg-white rounded-full border border-stone-300 shadow-sm transition-colors"
+              title="Rotate left"
+            >
+              <ChevronLeft className="w-4 h-4 text-stone-700" />
+            </button>
+            <button
+              onClick={() => rotateStreetView("right")}
+              className="p-1.5 bg-white/90 hover:bg-white rounded-full border border-stone-300 shadow-sm transition-colors"
+              title="Rotate right"
+            >
+              <ChevronRight className="w-4 h-4 text-stone-700" />
+            </button>
+          </div>
+          {/* Heading indicator */}
+          <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 text-white text-xs rounded">
+            {streetViewHeading}°
+          </div>
+        </div>
+      )}
 
       {/* Property Details Grid */}
       <div className="grid grid-cols-3 gap-3 p-4 border-b-2 border-black dark:border-white">
@@ -254,6 +317,15 @@ export function CommercialPropertyCard({
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-2 p-4 bg-stone-50 dark:bg-stone-800">
+        {coordinates && onOpenStreetView && (
+          <button
+            onClick={() => onOpenStreetView(coordinates, address)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm rounded border-2 border-black dark:border-white shadow-[2px_2px_0_0_black] dark:shadow-[2px_2px_0_0_white] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_0_black] dark:hover:shadow-[3px_3px_0_0_white] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_black] dark:active:shadow-[1px_1px_0_0_white] transition-all"
+          >
+            <Eye className="w-4 h-4" />
+            Street View
+          </button>
+        )}
         {listingUrl && (
           <button
             onClick={handleViewListing}
