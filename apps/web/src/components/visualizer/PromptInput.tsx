@@ -3,6 +3,8 @@
 import { useState, useCallback } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
+import { useAction } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 
 const PROMPT_SUGGESTIONS = [
   { label: 'Modern townhomes', prompt: 'Add modern 3-story townhomes with contemporary design' },
@@ -25,15 +27,18 @@ export function PromptInput() {
     setGenerationError,
     setMode,
     sourceImage,
+    maskImage,
     zoningContext,
+    address,
+    coordinates,
     setGeneratedImage,
   } = useVisualizerStore();
 
   const [charCount, setCharCount] = useState(0);
   const maxChars = 500;
 
-  // TODO: Wire up to Convex action when created
-  // const generateVisualization = useMutation(api.visualization.generate);
+  // Connect to Convex action for Gemini 3 Pro Image generation
+  const generateVisualization = useAction(api.visualization.generate.generate);
 
   const handlePromptChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -64,13 +69,22 @@ export function PromptInput() {
     setMode('generate');
 
     try {
-      // TODO: Call Convex action for Gemini 3 Pro Image generation
-      // For now, simulate generation
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Call Convex action for Gemini 3 Pro Image generation
+      const result = await generateVisualization({
+        sourceImageBase64: sourceImage,
+        maskImageBase64: maskImage || undefined,
+        prompt: prompt,
+        zoningContext: zoningContext || undefined,
+        address: address || undefined,
+        coordinates: coordinates || undefined,
+      });
 
-      // Placeholder - will be replaced with actual generation
-      setGeneratedImage(sourceImage); // Just show the original for now
-      setMode('result');
+      if (result.success && result.generatedImageBase64) {
+        setGeneratedImage(result.generatedImageBase64);
+        setMode('result');
+      } else {
+        throw new Error(result.responseText || 'Failed to generate image');
+      }
     } catch (error) {
       console.error('Generation error:', error);
       setGenerationError(
@@ -83,6 +97,11 @@ export function PromptInput() {
   }, [
     prompt,
     sourceImage,
+    maskImage,
+    zoningContext,
+    address,
+    coordinates,
+    generateVisualization,
     setIsGenerating,
     setGenerationError,
     setMode,
