@@ -132,11 +132,17 @@ export const generate = action({
     coordinates: v.optional(v.array(v.number())),
   },
   handler: async (_ctx, args) => {
+    console.log("[visualization/generate] Starting generation...");
+    console.log("[visualization/generate] Prompt:", args.prompt);
+    console.log("[visualization/generate] Has mask:", !!args.maskImageBase64);
+
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("GOOGLE_GEMINI_API_KEY not configured");
+      console.error("[visualization/generate] GOOGLE_GEMINI_API_KEY not configured!");
+      throw new Error("GOOGLE_GEMINI_API_KEY not configured - please add it to your Convex environment variables");
     }
 
+    console.log("[visualization/generate] API key found (length:", apiKey.length, ")");
     const startTime = Date.now();
 
     // Build enhanced prompt with zoning context
@@ -196,6 +202,8 @@ export const generate = action({
       };
 
       // Call Gemini 3 Pro Image API
+      console.log("[visualization/generate] Calling API:", `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent`);
+      console.log("[visualization/generate] Image count:", imageParts.length);
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`,
         {
@@ -220,7 +228,15 @@ export const generate = action({
       }
 
       const data = await response.json();
-      console.log("[visualization/generate] Response received");
+      console.log("[visualization/generate] Response received, structure:", JSON.stringify({
+        hasCandidate: !!data.candidates?.[0],
+        hasContent: !!data.candidates?.[0]?.content,
+        partsCount: data.candidates?.[0]?.content?.parts?.length,
+        partTypes: data.candidates?.[0]?.content?.parts?.map((p: { inlineData?: unknown; text?: unknown }) =>
+          p.inlineData ? 'image' : p.text ? 'text' : 'unknown'
+        ),
+        promptFeedback: data.promptFeedback,
+      }));
 
       // Extract generated image from response
       let generatedImageBase64: string | null = null;

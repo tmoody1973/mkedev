@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { X, Undo2, Redo2, Home } from 'lucide-react';
+import { X, Undo2, Redo2, Home, AlertCircle } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
 import { VisualizerCanvas } from './VisualizerCanvas';
 import { MaskToolbar } from './MaskToolbar';
@@ -19,6 +19,7 @@ export function SiteVisualizer() {
     isOpen,
     mode,
     sourceImage,
+    generationError,
     closeVisualizer,
     setMode,
     undo,
@@ -174,6 +175,16 @@ export function SiteVisualizer() {
                 <div className="flex-1 overflow-hidden">
                   <VisualizerCanvas />
                 </div>
+                {/* Error Display */}
+                {generationError && (
+                  <div className="mx-4 mb-2 p-3 bg-red-50 dark:bg-red-950 border-2 border-red-500 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-red-700 dark:text-red-300">Generation Failed</p>
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">{generationError}</p>
+                    </div>
+                  </div>
+                )}
                 <PromptInput />
               </div>
 
