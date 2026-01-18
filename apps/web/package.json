@@ -34,6 +34,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.31.4",
     "dotenv": "^17.2.3",
+    "konva": "^10.2.0",
     "lucide-react": "^0.562.0",
     "mapbox-gl": "^3.17.0",
     "mapbox-gl-arcgis-featureserver": "^0.0.8",
@@ -45,12 +46,14 @@
     "proj4": "^2.20.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-konva": "^19.2.1",
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.3.0",
     "remark-gfm": "^4.0.1",
     "svix": "^1.84.1",
     "tailwind-merge": "^3.4.0",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@google/adk-devtools": "^0.2.2",

@@ -1,6 +1,6 @@
 'use client'
 
-import { Mic, MicOff, Layers, Map, Box, History } from 'lucide-react'
+import { Mic, MicOff, Layers, Map, Box, History, Sparkles } from 'lucide-react'
 import { UserMenu } from '@/components/user-menu'
 import { AddressSearchBox } from './AddressSearchBox'
 
@@ -17,6 +17,8 @@ export interface HeaderProps {
   isLayersPanelOpen?: boolean
   /** Callback when map layers button is clicked */
   onLayersClick?: () => void
+  /** Callback when visualize button is clicked */
+  onVisualizeClick?: () => void
   /** Callback when logo is clicked */
   onLogoClick?: () => void
   /** Callback when map toggle is clicked (mobile) */
@@ -44,6 +46,7 @@ export function Header({
   on3DToggle,
   isLayersPanelOpen = false,
   onLayersClick,
+  onVisualizeClick,
   onLogoClick,
   onMapToggle,
   isMapVisible = false,
@@ -147,6 +150,24 @@ export function Header({
           aria-pressed={is3DMode}
         >
           <Box className="w-6 h-6" />
+        </button>
+
+        {/* AI Site Visualizer */}
+        <button
+          onClick={onVisualizeClick}
+          className={`
+            flex items-center justify-center w-12 h-12 rounded-lg border-2 border-black
+            shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]
+            hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+            active:translate-y-2 active:shadow-none
+            transition-all duration-100
+            bg-gradient-to-br from-purple-500 to-pink-500 text-white
+            hover:from-purple-600 hover:to-pink-600
+          `}
+          aria-label="Open AI Site Visualizer"
+          title="AI Site Visualizer"
+        >
+          <Sparkles className="w-6 h-6" />
         </button>
 
         {/* Map Layers */}

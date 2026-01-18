@@ -23,6 +23,8 @@ export interface AppShellProps {
   isLayersPanelOpen?: boolean
   /** Callback when map layers button is clicked */
   onLayersClick?: () => void
+  /** Callback when visualize button is clicked */
+  onVisualizeClick?: () => void
   /** Callback when logo is clicked */
   onLogoClick?: () => void
   /** Initial map visibility state for mobile */
@@ -48,6 +50,7 @@ export function AppShell({
   onVoiceToggle,
   isLayersPanelOpen = false,
   onLayersClick,
+  onVisualizeClick,
   onLogoClick,
   initialMapVisible = false,
   onAddressSelect,
@@ -72,6 +75,7 @@ export function AppShell({
         on3DToggle={toggle3DMode}
         isLayersPanelOpen={isLayersPanelOpen}
         onLayersClick={onLayersClick}
+        onVisualizeClick={onVisualizeClick}
         onLogoClick={onLogoClick}
         onMapToggle={handleMapToggle}
         isMapVisible={isMapVisible}

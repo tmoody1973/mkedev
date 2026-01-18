@@ -28,15 +28,17 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 
 | Priority | Feature | Description | Dependencies |
 |----------|---------|-------------|--------------|
+| P0 | **Gemini 3 Context Caching** | 1M token context window for full zoning corpus + Thinking Levels | RAG |
+| P0 | **Site Visualizer** | AI architectural visualization with Gemini 3 Pro Image ([spec](../specs/2026-01-18-site-visualizer/spec.md)) | Mapbox, Zoning Agent |
 | P0 | Gemini Live API | Real-time bidirectional voice interface | App Shell |
 | P0 | Live Tool Bridge | Tool-based architecture bridging Live to File Search ([arch](../../docs/architecture/gemini-live-file-search-integration.md)) | Gemini Live, RAG |
 | P0 | Voice Activity Detection | Automatic microphone management | Gemini Live |
 | P0 | Mapbox Spatial Tools | Agent tools for geocoding, POI search, isochrone, directions | Mapbox Integration |
 | P0 | Forms Integration | Actionable permit/application forms with download links | Document Ingestion |
 | P0 | FormActionCard Component | Generative UI for form actions with walkthrough | CopilotKit, Forms |
-| P0 | Nano Banana Tool | `generateArchitecturalPreview` using Gemini 2.5 Flash Image | Agents |
-| P0 | Design Advisor Agent | Agent for design guidelines + vision integration | Nano Banana |
-| P0 | VisionCard Component | Generative UI for architectural previews | CopilotKit |
+| ~~P0~~ | ~~Nano Banana Tool~~ | ✅ Replaced by Site Visualizer with Gemini 3 Pro Image | -- |
+| ~~P0~~ | ~~Design Advisor Agent~~ | ✅ Integrated into Site Visualizer | -- |
+| P0 | VisionCard Component | Generative UI for architectural previews | Site Visualizer |
 | P0 | ZoneInfoCard Component | Generative UI for zoning summaries | CopilotKit |
 | P0 | Clickable Citations | Inline [N] citations with PDF viewer modal ([spec](../specs/2026-01-15-citation-links/spec.md)) | RAG, Document Corpus |
 | P1 | VoiceIndicator | Visual feedback during voice interaction | Gemini Live |
@@ -220,12 +222,30 @@ Document Ingestion (Gemini File Search)
         │
         ├── Future Tools (planned)
         │   ├── search_commercial_properties (Browse.ai data)
-        │   ├── search_development_sites (Browse.ai data)
-        │   └── generate_architectural_preview (Nano Banana)
+        │   └── search_development_sites (Browse.ai data)
         │
         └── Architecture Note:
             Single agent with tools handles multi-domain queries
             No orchestrator needed - Gemini selects appropriate tools
+
+Gemini 3 Features (Hackathon Differentiators)
+    ├── Context Caching + 1M Token Window ✅
+    │   ├── Full zoning corpus loaded into context
+    │   ├── Smart Query Router (RAG vs Deep Analysis)
+    │   ├── Thinking Levels (gemini-3-pro-preview)
+    │   └── Cross-reference analysis across all zones
+    │
+    ├── Site Visualizer (gemini-3-pro-image-preview)
+    │   ├── Image Capture (map screenshot, Street View, upload)
+    │   ├── Konva.js Canvas with mask painting
+    │   ├── Zoning-aware prompt injection
+    │   ├── AI architectural visualization
+    │   └── User gallery (Convex file storage)
+    │
+    └── Gemini Live API (voice interface)
+        ├── Real-time bidirectional audio
+        ├── Tool bridge to File Search RAG
+        └── Voice activity detection
 
 Opik/Comet
     ├── Tracing (all agents)

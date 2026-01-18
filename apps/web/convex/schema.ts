@@ -551,4 +551,78 @@ export default defineSchema({
     .index("by_browseAiTaskId", ["browseAiTaskId"])
     .index("by_status", ["status"])
     .index("by_zoning", ["zoning"]),
+
+  // ---------------------------------------------------------------------------
+  // Visualizations - AI-generated site visualizations using Gemini 3 Pro Image
+  // ---------------------------------------------------------------------------
+  visualizations: defineTable({
+    // User association
+    userId: v.string(), // Clerk user ID
+
+    // Source image
+    sourceImageId: v.id("_storage"), // Convex storage ID for source image
+    sourceType: v.union(
+      v.literal("map_screenshot"),
+      v.literal("street_view"),
+      v.literal("upload")
+    ),
+
+    // Mask (optional - for inpainting)
+    maskImageId: v.optional(v.id("_storage")),
+
+    // Generated image
+    generatedImageId: v.optional(v.id("_storage")),
+
+    // Generation metadata
+    prompt: v.string(),
+    enhancedPrompt: v.optional(v.string()), // Prompt with zoning context injected
+
+    // Parcel context (optional)
+    parcelId: v.optional(v.string()), // Tax key or parcel ID
+    address: v.optional(v.string()),
+    coordinates: v.optional(v.array(v.number())), // [lng, lat]
+
+    // Zoning context used for generation
+    zoningContext: v.optional(
+      v.object({
+        zoningDistrict: v.optional(v.string()),
+        zoningCategory: v.optional(v.string()),
+        maxHeight: v.optional(v.number()),
+        maxStories: v.optional(v.number()),
+        setbacks: v.optional(
+          v.object({
+            front: v.number(),
+            side: v.number(),
+            rear: v.number(),
+          })
+        ),
+        maxFAR: v.optional(v.number()),
+        overlayZones: v.optional(v.array(v.string())),
+        historicDistrict: v.optional(v.boolean()),
+        neighborhood: v.optional(v.string()),
+      })
+    ),
+
+    // Generation status
+    status: v.union(
+      v.literal("pending"),
+      v.literal("generating"),
+      v.literal("completed"),
+      v.literal("error")
+    ),
+    errorMessage: v.optional(v.string()),
+    generationTimeMs: v.optional(v.number()),
+
+    // User actions
+    isSaved: v.boolean(), // User explicitly saved this
+    isDeleted: v.boolean(), // Soft delete
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_isSaved", ["userId", "isSaved"])
+    .index("by_status", ["status"])
+    .index("by_parcelId", ["parcelId"])
+    .index("by_createdAt", ["createdAt"]),
 });

@@ -43,6 +43,13 @@ const StreetViewModal = dynamic(
   { ssr: false }
 )
 import { matchDocumentUrl } from '@/lib/documentUrls'
+import { useVisualizerStore } from '@/stores'
+
+// Dynamic import for Site Visualizer (client-side only - Konva.js needs DOM)
+const SiteVisualizer = dynamic(
+  () => import('@/components/visualizer').then(mod => mod.SiteVisualizer),
+  { ssr: false }
+)
 
 // PDF viewer modal state type
 interface PDFModalState {
@@ -357,6 +364,13 @@ export default function HomeContent() {
   const handleLayersClick = useCallback(() => {
     setIsLayersPanelOpen((prev) => !prev)
   }, [])
+
+  // Visualizer store
+  const { openVisualizer } = useVisualizerStore()
+
+  const handleVisualizeClick = useCallback(() => {
+    openVisualizer()
+  }, [openVisualizer])
 
   const handleSidebarToggle = useCallback(() => {
     setIsSidebarOpen((prev) => !prev)
@@ -1038,6 +1052,7 @@ export default function HomeContent() {
           onVoiceToggle={handleVoiceToggle}
           isLayersPanelOpen={isLayersPanelOpen}
           onLayersClick={handleLayersClick}
+          onVisualizeClick={handleVisualizeClick}
           onLogoClick={handleLogoClick}
           isSidebarOpen={isSidebarOpen}
           onSidebarToggle={handleSidebarToggle}
@@ -1111,6 +1126,9 @@ export default function HomeContent() {
             coordinates={streetViewModal.coordinates}
           />
         )}
+
+        {/* AI Site Visualizer - Gemini 3 Pro Image */}
+        <SiteVisualizer />
       </SignedIn>
     </>
   )
