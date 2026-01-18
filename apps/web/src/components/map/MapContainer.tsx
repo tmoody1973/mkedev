@@ -12,10 +12,14 @@ import {
 } from '@/contexts/MapContext'
 import { ESRILayerLoader } from './layers/ESRILayerLoader'
 import { HomesLayerLoader } from './layers/HomesLayerLoader'
+import { CommercialPropertiesLayerLoader } from './layers/CommercialPropertiesLayerLoader'
+import { DevelopmentSitesLayerLoader } from './layers/DevelopmentSitesLayerLoader'
 import { LayerPanel } from './LayerPanel'
 import { ParcelPopup } from './ParcelPopup'
 import type { ParcelData } from './layers/esri-layer-manager'
 import type { HomeForSale } from './layers/homes-layer-manager'
+import type { CommercialProperty } from './layers/commercial-layer-manager'
+import type { DevelopmentSite } from './layers/development-sites-layer-manager'
 
 // Import Mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -37,6 +41,10 @@ export interface MapContainerProps {
   enableESRILayers?: boolean
   /** Whether to load the homes for sale layer */
   enableHomesLayer?: boolean
+  /** Whether to load the commercial properties layer */
+  enableCommercialLayer?: boolean
+  /** Whether to load the development sites layer */
+  enableDevelopmentSitesLayer?: boolean
   /** Whether to show the zoning tooltip on hover */
   showZoningTooltip?: boolean
   /** Whether to show the layer panel */
@@ -55,6 +63,10 @@ export interface MapContainerProps {
   onParcelAsk?: (parcel: ParcelData) => void
   /** Callback when a home for sale marker is clicked */
   onHomeClick?: (home: HomeForSale) => void
+  /** Callback when a commercial property marker is clicked */
+  onCommercialPropertyClick?: (property: CommercialProperty) => void
+  /** Callback when a development site marker is clicked */
+  onDevelopmentSiteClick?: (site: DevelopmentSite) => void
 }
 
 // =============================================================================
@@ -68,6 +80,8 @@ export function MapContainer({
   initialCenter = MILWAUKEE_CENTER,
   enableESRILayers = true,
   enableHomesLayer = true,
+  enableCommercialLayer = true,
+  enableDevelopmentSitesLayer = true,
   showZoningTooltip = true,
   showLayerPanel = true,
   showParcelPopup = true,
@@ -77,6 +91,8 @@ export function MapContainer({
   onParcelClear,
   onParcelAsk,
   onHomeClick,
+  onCommercialPropertyClick,
+  onDevelopmentSiteClick,
 }: MapContainerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
@@ -374,6 +390,18 @@ export function MapContainer({
           {enableHomesLayer && (
             <HomesLayerLoader
               onHomeClick={onHomeClick}
+              isStyleChanging={isStyleChanging}
+            />
+          )}
+          {enableCommercialLayer && (
+            <CommercialPropertiesLayerLoader
+              onPropertyClick={onCommercialPropertyClick}
+              isStyleChanging={isStyleChanging}
+            />
+          )}
+          {enableDevelopmentSitesLayer && (
+            <DevelopmentSitesLayerLoader
+              onSiteClick={onDevelopmentSiteClick}
               isStyleChanging={isStyleChanging}
             />
           )}

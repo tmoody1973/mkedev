@@ -11,17 +11,23 @@ import { useMap } from '@/contexts/MapContext'
 import {
   ALL_LAYER_CONFIGS,
   HOMES_LAYER_CONFIG,
+  COMMERCIAL_LAYER_CONFIG,
+  DEVELOPMENT_SITES_LAYER_CONFIG,
   type ESRILayerConfig,
   type HomesLayerConfig,
+  type CommercialLayerConfig,
+  type DevelopmentSitesLayerConfig,
 } from './layers'
 
 // Combined layer config type for display
-type LayerConfig = ESRILayerConfig | HomesLayerConfig
+type LayerConfig = ESRILayerConfig | HomesLayerConfig | CommercialLayerConfig | DevelopmentSitesLayerConfig
 
-// Combined array of all layer configs (ESRI + Homes)
+// Combined array of all layer configs (ESRI + Homes + Commercial + Development Sites)
 const ALL_LAYERS: LayerConfig[] = [
   ...ALL_LAYER_CONFIGS,
   HOMES_LAYER_CONFIG,
+  COMMERCIAL_LAYER_CONFIG,
+  DEVELOPMENT_SITES_LAYER_CONFIG,
 ]
 
 // =============================================================================
