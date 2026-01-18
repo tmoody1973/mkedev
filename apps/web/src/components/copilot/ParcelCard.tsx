@@ -306,10 +306,10 @@ export function ParcelCard({
         )}
 
         {activeTab === "area-plans" && (
-          <div className="space-y-3">
+          <div className="max-h-48 overflow-y-auto space-y-3">
             {areaPlanName ? (
               <>
-                <div className="font-medium text-stone-900 dark:text-stone-100">
+                <div className="font-medium text-stone-900 dark:text-stone-100 sticky top-0 bg-white dark:bg-stone-900 pb-1">
                   {areaPlanName}
                 </div>
                 {areaPlanContext && (
