@@ -344,6 +344,161 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
       break;
     }
 
+    case "commercial-property": {
+      let propText = `**Address:** ${data.address || "Unknown"}\n`;
+      if (data.propertyType) propText += `**Type:** ${data.propertyType}\n`;
+      if (data.zoning) propText += `**Zoning:** ${data.zoning}\n`;
+      if (data.buildingSqFt) propText += `**Building Size:** ${(data.buildingSqFt as number).toLocaleString()} sq ft\n`;
+      if (data.lotSizeSqFt) propText += `**Lot Size:** ${(data.lotSizeSqFt as number).toLocaleString()} sq ft\n`;
+      if (data.askingPrice) {
+        const price = data.askingPrice as number;
+        propText += `**Asking Price:** $${price >= 1000000 ? (price / 1000000).toFixed(1) + "M" : (price / 1000).toFixed(0) + "K"}\n`;
+      }
+      if (data.description) propText += `\n${data.description}\n`;
+      if (data.listingUrl) propText += `\n[View Listing Details](${data.listingUrl})\n`;
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: data.address as string || "Commercial Property",
+          icon: "building",
+          highlighted: true,
+        },
+        components: [{
+          type: "Text",
+          options: { text: propText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
+
+    case "commercial-properties-list": {
+      if (!data.properties || !Array.isArray(data.properties)) break;
+      const properties = data.properties as Array<{
+        id?: string;
+        address?: string;
+        propertyType?: string;
+        buildingSqFt?: number;
+        askingPrice?: number;
+      }>;
+
+      let listText = "";
+      for (const prop of properties) {
+        listText += `**${prop.address || "Unknown Address"}**\n`;
+        if (prop.propertyType) listText += `Type: ${prop.propertyType}\n`;
+        const details: string[] = [];
+        if (prop.buildingSqFt) details.push(`${prop.buildingSqFt.toLocaleString()} sq ft`);
+        if (prop.askingPrice) {
+          const price = prop.askingPrice;
+          details.push(`$${price >= 1000000 ? (price / 1000000).toFixed(1) + "M" : (price / 1000).toFixed(0) + "K"}`);
+        }
+        if (details.length > 0) listText += details.join(" • ") + "\n";
+        listText += "\n";
+      }
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: `Commercial Properties (${properties.length} listings)`,
+          icon: "building",
+          highlighted: true,
+        },
+        components: [{
+          type: "Text",
+          options: { text: listText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
+
+    case "development-site": {
+      let siteText = `**Address:** ${data.address || "Unknown"}\n`;
+      if (data.siteName) siteText += `**Site Name:** ${data.siteName}\n`;
+      if (data.zoning) siteText += `**Zoning:** ${data.zoning}\n`;
+      if (data.lotSizeSqFt) {
+        const sqft = data.lotSizeSqFt as number;
+        if (sqft >= 43560) {
+          siteText += `**Lot Size:** ${(sqft / 43560).toFixed(2)} acres\n`;
+        } else {
+          siteText += `**Lot Size:** ${sqft.toLocaleString()} sq ft\n`;
+        }
+      }
+      if (data.askingPrice) {
+        const price = data.askingPrice as number;
+        siteText += `**Asking Price:** $${price >= 1000000 ? (price / 1000000).toFixed(1) + "M" : (price / 1000).toFixed(0) + "K"}\n`;
+      }
+      if (data.currentUse) siteText += `**Current Use:** ${data.currentUse}\n`;
+      if (data.proposedUse) siteText += `**Proposed Use:** ${data.proposedUse}\n`;
+      if (data.incentives && Array.isArray(data.incentives) && data.incentives.length > 0) {
+        siteText += `**Incentives:** ${(data.incentives as string[]).join(", ")}\n`;
+      }
+      if (data.description) siteText += `\n${data.description}\n`;
+      if (data.listingUrl) siteText += `\n[View Listing Details](${data.listingUrl})\n`;
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: (data.siteName as string) || (data.address as string) || "Development Site",
+          icon: "construction",
+          highlighted: true,
+        },
+        components: [{
+          type: "Text",
+          options: { text: siteText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
+
+    case "development-sites-list": {
+      if (!data.sites || !Array.isArray(data.sites)) break;
+      const sites = data.sites as Array<{
+        id?: string;
+        address?: string;
+        siteName?: string;
+        lotSizeSqFt?: number;
+        askingPrice?: number;
+        incentives?: string[];
+      }>;
+
+      let listText = "";
+      for (const site of sites) {
+        listText += `**${site.siteName || site.address || "Unknown Site"}**\n`;
+        if (site.siteName && site.address) listText += `${site.address}\n`;
+        const details: string[] = [];
+        if (site.lotSizeSqFt) {
+          if (site.lotSizeSqFt >= 43560) {
+            details.push(`${(site.lotSizeSqFt / 43560).toFixed(2)} acres`);
+          } else {
+            details.push(`${site.lotSizeSqFt.toLocaleString()} sq ft`);
+          }
+        }
+        if (site.askingPrice) {
+          const price = site.askingPrice;
+          details.push(`$${price >= 1000000 ? (price / 1000000).toFixed(1) + "M" : (price / 1000).toFixed(0) + "K"}`);
+        }
+        if (details.length > 0) listText += details.join(" • ") + "\n";
+        if (site.incentives && site.incentives.length > 0) {
+          listText += `Incentives: ${site.incentives.join(", ")}\n`;
+        }
+        listText += "\n";
+      }
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: `Development Sites (${sites.length} opportunities)`,
+          icon: "construction",
+          highlighted: true,
+        },
+        components: [{
+          type: "Text",
+          options: { text: listText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
+
     default:
       break;
   }
