@@ -19,7 +19,9 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 
 ### Key Features
 
+- **AI Site Visualizer** - Generate architectural visualizations with Gemini 3 Pro Image + mask-based inpainting
 - **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG
+- **1M Context + Thinking** - Deep feasibility analysis with Gemini 3's extended context and thinking levels
 - **Interactive Map** - Mapbox GL JS with 7 Milwaukee ESRI data layers and PMTiles
 - **File Search RAG** - 25+ documents across 5 categories in Gemini File Search Stores (zoning codes, area plans, policies, guides, incentives)
 - **Real-Time Geocoding** - Address to zoning lookup via Mapbox + Milwaukee ESRI integration
@@ -71,12 +73,23 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 | Auth | Clerk (Google OAuth + email) |
 | Maps | Mapbox GL JS + Milwaukee ESRI ArcGIS |
 | Tiles | PMTiles on Cloudflare R2 |
-| AI/LLM | Google Gemini 3 |
+| AI/LLM | Google Gemini 3 Flash & Pro |
+| Image Gen | Gemini 3 Pro Image (`gemini-3-pro-image-preview`) |
 | Voice | Gemini Live API |
 | Agents | Google ADK |
+| State | Zustand |
+| Canvas | Konva.js (mask painting) |
 | Generative UI | CopilotKit |
 | PDF Generation | Hybiscus API |
 | Observability | Comet/Opik |
+
+### Gemini 3 Models Used
+
+| Model | Purpose |
+|-------|---------|
+| `gemini-3-flash-preview` | Fast queries, RAG, zoning lookups |
+| `gemini-3-pro-preview` | Deep analysis with Thinking Levels |
+| `gemini-3-pro-image-preview` | Architectural visualization (Site Visualizer) |
 
 ---
 
@@ -171,12 +184,15 @@ mkedev/
 │   │   │   │   ├── landing/    # Landing page with feature showcase
 │   │   │   │   ├── map/        # Map and layer components
 │   │   │   │   ├── shell/      # App shell and header
-│   │   │   │   └── ui/         # RetroUI components (StreetViewModal, etc.)
+│   │   │   │   ├── ui/         # RetroUI components (StreetViewModal, etc.)
+│   │   │   │   └── visualizer/ # AI Site Visualizer (Gemini 3 Pro Image)
 │   │   │   ├── contexts/       # React contexts (MapContext)
-│   │   │   └── hooks/          # Custom hooks (useZoningAgent, useReportGenerator)
+│   │   │   ├── hooks/          # Custom hooks (useZoningAgent, useReportGenerator)
+│   │   │   └── stores/         # Zustand stores (visualizerStore)
 │   │   ├── convex/             # Convex schema & functions
-│   │   │   ├── agents/         # Zoning Interpreter Agent
+│   │   │   ├── agents/         # Zoning Interpreter Agent + Context Cache
 │   │   │   ├── ingestion/      # RAG & homes sync
+│   │   │   ├── visualization/  # Gemini 3 Pro Image generation
 │   │   │   └── http/           # HTTP endpoints (webhooks)
 │   │   └── scripts/            # Setup scripts
 │   └── agents/                 # Google ADK agents (standalone)
@@ -275,6 +291,42 @@ MKE.dev uses CopilotKit for rich, interactive UI cards rendered directly in the 
 
 ---
 
+## AI Site Visualizer
+
+The Site Visualizer uses **Gemini 3 Pro Image** (`gemini-3-pro-image-preview`) to generate architectural visualizations based on real site photos.
+
+### How It Works
+
+1. **Capture** - Take screenshots from the map (camera button) or Street View (Capture → Visualize)
+2. **Gallery** - Browse your screenshots and select one to visualize
+3. **Mask** - Paint over the area you want to modify (buildings, vacant lots, etc.)
+4. **Prompt** - Describe what to add: "4-story mixed-use building with retail on ground floor"
+5. **Generate** - Gemini 3 Pro Image generates a contextual architectural visualization
+6. **Compare** - Side-by-side view of original vs AI-generated result
+
+### Visualizer Components
+
+| Component | Purpose |
+|-----------|---------|
+| `SiteVisualizer` | Full-screen modal with mode switching |
+| `VisualizerCanvas` | Konva.js canvas for image + mask layer |
+| `MaskToolbar` | Brush/eraser tools with size slider |
+| `ImageCapture` | Screenshot gallery + file upload |
+| `PromptInput` | Prompt textarea with generate button |
+| `GenerationResult` | Side-by-side Original vs AI comparison |
+| `ZoningSidebar` | Zoning context for the selected parcel |
+| `MapScreenshotButton` | Purple camera button on map |
+
+### Screenshot Sources
+
+| Source | How to Capture |
+|--------|----------------|
+| Map | Click purple camera button (bottom-left of map) |
+| Street View | Open Street View → Navigate → Capture → Visualize |
+| File Upload | Click "Upload Your Own" in the gallery |
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Required |
@@ -343,6 +395,10 @@ pnpm --filter tile-builder upload    # Upload to R2
 - [x] **Housing Incentives RAG** - 8 documents on STRONG Homes, Homebuyer Assistance, ARCH, Down Payment
 - [x] **Chat Onboarding** - Suggested prompts for zoning, housing, incentives, area plans
 - [x] **Planning Ingestion Agent** - Playwright-based web scraping for Milwaukee planning docs
+- [x] **Gemini 3 Context Caching** - 1M token context with full zoning corpus
+- [x] **Thinking Levels** - Deep feasibility analysis with exposed reasoning
+- [x] **AI Site Visualizer** - Gemini 3 Pro Image with mask-based inpainting
+- [x] **Screenshot Gallery** - Map and Street View capture with gallery browser
 - [ ] Gemini Live API integration
 - [ ] Voice activity detection
 
