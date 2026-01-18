@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { useCallback } from 'react'
-import { X, Home, Key, Building2 } from 'lucide-react'
+import { X, Home, Key, Building2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ParcelData } from './layers/esri-layer-manager'
 
@@ -21,6 +21,8 @@ export interface ParcelPopupProps {
   onClose: () => void
   /** Callback when "Ask about this parcel" is clicked */
   onAskAbout?: (parcel: ParcelData) => void
+  /** Callback when "Visualize" is clicked - receives parcel for context */
+  onVisualize?: (parcel: ParcelData) => void
   /** Position of the popup (optional, defaults to bottom-right) */
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
   /** Additional class name */
@@ -40,12 +42,19 @@ export function ParcelPopup({
   parcel,
   onClose,
   onAskAbout,
+  onVisualize,
   position = 'bottom-right',
   className,
 }: ParcelPopupProps) {
   const handleAskAbout = useCallback(() => {
     onAskAbout?.(parcel)
   }, [onAskAbout, parcel])
+
+  const handleVisualize = useCallback(() => {
+    onVisualize?.(parcel)
+    // Close popup after clicking visualize
+    onClose()
+  }, [onVisualize, parcel, onClose])
 
   const handleClickOutside = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -236,27 +245,51 @@ export function ParcelPopup({
             )}
           </div>
 
-          {/* Action Button */}
-          {onAskAbout && (
-            <div className="p-4 pt-0">
-              <button
-                onClick={handleAskAbout}
-                className={cn(
-                  'w-full px-4 py-3 rounded-lg',
-                  'bg-sky-500 text-white',
-                  'border-2 border-black dark:border-white',
-                  'font-sans font-semibold text-sm',
-                  'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
-                  'dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]',
-                  'hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
-                  'dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]',
-                  'active:translate-y-2 active:shadow-none',
-                  'transition-all duration-100'
-                )}
-                data-testid="parcel-popup-ask-button"
-              >
-                Ask about this parcel
-              </button>
+          {/* Action Buttons */}
+          {(onAskAbout || onVisualize) && (
+            <div className="p-4 pt-0 space-y-2">
+              {onVisualize && (
+                <button
+                  onClick={handleVisualize}
+                  className={cn(
+                    'w-full px-4 py-3 rounded-lg',
+                    'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
+                    'border-2 border-black dark:border-white',
+                    'font-sans font-semibold text-sm',
+                    'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+                    'dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]',
+                    'hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+                    'dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]',
+                    'active:translate-y-2 active:shadow-none',
+                    'transition-all duration-100',
+                    'flex items-center justify-center gap-2'
+                  )}
+                  data-testid="parcel-popup-visualize-button"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Visualize this site
+                </button>
+              )}
+              {onAskAbout && (
+                <button
+                  onClick={handleAskAbout}
+                  className={cn(
+                    'w-full px-4 py-3 rounded-lg',
+                    'bg-sky-500 text-white',
+                    'border-2 border-black dark:border-white',
+                    'font-sans font-semibold text-sm',
+                    'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+                    'dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]',
+                    'hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+                    'dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]',
+                    'active:translate-y-2 active:shadow-none',
+                    'transition-all duration-100'
+                  )}
+                  data-testid="parcel-popup-ask-button"
+                >
+                  Ask about this parcel
+                </button>
+              )}
             </div>
           )}
         </div>

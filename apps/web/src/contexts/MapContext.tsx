@@ -68,6 +68,8 @@ export interface MapContextValue {
   animateTo3DView: () => void
   /** Animate camera to 2D view (pitch 0, bearing 0) */
   animateTo2DView: () => void
+  /** Capture the current map view as a base64 PNG image */
+  captureMapScreenshot: () => string | null
 }
 
 // =============================================================================
@@ -310,6 +312,18 @@ export function MapProvider({
     }
   }, [])
 
+  // Capture the current map view as a base64 PNG image
+  const captureMapScreenshot = useCallback((): string | null => {
+    if (!mapRef.current) return null
+    try {
+      const canvas = mapRef.current.getCanvas()
+      return canvas.toDataURL('image/png')
+    } catch (error) {
+      console.error('Failed to capture map screenshot:', error)
+      return null
+    }
+  }, [])
+
   // Persist 3D mode to localStorage on change
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -342,6 +356,7 @@ export function MapProvider({
     toggle3DMode,
     animateTo3DView,
     animateTo2DView,
+    captureMapScreenshot,
   }
 
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>

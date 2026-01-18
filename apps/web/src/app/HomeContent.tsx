@@ -89,8 +89,8 @@ export default function HomeContent() {
   // Track if persistence is currently in progress to prevent concurrent calls
   const isPersistingRef = useRef(false)
 
-  // Map context for flying to locations
-  const { flyTo } = useMap()
+  // Map context for flying to locations and capturing screenshots
+  const { flyTo, captureMapScreenshot } = useMap()
 
   // PDF viewer modal state
   const [pdfModal, setPdfModal] = useState<PDFModalState>({
@@ -366,11 +366,40 @@ export default function HomeContent() {
   }, [])
 
   // Visualizer store
-  const { openVisualizer } = useVisualizerStore()
+  const { openVisualizer, setSourceImage, setZoningContext } = useVisualizerStore()
 
   const handleVisualizeClick = useCallback(() => {
     openVisualizer()
   }, [openVisualizer])
+
+  // Handle "Visualize this site" from parcel popup
+  // Captures map screenshot and opens visualizer with parcel context
+  const handleParcelVisualize = useCallback((parcel: ParcelData) => {
+    // Capture the current map view
+    const screenshot = captureMapScreenshot()
+    if (!screenshot) {
+      console.error('Failed to capture map screenshot')
+      // Still open visualizer so user can upload an image
+      openVisualizer()
+      return
+    }
+
+    // Set the source image with parcel context
+    setSourceImage(screenshot, {
+      parcelId: parcel.taxKey,
+      address: parcel.address,
+    })
+
+    // Set zoning context if available
+    if (parcel.zoneCode) {
+      setZoningContext({
+        zoningDistrict: parcel.zoneCode,
+      })
+    }
+
+    // Open the visualizer - it will be in edit mode since we set a source image
+    openVisualizer()
+  }, [captureMapScreenshot, setSourceImage, setZoningContext, openVisualizer])
 
   const handleSidebarToggle = useCallback(() => {
     setIsSidebarOpen((prev) => !prev)
@@ -1092,6 +1121,7 @@ export default function HomeContent() {
               onParcelSelect={handleParcelSelect}
               onParcelClear={handleParcelClear}
               onParcelAsk={handleParcelAsk}
+              onParcelVisualize={handleParcelVisualize}
               showLayerPanel={isLayersPanelOpen}
             />
           }

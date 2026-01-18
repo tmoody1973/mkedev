@@ -61,6 +61,8 @@ export interface MapContainerProps {
   onParcelClear?: () => void
   /** Callback when user wants to ask about a parcel (sends context to chat) */
   onParcelAsk?: (parcel: ParcelData) => void
+  /** Callback when user wants to visualize a parcel */
+  onParcelVisualize?: (parcel: ParcelData) => void
   /** Callback when a home for sale marker is clicked */
   onHomeClick?: (home: HomeForSale) => void
   /** Callback when a commercial property marker is clicked */
@@ -90,6 +92,7 @@ export function MapContainer({
   onParcelSelect,
   onParcelClear,
   onParcelAsk,
+  onParcelVisualize,
   onHomeClick,
   onCommercialPropertyClick,
   onDevelopmentSiteClick,
@@ -411,6 +414,7 @@ export function MapContainer({
               parcel={selectedParcel}
               onClose={handlePopupClose}
               onAskAbout={onParcelAsk ? handleAskAboutParcel : undefined}
+              onVisualize={onParcelVisualize}
             />
           )}
         </>
