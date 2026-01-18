@@ -35,9 +35,9 @@ export type ESRILayerType =
 
 /**
  * All layer type identifiers matching MapContext layer visibility keys
- * Includes both ESRI layers and custom layers (homes)
+ * Includes both ESRI layers and custom layers (homes, commercial, development sites)
  */
-export type LayerType = ESRILayerType | 'homes'
+export type LayerType = ESRILayerType | 'homes' | 'commercialProperties' | 'developmentSites'
 
 /**
  * Legend item for categorical layer display
@@ -391,6 +391,84 @@ export const HOMES_LAYER_CONFIG: HomesLayerConfig = {
 }
 
 /**
+ * Commercial Properties Layer Config
+ * Properties from Browse.ai scraping via Convex
+ */
+export interface CommercialLayerConfig {
+  id: 'commercialProperties'
+  name: string
+  description: string
+  color: string
+  highlightColor: string
+  circleRadius: number
+  highlightRadius: number
+  strokeColor: string
+  strokeWidth: number
+  defaultVisible: boolean
+  interactive: boolean
+  legendItems: LegendItem[]
+  dataSource: string
+}
+
+export const COMMERCIAL_LAYER_CONFIG: CommercialLayerConfig = {
+  id: 'commercialProperties',
+  name: 'Commercial Properties',
+  description: 'Commercial real estate for sale',
+  color: '#a855f7', // purple-500
+  highlightColor: '#f59e0b', // amber-500
+  circleRadius: 8,
+  highlightRadius: 12,
+  strokeColor: '#ffffff',
+  strokeWidth: 2,
+  defaultVisible: false,
+  interactive: true,
+  legendItems: [
+    { label: 'Commercial Property', color: '#a855f7' },
+    { label: 'Selected', color: '#f59e0b' },
+  ],
+  dataSource: 'Browse.ai Scraping',
+}
+
+/**
+ * Development Sites Layer Config
+ * Development opportunity sites from Browse.ai scraping
+ */
+export interface DevelopmentSitesLayerConfig {
+  id: 'developmentSites'
+  name: string
+  description: string
+  color: string
+  highlightColor: string
+  circleRadius: number
+  highlightRadius: number
+  strokeColor: string
+  strokeWidth: number
+  defaultVisible: boolean
+  interactive: boolean
+  legendItems: LegendItem[]
+  dataSource: string
+}
+
+export const DEVELOPMENT_SITES_LAYER_CONFIG: DevelopmentSitesLayerConfig = {
+  id: 'developmentSites',
+  name: 'Development Sites',
+  description: 'Development opportunity sites with incentives',
+  color: '#22c55e', // green-500
+  highlightColor: '#f59e0b', // amber-500
+  circleRadius: 10,
+  highlightRadius: 14,
+  strokeColor: '#ffffff',
+  strokeWidth: 2,
+  defaultVisible: false,
+  interactive: true,
+  legendItems: [
+    { label: 'Development Site', color: '#22c55e' },
+    { label: 'Selected', color: '#f59e0b' },
+  ],
+  dataSource: 'Browse.ai Scraping',
+}
+
+/**
  * All ESRI layer configurations in display order
  */
 export const ALL_LAYER_CONFIGS: ESRILayerConfig[] = [
@@ -408,9 +486,15 @@ export const ALL_LAYER_CONFIGS: ESRILayerConfig[] = [
  * @param layerId - Layer identifier
  * @returns Layer configuration or undefined
  */
-export function getLayerConfig(layerId: LayerType): ESRILayerConfig | HomesLayerConfig | undefined {
+export function getLayerConfig(layerId: LayerType): ESRILayerConfig | HomesLayerConfig | CommercialLayerConfig | DevelopmentSitesLayerConfig | undefined {
   if (layerId === 'homes') {
     return HOMES_LAYER_CONFIG
+  }
+  if (layerId === 'commercialProperties') {
+    return COMMERCIAL_LAYER_CONFIG
+  }
+  if (layerId === 'developmentSites') {
+    return DEVELOPMENT_SITES_LAYER_CONFIG
   }
   return ALL_LAYER_CONFIGS.find((config) => config.id === layerId)
 }

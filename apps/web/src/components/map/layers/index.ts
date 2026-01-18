@@ -17,6 +17,8 @@ export {
   ARB_LAYER_CONFIG,
   CITY_OWNED_LAYER_CONFIG,
   HOMES_LAYER_CONFIG,
+  COMMERCIAL_LAYER_CONFIG,
+  DEVELOPMENT_SITES_LAYER_CONFIG,
   ALL_LAYER_CONFIGS,
   getLayerConfig,
 } from './layer-config'
@@ -28,6 +30,8 @@ export type {
   LegendItem,
   ESRILayerConfig,
   HomesLayerConfig,
+  CommercialLayerConfig,
+  DevelopmentSitesLayerConfig,
 } from './layer-config'
 
 // Layer manager
@@ -52,6 +56,28 @@ export type {
   HomesLayerManagerOptions,
 } from './homes-layer-manager'
 
+// Commercial properties layer manager
+export {
+  CommercialLayerManager,
+} from './commercial-layer-manager'
+
+export type {
+  CommercialProperty,
+  CommercialPropertyClickEvent,
+  CommercialLayerManagerOptions,
+} from './commercial-layer-manager'
+
+// Development sites layer manager
+export {
+  DevelopmentSitesLayerManager,
+} from './development-sites-layer-manager'
+
+export type {
+  DevelopmentSite,
+  DevelopmentSiteClickEvent,
+  DevelopmentSitesLayerManagerOptions,
+} from './development-sites-layer-manager'
+
 // React hooks
 export {
   useESRILayers,
@@ -70,12 +96,32 @@ export type {
   UseHomesLayerResult,
 } from './useHomesLayer'
 
+export {
+  useCommercialPropertiesLayer,
+} from './useCommercialPropertiesLayer'
+
+export type {
+  UseCommercialPropertiesLayerResult,
+} from './useCommercialPropertiesLayer'
+
+export {
+  useDevelopmentSitesLayer,
+} from './useDevelopmentSitesLayer'
+
+export type {
+  UseDevelopmentSitesLayerResult,
+} from './useDevelopmentSitesLayer'
+
 // Components
 export { ZoningTooltip } from './ZoningTooltip'
 export { ESRILayerLoader } from './ESRILayerLoader'
 export { HomesLayerLoader } from './HomesLayerLoader'
+export { CommercialPropertiesLayerLoader } from './CommercialPropertiesLayerLoader'
+export { DevelopmentSitesLayerLoader } from './DevelopmentSitesLayerLoader'
 
 export type { HomesLayerLoaderProps } from './HomesLayerLoader'
+export type { CommercialPropertiesLayerLoaderProps } from './CommercialPropertiesLayerLoader'
+export type { DevelopmentSitesLayerLoaderProps } from './DevelopmentSitesLayerLoader'
 
 // 3D Buildings
 export {

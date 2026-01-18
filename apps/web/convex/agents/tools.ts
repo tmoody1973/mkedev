@@ -212,6 +212,106 @@ export const TOOL_DECLARATIONS = [
       required: ["homeId"],
     },
   },
+  // ---------------------------------------------------------------------------
+  // Commercial Properties & Development Sites Tools
+  // ---------------------------------------------------------------------------
+  {
+    name: "search_commercial_properties",
+    description:
+      "Search for commercial properties for sale in Milwaukee. Returns a list of available commercial properties with key details. Use this when users ask about commercial real estate, retail spaces, office buildings, industrial properties, or warehouses for sale.",
+    parameters: {
+      type: "object",
+      properties: {
+        propertyType: {
+          type: "string",
+          enum: ["retail", "office", "industrial", "warehouse", "mixed-use", "land", "all"],
+          description: "Type of commercial property to search for",
+        },
+        minSqFt: {
+          type: "number",
+          description: "Minimum building square footage",
+        },
+        maxSqFt: {
+          type: "number",
+          description: "Maximum building square footage",
+        },
+        maxPrice: {
+          type: "number",
+          description: "Maximum asking price in dollars",
+        },
+        zoning: {
+          type: "string",
+          description: "Filter by zoning code (e.g., LB2, IL1, DC)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results to return (default: 10, max: 50)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_commercial_property_details",
+    description:
+      "Get detailed information about a specific commercial property, including full description, contact info, listing URL, and precise location. Use this after search_commercial_properties to get more details about a specific property.",
+    parameters: {
+      type: "object",
+      properties: {
+        propertyId: {
+          type: "string",
+          description: "The Convex document ID of the commercial property (obtained from search results)",
+        },
+      },
+      required: ["propertyId"],
+    },
+  },
+  {
+    name: "search_development_sites",
+    description:
+      "Search for development sites available in Milwaukee. These are parcels marketed for new construction or redevelopment, often with city incentives. Use this when users ask about development opportunities, vacant land, buildable lots, or sites with incentives like TIF or Opportunity Zone benefits.",
+    parameters: {
+      type: "object",
+      properties: {
+        minLotSize: {
+          type: "number",
+          description: "Minimum lot size in square feet",
+        },
+        maxPrice: {
+          type: "number",
+          description: "Maximum asking price in dollars",
+        },
+        zoning: {
+          type: "string",
+          description: "Filter by zoning code (e.g., RS6, LB2, IL1)",
+        },
+        incentive: {
+          type: "string",
+          description: "Filter by incentive type (e.g., TIF, Opportunity Zone, NMTC)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results to return (default: 10, max: 50)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_development_site_details",
+    description:
+      "Get detailed information about a specific development site, including incentives, proposed uses, contact info, and precise location. Use this after search_development_sites to get more details about a specific site.",
+    parameters: {
+      type: "object",
+      properties: {
+        siteId: {
+          type: "string",
+          description: "The Convex document ID of the development site (obtained from search results)",
+        },
+      },
+      required: ["siteId"],
+    },
+  },
 ];
 
 // =============================================================================
@@ -623,6 +723,326 @@ export async function getHomeDetails(
     return {
       success: false,
       error: `Failed to get home details: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+// =============================================================================
+// Commercial Properties Tool Implementations
+// =============================================================================
+
+/**
+ * Commercial property summary type returned by search_commercial_properties.
+ */
+export interface CommercialPropertySummary {
+  propertyId: string;
+  address: string;
+  propertyType?: string;
+  buildingSqFt?: number;
+  lotSizeSqFt?: number;
+  askingPrice?: number;
+  zoning?: string;
+}
+
+/**
+ * Full commercial property details type.
+ */
+export interface CommercialPropertyDetails {
+  propertyId: string;
+  address: string;
+  coordinates: [number, number];
+  propertyType?: string;
+  buildingSqFt?: number;
+  lotSizeSqFt?: number;
+  zoning?: string;
+  askingPrice?: number;
+  pricePerSqFt?: number;
+  contactInfo?: string;
+  listingUrl?: string;
+  description?: string;
+  status: string;
+}
+
+/**
+ * Search for commercial properties in Milwaukee.
+ * Calls the Convex commercialProperties.searchProperties query.
+ */
+export async function searchCommercialProperties(
+  ctx: ActionCtx,
+  params: {
+    propertyType?: "retail" | "office" | "industrial" | "warehouse" | "mixed-use" | "land" | "all";
+    minSqFt?: number;
+    maxSqFt?: number;
+    maxPrice?: number;
+    zoning?: string;
+    limit?: number;
+  }
+): Promise<{
+  success: boolean;
+  properties?: CommercialPropertySummary[];
+  count?: number;
+  error?: string;
+}> {
+  try {
+    // Enforce reasonable limit
+    const limit = Math.min(params.limit ?? 10, 50);
+
+    // Query properties from Convex
+    const properties = await ctx.runQuery(api.commercialProperties.searchProperties, {
+      propertyType: params.propertyType,
+      minSqFt: params.minSqFt,
+      maxSqFt: params.maxSqFt,
+      maxPrice: params.maxPrice,
+      zoning: params.zoning,
+      limit,
+    });
+
+    // Transform to tool response format
+    const propertySummaries: CommercialPropertySummary[] = properties.map(
+      (prop: {
+        _id: string;
+        address: string;
+        propertyType?: string;
+        buildingSqFt?: number;
+        lotSizeSqFt?: number;
+        askingPrice?: number;
+        zoning?: string;
+      }) => ({
+        propertyId: prop._id,
+        address: prop.address,
+        propertyType: prop.propertyType,
+        buildingSqFt: prop.buildingSqFt,
+        lotSizeSqFt: prop.lotSizeSqFt,
+        askingPrice: prop.askingPrice,
+        zoning: prop.zoning,
+      })
+    );
+
+    return {
+      success: true,
+      properties: propertySummaries,
+      count: propertySummaries.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to search commercial properties: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Get detailed information about a specific commercial property.
+ * Calls the Convex commercialProperties.getById query.
+ */
+export async function getCommercialPropertyDetails(
+  ctx: ActionCtx,
+  params: {
+    propertyId: string;
+  }
+): Promise<{
+  success: boolean;
+  property?: CommercialPropertyDetails;
+  error?: string;
+}> {
+  try {
+    // Query property from Convex
+    const property = await ctx.runQuery(api.commercialProperties.getById, {
+      id: params.propertyId as Id<"commercialProperties">,
+    });
+
+    if (!property) {
+      return {
+        success: false,
+        error: `Commercial property not found with ID: ${params.propertyId}`,
+      };
+    }
+
+    // Transform to tool response format
+    const propertyDetails: CommercialPropertyDetails = {
+      propertyId: property._id,
+      address: property.address,
+      coordinates: property.coordinates as [number, number],
+      propertyType: property.propertyType,
+      buildingSqFt: property.buildingSqFt,
+      lotSizeSqFt: property.lotSizeSqFt,
+      zoning: property.zoning,
+      askingPrice: property.askingPrice,
+      pricePerSqFt: property.pricePerSqFt,
+      contactInfo: property.contactInfo,
+      listingUrl: property.listingUrl,
+      description: property.description,
+      status: property.status,
+    };
+
+    return {
+      success: true,
+      property: propertyDetails,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to get commercial property details: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+// =============================================================================
+// Development Sites Tool Implementations
+// =============================================================================
+
+/**
+ * Development site summary type returned by search_development_sites.
+ */
+export interface DevelopmentSiteSummary {
+  siteId: string;
+  address: string;
+  siteName?: string;
+  lotSizeSqFt?: number;
+  askingPrice?: number;
+  zoning?: string;
+  incentives?: string[];
+}
+
+/**
+ * Full development site details type.
+ */
+export interface DevelopmentSiteDetails {
+  siteId: string;
+  address: string;
+  coordinates: [number, number];
+  siteName?: string;
+  lotSizeSqFt?: number;
+  zoning?: string;
+  currentUse?: string;
+  proposedUse?: string;
+  askingPrice?: number;
+  incentives?: string[];
+  contactInfo?: string;
+  listingUrl?: string;
+  description?: string;
+  status: string;
+}
+
+/**
+ * Search for development sites in Milwaukee.
+ * Calls the Convex developmentSites.searchSites query.
+ */
+export async function searchDevelopmentSites(
+  ctx: ActionCtx,
+  params: {
+    minLotSize?: number;
+    maxPrice?: number;
+    zoning?: string;
+    incentive?: string;
+    limit?: number;
+  }
+): Promise<{
+  success: boolean;
+  sites?: DevelopmentSiteSummary[];
+  count?: number;
+  error?: string;
+}> {
+  try {
+    // Enforce reasonable limit
+    const limit = Math.min(params.limit ?? 10, 50);
+
+    // Query sites from Convex
+    const sites = await ctx.runQuery(api.developmentSites.searchSites, {
+      minLotSize: params.minLotSize,
+      maxPrice: params.maxPrice,
+      zoning: params.zoning,
+      incentive: params.incentive,
+      limit,
+    });
+
+    // Transform to tool response format
+    const siteSummaries: DevelopmentSiteSummary[] = sites.map(
+      (site: {
+        _id: string;
+        address: string;
+        siteName?: string;
+        lotSizeSqFt?: number;
+        askingPrice?: number;
+        zoning?: string;
+        incentives?: string[];
+      }) => ({
+        siteId: site._id,
+        address: site.address,
+        siteName: site.siteName,
+        lotSizeSqFt: site.lotSizeSqFt,
+        askingPrice: site.askingPrice,
+        zoning: site.zoning,
+        incentives: site.incentives,
+      })
+    );
+
+    return {
+      success: true,
+      sites: siteSummaries,
+      count: siteSummaries.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to search development sites: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Get detailed information about a specific development site.
+ * Calls the Convex developmentSites.getById query.
+ */
+export async function getDevelopmentSiteDetails(
+  ctx: ActionCtx,
+  params: {
+    siteId: string;
+  }
+): Promise<{
+  success: boolean;
+  site?: DevelopmentSiteDetails;
+  error?: string;
+}> {
+  try {
+    // Query site from Convex
+    const site = await ctx.runQuery(api.developmentSites.getById, {
+      id: params.siteId as Id<"developmentSites">,
+    });
+
+    if (!site) {
+      return {
+        success: false,
+        error: `Development site not found with ID: ${params.siteId}`,
+      };
+    }
+
+    // Transform to tool response format
+    const siteDetails: DevelopmentSiteDetails = {
+      siteId: site._id,
+      address: site.address,
+      coordinates: site.coordinates as [number, number],
+      siteName: site.siteName,
+      lotSizeSqFt: site.lotSizeSqFt,
+      zoning: site.zoning,
+      currentUse: site.currentUse,
+      proposedUse: site.proposedUse,
+      askingPrice: site.askingPrice,
+      incentives: site.incentives,
+      contactInfo: site.contactInfo,
+      listingUrl: site.listingUrl,
+      description: site.description,
+      status: site.status,
+    };
+
+    return {
+      success: true,
+      site: siteDetails,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to get development site details: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 }

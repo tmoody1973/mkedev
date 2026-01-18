@@ -15,6 +15,10 @@ import { ZoneInfoCard } from "./ZoneInfoCard";
 import { FormActionCard } from "./FormActionCard";
 import { HomeCard } from "./HomeCard";
 import { HomesListCard, type HomeListItem } from "./HomesListCard";
+import { CommercialPropertyCard } from "./CommercialPropertyCard";
+import { CommercialPropertiesListCard, type CommercialPropertyListItem } from "./CommercialPropertiesListCard";
+import { DevelopmentSiteCard } from "./DevelopmentSiteCard";
+import { DevelopmentSitesListCard, type DevelopmentSiteListItem } from "./DevelopmentSitesListCard";
 
 interface CopilotActionsProps {
   /** Callback to fly map to coordinates */
@@ -23,12 +27,24 @@ interface CopilotActionsProps {
   onHighlightHomes?: (homeIds: string[]) => void;
   /** Callback when a home is selected from the list */
   onHomeSelect?: (home: HomeListItem) => void;
+  /** Callback to highlight commercial properties on map */
+  onHighlightCommercialProperties?: (propertyIds: string[]) => void;
+  /** Callback when a commercial property is selected */
+  onCommercialPropertySelect?: (property: CommercialPropertyListItem) => void;
+  /** Callback to highlight development sites on map */
+  onHighlightDevelopmentSites?: (siteIds: string[]) => void;
+  /** Callback when a development site is selected */
+  onDevelopmentSiteSelect?: (site: DevelopmentSiteListItem) => void;
 }
 
 export function CopilotActions({
   onFlyTo,
   onHighlightHomes,
   onHomeSelect,
+  onHighlightCommercialProperties,
+  onCommercialPropertySelect,
+  onHighlightDevelopmentSites,
+  onDevelopmentSiteSelect,
 }: CopilotActionsProps = {}) {
   // Render zoning query results as a ZoneInfoCard
   useCopilotAction({
@@ -339,6 +355,304 @@ export function CopilotActions({
             listingUrl={home.listingUrl}
             primaryImageUrl={home.primaryImageUrl}
             imageUrls={home.imageUrls}
+            status="complete"
+            onFlyTo={handleFlyTo}
+          />
+        );
+      }
+
+      return <></>;
+    },
+  });
+
+  // ==========================================================================
+  // Commercial Properties Tools
+  // ==========================================================================
+
+  // Render search_commercial_properties results as CommercialPropertiesListCard
+  useCopilotAction({
+    name: "search_commercial_properties",
+    available: "disabled",
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <CommercialPropertiesListCard
+            properties={[]}
+            onPropertySelect={() => {}}
+            status="loading"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          properties?: Array<{
+            propertyId: string;
+            address: string;
+            coordinates?: [number, number];
+            propertyType?: string;
+            buildingSqFt?: number;
+            askingPrice?: number;
+            zoning?: string;
+          }>;
+        };
+
+        // Convert to CommercialPropertyListItem format
+        const properties: CommercialPropertyListItem[] = (resultData.properties || []).map((p) => ({
+          id: p.propertyId,
+          address: p.address,
+          coordinates: p.coordinates || [-87.9065, 43.0389],
+          propertyType: p.propertyType,
+          buildingSqFt: p.buildingSqFt,
+          askingPrice: p.askingPrice,
+          zoning: p.zoning,
+        }));
+
+        // Trigger map highlighting when results arrive
+        if (onHighlightCommercialProperties && properties.length > 0) {
+          const propertyIds = properties.map((p) => p.id);
+          onHighlightCommercialProperties(propertyIds);
+        }
+
+        // Handler for property selection from list
+        const handlePropertySelect = (property: CommercialPropertyListItem) => {
+          if (onFlyTo) {
+            onFlyTo(property.coordinates);
+          }
+          if (onHighlightCommercialProperties) {
+            onHighlightCommercialProperties([property.id]);
+          }
+          if (onCommercialPropertySelect) {
+            onCommercialPropertySelect(property);
+          }
+        };
+
+        return (
+          <CommercialPropertiesListCard
+            properties={properties}
+            onPropertySelect={handlePropertySelect}
+            status="complete"
+          />
+        );
+      }
+
+      return <></>;
+    },
+  });
+
+  // Render get_commercial_property_details results as CommercialPropertyCard
+  useCopilotAction({
+    name: "get_commercial_property_details",
+    available: "disabled",
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <CommercialPropertyCard
+            address="Loading..."
+            status="inProgress"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          property?: {
+            propertyId: string;
+            address: string;
+            coordinates: [number, number];
+            propertyType?: string;
+            buildingSqFt?: number;
+            lotSizeSqFt?: number;
+            zoning?: string;
+            askingPrice?: number;
+            pricePerSqFt?: number;
+            contactInfo?: string;
+            listingUrl?: string;
+            description?: string;
+          };
+        };
+
+        if (!resultData.property) {
+          return <></>;
+        }
+
+        const property = resultData.property;
+
+        const handleFlyTo = (coordinates: [number, number]) => {
+          if (onFlyTo) {
+            onFlyTo(coordinates);
+          }
+          if (onHighlightCommercialProperties) {
+            onHighlightCommercialProperties([property.propertyId]);
+          }
+        };
+
+        return (
+          <CommercialPropertyCard
+            address={property.address}
+            coordinates={property.coordinates}
+            propertyType={property.propertyType}
+            buildingSqFt={property.buildingSqFt}
+            lotSizeSqFt={property.lotSizeSqFt}
+            zoning={property.zoning}
+            askingPrice={property.askingPrice}
+            pricePerSqFt={property.pricePerSqFt}
+            contactInfo={property.contactInfo}
+            listingUrl={property.listingUrl}
+            description={property.description}
+            status="complete"
+            onFlyTo={handleFlyTo}
+          />
+        );
+      }
+
+      return <></>;
+    },
+  });
+
+  // ==========================================================================
+  // Development Sites Tools
+  // ==========================================================================
+
+  // Render search_development_sites results as DevelopmentSitesListCard
+  useCopilotAction({
+    name: "search_development_sites",
+    available: "disabled",
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <DevelopmentSitesListCard
+            sites={[]}
+            onSiteSelect={() => {}}
+            status="loading"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          sites?: Array<{
+            siteId: string;
+            address: string;
+            coordinates?: [number, number];
+            siteName?: string;
+            lotSizeSqFt?: number;
+            askingPrice?: number;
+            zoning?: string;
+            incentives?: string[];
+          }>;
+        };
+
+        // Convert to DevelopmentSiteListItem format
+        const sites: DevelopmentSiteListItem[] = (resultData.sites || []).map((s) => ({
+          id: s.siteId,
+          address: s.address,
+          coordinates: s.coordinates || [-87.9065, 43.0389],
+          siteName: s.siteName,
+          lotSizeSqFt: s.lotSizeSqFt,
+          askingPrice: s.askingPrice,
+          zoning: s.zoning,
+          incentives: s.incentives,
+        }));
+
+        // Trigger map highlighting when results arrive
+        if (onHighlightDevelopmentSites && sites.length > 0) {
+          const siteIds = sites.map((s) => s.id);
+          onHighlightDevelopmentSites(siteIds);
+        }
+
+        // Handler for site selection from list
+        const handleSiteSelect = (site: DevelopmentSiteListItem) => {
+          if (onFlyTo) {
+            onFlyTo(site.coordinates);
+          }
+          if (onHighlightDevelopmentSites) {
+            onHighlightDevelopmentSites([site.id]);
+          }
+          if (onDevelopmentSiteSelect) {
+            onDevelopmentSiteSelect(site);
+          }
+        };
+
+        return (
+          <DevelopmentSitesListCard
+            sites={sites}
+            onSiteSelect={handleSiteSelect}
+            status="complete"
+          />
+        );
+      }
+
+      return <></>;
+    },
+  });
+
+  // Render get_development_site_details results as DevelopmentSiteCard
+  useCopilotAction({
+    name: "get_development_site_details",
+    available: "disabled",
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <DevelopmentSiteCard
+            address="Loading..."
+            status="inProgress"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          site?: {
+            siteId: string;
+            address: string;
+            coordinates: [number, number];
+            siteName?: string;
+            lotSizeSqFt?: number;
+            zoning?: string;
+            currentUse?: string;
+            proposedUse?: string;
+            askingPrice?: number;
+            incentives?: string[];
+            contactInfo?: string;
+            listingUrl?: string;
+            description?: string;
+          };
+        };
+
+        if (!resultData.site) {
+          return <></>;
+        }
+
+        const site = resultData.site;
+
+        const handleFlyTo = (coordinates: [number, number]) => {
+          if (onFlyTo) {
+            onFlyTo(coordinates);
+          }
+          if (onHighlightDevelopmentSites) {
+            onHighlightDevelopmentSites([site.siteId]);
+          }
+        };
+
+        return (
+          <DevelopmentSiteCard
+            address={site.address}
+            coordinates={site.coordinates}
+            siteName={site.siteName}
+            zoning={site.zoning}
+            lotSizeSqFt={site.lotSizeSqFt}
+            askingPrice={site.askingPrice}
+            currentUse={site.currentUse}
+            proposedUse={site.proposedUse}
+            incentives={site.incentives}
+            contactInfo={site.contactInfo}
+            listingUrl={site.listingUrl}
+            description={site.description}
             status="complete"
             onFlyTo={handleFlyTo}
           />

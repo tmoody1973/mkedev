@@ -164,7 +164,11 @@ export default defineSchema({
             v.literal("code-citation"),
             v.literal("opportunity-list"),
             v.literal("home-listing"),
-            v.literal("homes-list")
+            v.literal("homes-list"),
+            v.literal("commercial-property"),
+            v.literal("commercial-properties-list"),
+            v.literal("development-site"),
+            v.literal("development-sites-list")
           ),
           data: v.any(),
         })
@@ -435,4 +439,103 @@ export default defineSchema({
   })
     .index("by_sessionId", ["sessionId"])
     .index("by_updatedAt", ["updatedAt"]),
+
+  // ---------------------------------------------------------------------------
+  // Commercial Properties - From Browse.ai scraping
+  // ---------------------------------------------------------------------------
+  commercialProperties: defineTable({
+    // Browse.ai identification
+    browseAiTaskId: v.string(), // Browse.ai task/result ID for sync
+
+    // Location
+    address: v.string(),
+    coordinates: v.array(v.number()), // [longitude, latitude] in WGS84
+
+    // Property details
+    propertyType: v.optional(
+      v.union(
+        v.literal("retail"),
+        v.literal("office"),
+        v.literal("industrial"),
+        v.literal("warehouse"),
+        v.literal("mixed-use"),
+        v.literal("land")
+      )
+    ),
+    buildingSqFt: v.optional(v.number()),
+    lotSizeSqFt: v.optional(v.number()),
+    zoning: v.optional(v.string()),
+
+    // Pricing
+    askingPrice: v.optional(v.number()),
+    pricePerSqFt: v.optional(v.number()),
+
+    // Contact and listing
+    contactInfo: v.optional(v.string()),
+    listingUrl: v.optional(v.string()),
+    description: v.optional(v.string()),
+
+    // Status
+    status: v.union(
+      v.literal("available"),
+      v.literal("sold"),
+      v.literal("pending"),
+      v.literal("unknown")
+    ),
+
+    // Sync metadata
+    lastSyncedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_browseAiTaskId", ["browseAiTaskId"])
+    .index("by_status", ["status"])
+    .index("by_propertyType", ["propertyType"])
+    .index("by_zoning", ["zoning"]),
+
+  // ---------------------------------------------------------------------------
+  // Development Sites - From Browse.ai scraping
+  // ---------------------------------------------------------------------------
+  developmentSites: defineTable({
+    // Browse.ai identification
+    browseAiTaskId: v.string(), // Browse.ai task/result ID for sync
+
+    // Location
+    address: v.string(),
+    coordinates: v.array(v.number()), // [longitude, latitude] in WGS84
+    siteName: v.optional(v.string()),
+
+    // Site details
+    lotSizeSqFt: v.optional(v.number()),
+    zoning: v.optional(v.string()),
+    currentUse: v.optional(v.string()),
+    proposedUse: v.optional(v.string()),
+
+    // Pricing
+    askingPrice: v.optional(v.number()),
+
+    // Incentives
+    incentives: v.optional(v.array(v.string())), // e.g., ["TIF", "Opportunity Zone"]
+
+    // Contact and listing
+    contactInfo: v.optional(v.string()),
+    listingUrl: v.optional(v.string()),
+    description: v.optional(v.string()),
+
+    // Status
+    status: v.union(
+      v.literal("available"),
+      v.literal("sold"),
+      v.literal("pending"),
+      v.literal("unknown")
+    ),
+
+    // Sync metadata
+    lastSyncedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_browseAiTaskId", ["browseAiTaskId"])
+    .index("by_status", ["status"])
+    .index("by_zoning", ["zoning"]),
 });

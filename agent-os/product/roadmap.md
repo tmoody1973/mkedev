@@ -20,8 +20,8 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 | P0 | App Shell | Chat-first, map-centric layout | Design System |
 | P0 | Mapbox Integration | Base map with ESRI zoning/parcel layers | App Shell |
 | P0 | Document Ingestion | Firecrawl → Gemini File Search for core PDFs | None |
-| P0 | Zoning Interpreter Agent | Primary agent for zoning queries | Document Ingestion |
-| P0 | Area Plan Advisor Agent | Agent for neighborhood plan alignment | Document Ingestion |
+| P0 | Zoning Interpreter Agent | Primary agent with tools for zoning, area plans, incentives, homes | Document Ingestion |
+| ~~P0~~ | ~~Area Plan Advisor Agent~~ | ✅ Implemented as `query_area_plans` tool in Zoning Interpreter | Document Ingestion |
 | P0 | Opik Integration | `@track` decorators on all agent functions | Agents |
 
 ### Week 2: Voice & Vision Integration (Days 8-14)
@@ -46,8 +46,8 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 
 | Priority | Feature | Description | Dependencies |
 |----------|---------|-------------|--------------|
-| P0 | Incentives Navigator Agent | Agent for TIF, OZ, and other incentives | Document Ingestion |
-| P0 | Orchestrator Agent | Meta-agent for complex multi-domain queries ([spec](../specs/2026-01-15-orchestrator-agent/spec.md)) | All agents |
+| ~~P0~~ | ~~Incentives Navigator Agent~~ | ✅ Implemented as `query_incentives` tool in Zoning Interpreter | Document Ingestion |
+| ~~P0~~ | ~~Orchestrator Agent~~ | Not needed - single agent with tools handles multi-domain queries | All agents |
 | P0 | Additional Map Layers | TIF, Opportunity Zones, Historic Districts, etc. | Mapbox |
 | P0 | Opik Evaluation Pipeline | RAG accuracy and hallucination testing | Opik Integration |
 | P1 | Prompt Optimization | Agent Optimizer cycle on Zoning Interpreter | Opik Evaluation |
@@ -207,29 +207,25 @@ Document Ingestion (Gemini File Search)
         ├── Convex HTTP API (storage)
         └── Gemini File Search Store (RAG indexing)
     │
-    └── Agent System (Google ADK)
-        ├── Specialized Agents (Single-Domain)
-        │   ├── Zoning Interpreter (zoning code, parking, permitted uses)
-        │   ├── Area Plan Advisor (neighborhood vision, development goals)
-        │   ├── Incentives Navigator (TIF, OZ, tax credits)
-        │   ├── Spatial Agent (geocoding, parcel search, ESRI queries)
-        │   ├── Design Advisor + Nano Banana (vision generation)
-        │   └── Permit Navigator (form-aware guidance)
+    └── Zoning Interpreter Agent (Consolidated - Convex)
+        ├── Agent Tools (all in single agent)
+        │   ├── geocode_address (Mapbox geocoding)
+        │   ├── query_zoning_at_point (ESRI zoning lookup)
+        │   ├── calculate_parking (parking requirements)
+        │   ├── query_zoning_code (RAG - zoning codes)
+        │   ├── query_area_plans (RAG - neighborhood plans) ← Area Plan Advisor
+        │   ├── query_incentives (RAG - housing programs) ← Incentives Navigator
+        │   ├── search_homes_for_sale (Convex query)
+        │   └── get_home_details (Convex query)
         │
-        ├── Memory Layer (Supermemory)
-        │   ├── User Profiles (auto-learned preferences)
-        │   ├── Project Memory (multi-session tracking)
-        │   ├── Interaction Memory (findings, calculations)
-        │   └── Semantic Recall (search past interactions)
+        ├── Future Tools (planned)
+        │   ├── search_commercial_properties (Browse.ai data)
+        │   ├── search_development_sites (Browse.ai data)
+        │   └── generate_architectural_preview (Nano Banana)
         │
-        └── Orchestrator Agent (Multi-Domain)
-            ├── Query Classification (simple vs complex)
-            ├── Workflow Planning (task DAG generation)
-            ├── Parallel Execution (independent tasks)
-            ├── Result Synthesis (combine agent outputs)
-            ├── Memory Integration (user context + preferences)
-            └── Handles: feasibility analysis, site comparison,
-                incentive stacking, complex neighborhood queries
+        └── Architecture Note:
+            Single agent with tools handles multi-domain queries
+            No orchestrator needed - Gemini selects appropriate tools
 
 Opik/Comet
     ├── Tracing (all agents)
