@@ -6,7 +6,7 @@
  */
 
 import { v } from "convex/values";
-import { internalMutation, mutation, query } from "../_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { PDF_SOURCES } from "./corpusConfig";
 
 // =============================================================================
@@ -195,6 +195,16 @@ export const getStats = query({
  * Get all documents with full details.
  */
 export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("documents").collect();
+  },
+});
+
+/**
+ * Get all documents (internal, for actions).
+ */
+export const listAll = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("documents").collect();

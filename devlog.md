@@ -1289,4 +1289,128 @@ Citations: STRONG Homes Loan Brochure, $25,000 STRONG Homes Loan Program
 
 ---
 
+## 2026-01-18 - Gemini 3 Context Caching + Thinking Levels
+
+### Completed
+- [x] Implement 1M token context window with Gemini 3
+- [x] Add Thinking Levels (high) for complex feasibility queries
+- [x] Create smart query router (RAG vs deep analysis)
+- [x] Build query classifier (simple/complex/feasibility)
+- [x] Deploy and test with Milwaukee zoning corpus
+
+### Implementation Summary
+
+**Gemini 3 Hackathon Features**
+
+This is a KEY implementation for the Gemini 3 Hackathon - demonstrating:
+1. **1M Context Window** - Full zoning corpus loaded directly into Gemini 3
+2. **Thinking Levels** - Deep reasoning with `thinkingLevel: "high"`
+3. **Smart Query Router** - Auto-routes simple queries to RAG, complex to Gemini 3
+
+**New File:** `apps/web/convex/agents/contextCache.ts`
+
+| Function | Purpose |
+|----------|---------|
+| `loadZoningCorpus` | Load full zoning documents into context |
+| `deepAnalysis` | Gemini 3 with 1M context + optional thinking |
+| `smartQuery` | Auto-route to RAG or Gemini 3 based on query type |
+| `classifyQuery` | Classify as simple/complex/feasibility |
+| `testDeepAnalysis` | Test brewery example with thinking |
+| `testSmartQuery` | Test the smart router |
+
+**Models Used:**
+- `gemini-3-flash-preview` - Fast analysis with 1M context
+- `gemini-3-pro-preview` - Deep thinking with reasoning output
+
+**Query Classification Patterns:**
+```typescript
+// Complex patterns (triggers deep analysis)
+/compare|across|all zones|every zone|comprehensive/i
+/conflict|contradiction|overlap/i
+/what are my options|where can I|which zones allow/i
+
+// Feasibility patterns (triggers thinking)
+/feasibility|feasible|can I build/i
+/mixed.?use.*development/i
+/comply|compliance|meet.*requirements/i
+```
+
+### Test Results
+
+**Complex Query (Gemini 3 Flash):**
+```
+Query: "Compare ALL commercial zones - which allow breweries with taprooms?"
+Method: deep-context
+Model: gemini-3-flash-preview
+Response: Comprehensive table comparing NS1, NS2, LB1, LB2, CS, RB1, RB2
+         with brewing permissions, taproom rules, outdoor seating, parking
+```
+
+**Feasibility Query (Gemini 3 Pro with Thinking):**
+```
+Query: "What zones allow brewery + taproom + live music?"
+Method: deep-thinking
+Model: gemini-3-pro-preview
+Reasoning: "I'm tackling this Milwaukee brewery project. I'm starting by
+           zeroing in on the user's need... First, the uses themselves:
+           'Craft Brewery' – is it 'Light Manufacturing,' 'Tavern,'..."
+Response: Top 3 recommendations with detailed compliance analysis
+```
+
+### Thinking Levels Output
+
+The reasoning field shows Gemini 3's internal thought process:
+- Breaking down complex queries into components
+- Cross-referencing zoning code sections
+- Identifying potential conflicts
+- Synthesizing recommendations
+
+Example reasoning excerpt:
+> "So, synthesizing it all... the Industrial Mixed is the first candidate.
+> It allows brewing and commercial. Music is generally okay, and moderate parking.
+> LB2 would be second, for good foot traffic, but I need to make sure brewing is small-scale..."
+
+### API Configuration
+
+```typescript
+// Gemini 3 models for hackathon
+const GEMINI_FLASH_MODEL = "gemini-3-flash-preview";
+const GEMINI_PRO_MODEL = "gemini-3-pro-preview";
+
+// Thinking configuration
+thinkingConfig: {
+  thinkingLevel: "high",  // or "low" for faster
+  includeThoughts: true,  // Return reasoning in response
+}
+```
+
+### Files Created/Modified
+
+| File | Changes |
+|------|---------|
+| `convex/agents/contextCache.ts` | New - Full implementation |
+| `convex/ingestion/documents.ts` | Added `listAll` internalQuery |
+
+### Key Decisions
+
+1. **Direct context over caching** - Gemini 3 preview models don't support explicit caching API yet, so we load full corpus directly into each request
+2. **Query classification first** - Classify before routing to minimize costs on simple queries
+3. **Thinking for feasibility only** - `thinkingLevel: "high"` only on complex/feasibility queries to balance cost/latency
+4. **RAG fallback** - If deep analysis fails, falls back to RAG for simple queries
+
+### Hackathon Differentiation
+
+This implementation showcases Gemini 3's unique capabilities:
+- **Not just RAG** - Cross-references entire zoning code simultaneously
+- **Shows reasoning** - Exposes how AI thinks through complex civic queries
+- **Comparative analysis** - Tables comparing ALL zones (not just relevant snippets)
+- **Deep feasibility** - Multi-factor analysis with conflict detection
+
+### Next Up
+- [ ] Integrate Nano Banana for architectural visualization
+- [ ] Add Gemini Live voice interface
+- [ ] Wire smartQuery into main chat flow
+
+---
+
 *Log entries below will be added as development progresses*

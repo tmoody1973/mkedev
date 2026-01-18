@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as agents_contextCache from "../agents/contextCache.js";
 import type * as agents_status from "../agents/status.js";
 import type * as agents_tools from "../agents/tools.js";
 import type * as agents_zoning from "../agents/zoning.js";
@@ -44,6 +45,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "agents/contextCache": typeof agents_contextCache;
   "agents/status": typeof agents_status;
   "agents/tools": typeof agents_tools;
   "agents/zoning": typeof agents_zoning;
