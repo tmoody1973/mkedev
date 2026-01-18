@@ -16,6 +16,7 @@ import { CommercialPropertiesLayerLoader } from './layers/CommercialPropertiesLa
 import { DevelopmentSitesLayerLoader } from './layers/DevelopmentSitesLayerLoader'
 import { LayerPanel } from './LayerPanel'
 import { ParcelPopup } from './ParcelPopup'
+import { MapScreenshotButton } from './MapScreenshotButton'
 import type { ParcelData } from './layers/esri-layer-manager'
 import type { HomeForSale } from './layers/homes-layer-manager'
 import type { CommercialProperty } from './layers/commercial-layer-manager'
@@ -409,6 +410,7 @@ export function MapContainer({
             />
           )}
           {showLayerPanel && <LayerPanel />}
+          <MapScreenshotButton />
           {showParcelPopup && selectedParcel && (
             <ParcelPopup
               parcel={selectedParcel}

@@ -32,6 +32,14 @@ export interface HistoryEntry {
   timestamp: number;
 }
 
+export interface ScreenshotEntry {
+  id: string;
+  image: string;
+  address?: string;
+  zoneCode?: string;
+  timestamp: number;
+}
+
 export interface VisualizerState {
   // Modal state
   isOpen: boolean;
@@ -62,6 +70,9 @@ export interface VisualizerState {
   // History for undo/redo
   history: HistoryEntry[];
   historyIndex: number;
+
+  // Screenshot gallery
+  screenshots: ScreenshotEntry[];
 
   // Actions
   openVisualizer: () => void;
@@ -105,6 +116,12 @@ export interface VisualizerState {
   canUndo: () => boolean;
   canRedo: () => boolean;
 
+  // Screenshot gallery actions
+  addScreenshot: (image: string, context?: { address?: string; zoneCode?: string }) => void;
+  removeScreenshot: (id: string) => void;
+  selectScreenshot: (id: string) => void;
+  clearScreenshots: () => void;
+
   // Reset
   reset: () => void;
 }
@@ -128,6 +145,7 @@ const initialState = {
   generationError: null,
   history: [],
   historyIndex: -1,
+  screenshots: [] as ScreenshotEntry[],
 };
 
 export const useVisualizerStore = create<VisualizerState>()(
@@ -236,6 +254,42 @@ export const useVisualizerStore = create<VisualizerState>()(
 
       canUndo: () => get().historyIndex > 0,
       canRedo: () => get().historyIndex < get().history.length - 1,
+
+      // Screenshot gallery actions
+      addScreenshot: (image, context) => {
+        const newScreenshot: ScreenshotEntry = {
+          id: `screenshot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          image,
+          address: context?.address,
+          zoneCode: context?.zoneCode,
+          timestamp: Date.now(),
+        };
+        set((state) => ({
+          screenshots: [newScreenshot, ...state.screenshots].slice(0, 20), // Keep max 20
+        }));
+      },
+
+      removeScreenshot: (id) => {
+        set((state) => ({
+          screenshots: state.screenshots.filter((s) => s.id !== id),
+        }));
+      },
+
+      selectScreenshot: (id) => {
+        const screenshot = get().screenshots.find((s) => s.id === id);
+        if (screenshot) {
+          set({
+            sourceImage: screenshot.image,
+            address: screenshot.address || null,
+            zoningContext: screenshot.zoneCode
+              ? { zoningDistrict: screenshot.zoneCode }
+              : null,
+            mode: 'edit',
+          });
+        }
+      },
+
+      clearScreenshots: () => set({ screenshots: [] }),
 
       // Reset
       reset: () => set(initialState),

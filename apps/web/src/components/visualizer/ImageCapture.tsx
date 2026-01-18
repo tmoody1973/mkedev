@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef } from 'react';
-import { Camera, Map, Upload } from 'lucide-react';
+import { Camera, Upload, X, ImageIcon } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
 
 /**
@@ -9,7 +9,7 @@ import { useVisualizerStore } from '@/stores';
  */
 export function ImageCapture() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { setSourceImage } = useVisualizerStore();
+  const { setSourceImage, screenshots, selectScreenshot, removeScreenshot } = useVisualizerStore();
 
   // Handle file upload
   const handleFileUpload = useCallback(
@@ -71,100 +71,140 @@ export function ImageCapture() {
     fileInputRef.current?.click();
   }, []);
 
-  // Placeholder for map capture (will be implemented with mapRef)
-  const handleMapCapture = useCallback(() => {
-    // This will be connected to the map's getCanvas() method
-    alert(
-      'Map capture will be available when triggered from the map view. Use the "Visualize" button after selecting a parcel.'
-    );
-  }, []);
+  // Handle screenshot selection
+  const handleSelectScreenshot = useCallback(
+    (id: string) => {
+      selectScreenshot(id);
+    },
+    [selectScreenshot]
+  );
 
-  // Placeholder for Street View capture
-  const handleStreetViewCapture = useCallback(() => {
-    alert(
-      'Street View capture will be available from the Street View modal. Open Street View first, then click "Capture for Visualization".'
-    );
-  }, []);
+  // Handle screenshot removal
+  const handleRemoveScreenshot = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      removeScreenshot(id);
+    },
+    [removeScreenshot]
+  );
+
+  // Format timestamp
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-8 bg-stone-50 dark:bg-stone-900">
-      <div className="max-w-2xl w-full space-y-8">
-        {/* Title */}
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold font-head text-stone-900 dark:text-stone-100">
-            Choose an Image Source
-          </h2>
-          <p className="text-stone-600 dark:text-stone-400">
-            Capture or upload an image of the site you want to visualize
-          </p>
-        </div>
+    <div className="h-full flex flex-col overflow-hidden bg-stone-50 dark:bg-stone-900">
+      {/* Header */}
+      <div className="p-6 text-center border-b-2 border-stone-200 dark:border-stone-700">
+        <h2 className="text-2xl font-bold font-head text-stone-900 dark:text-stone-100">
+          Choose an Image Source
+        </h2>
+        <p className="text-stone-600 dark:text-stone-400 mt-1">
+          Use a screenshot from the map or upload your own image
+        </p>
+      </div>
 
-        {/* Capture Options */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Map Screenshot */}
-          <button
-            onClick={handleMapCapture}
-            className="group flex flex-col items-center gap-4 p-6 bg-white dark:bg-stone-800
-              rounded-xl border-2 border-black dark:border-stone-600
-              shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]
-              hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-              active:translate-y-2 active:shadow-none
-              transition-all duration-100"
-          >
-            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-sky-100 dark:bg-sky-900 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
-              <Map className="w-8 h-8" />
-            </div>
-            <div className="text-center">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Screenshot Gallery */}
+        {screenshots.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Camera className="w-5 h-5 text-purple-500" />
               <h3 className="font-bold text-stone-900 dark:text-stone-100">
-                Map View
+                Your Screenshots ({screenshots.length})
               </h3>
-              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-                Capture the current map view
-              </p>
             </div>
-          </button>
+            <p className="text-sm text-stone-500 dark:text-stone-400 mb-4">
+              Use the camera button on the map to take screenshots. Click any screenshot below to use it.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {screenshots.map((screenshot) => (
+                <button
+                  key={screenshot.id}
+                  onClick={() => handleSelectScreenshot(screenshot.id)}
+                  className="group relative aspect-video rounded-lg overflow-hidden border-2 border-stone-300 dark:border-stone-600
+                    hover:border-purple-500 hover:shadow-[4px_4px_0px_0px_rgba(147,51,234,0.5)]
+                    transition-all duration-100"
+                >
+                  <img
+                    src={screenshot.image}
+                    alt={screenshot.address || 'Map screenshot'}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-2 left-2 right-2">
+                      <p className="text-white text-xs font-medium truncate">
+                        {screenshot.address || 'Map view'}
+                      </p>
+                      <p className="text-white/70 text-xs">
+                        {formatTime(screenshot.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => handleRemoveScreenshot(e, screenshot.id)}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white
+                      flex items-center justify-center opacity-0 group-hover:opacity-100
+                      hover:bg-red-600 transition-opacity"
+                    aria-label="Remove screenshot"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-          {/* Street View */}
-          <button
-            onClick={handleStreetViewCapture}
-            className="group flex flex-col items-center gap-4 p-6 bg-white dark:bg-stone-800
-              rounded-xl border-2 border-black dark:border-stone-600
-              shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]
-              hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-              active:translate-y-2 active:shadow-none
-              transition-all duration-100"
-          >
-            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
-              <Camera className="w-8 h-8" />
+        {/* Empty state for screenshots */}
+        {screenshots.length === 0 && (
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-6 border-2 border-dashed border-purple-300 dark:border-purple-700">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center flex-shrink-0">
+                <Camera className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-stone-900 dark:text-stone-100">
+                  No screenshots yet
+                </h4>
+                <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
+                  Click the purple camera button on the map to take screenshots.
+                  They will appear here for you to visualize.
+                </p>
+              </div>
             </div>
-            <div className="text-center">
-              <h3 className="font-bold text-stone-900 dark:text-stone-100">
-                Street View
-              </h3>
-              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-                Capture from Street View
-              </p>
-            </div>
-          </button>
+          </div>
+        )}
 
-          {/* Upload File */}
+        {/* Upload Option */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Upload className="w-5 h-5 text-sky-500" />
+            <h3 className="font-bold text-stone-900 dark:text-stone-100">
+              Upload Your Own
+            </h3>
+          </div>
           <button
             onClick={handleUploadClick}
-            className="group flex flex-col items-center gap-4 p-6 bg-white dark:bg-stone-800
+            className="w-full flex items-center gap-4 p-4 bg-white dark:bg-stone-800
               rounded-xl border-2 border-black dark:border-stone-600
               shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]
               hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
               active:translate-y-2 active:shadow-none
               transition-all duration-100"
           >
-            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
-              <Upload className="w-8 h-8" />
+            <div className="w-12 h-12 flex items-center justify-center rounded-full bg-sky-100 dark:bg-sky-900 text-sky-600 dark:text-sky-400">
+              <ImageIcon className="w-6 h-6" />
             </div>
-            <div className="text-center">
-              <h3 className="font-bold text-stone-900 dark:text-stone-100">
+            <div className="text-left">
+              <h4 className="font-bold text-stone-900 dark:text-stone-100">
                 Upload Image
-              </h3>
-              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
+              </h4>
+              <p className="text-sm text-stone-500 dark:text-stone-400">
                 PNG, JPG, or WebP (max 4MB)
               </p>
             </div>

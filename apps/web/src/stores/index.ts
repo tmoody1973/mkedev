@@ -4,5 +4,6 @@ export type {
   ToolType,
   ZoningContext,
   HistoryEntry,
+  ScreenshotEntry,
   VisualizerState,
 } from './visualizerStore';
