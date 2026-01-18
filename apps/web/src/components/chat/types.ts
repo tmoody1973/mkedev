@@ -25,6 +25,10 @@ export type GenerativeCardType =
   | 'opportunity-list'
   | 'home-listing'
   | 'homes-list'
+  | 'commercial-property'
+  | 'commercial-properties-list'
+  | 'development-site'
+  | 'development-sites-list'
 
 /**
  * Generative card type for rendering UI components within messages.

@@ -59,3 +59,4 @@ apps/web/public/tiles/
 .worktrees/
 .security-key
 logs/security/
+__pycache__/

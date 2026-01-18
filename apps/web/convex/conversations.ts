@@ -234,7 +234,11 @@ export const addMessage = mutation({
             v.literal("code-citation"),
             v.literal("opportunity-list"),
             v.literal("home-listing"),
-            v.literal("homes-list")
+            v.literal("homes-list"),
+            v.literal("commercial-property"),
+            v.literal("commercial-properties-list"),
+            v.literal("development-site"),
+            v.literal("development-sites-list")
           ),
           data: v.any(),
         })

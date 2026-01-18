@@ -155,7 +155,21 @@ export function useConversations(): UseConversationsReturn {
         content,
         inputMode: options?.inputMode,
         cards: options?.cards?.map(card => ({
-          type: card.type as "zone-info" | "parcel-info" | "parcel-analysis" | "incentives-summary" | "area-plan-context" | "permit-process" | "code-citation" | "opportunity-list",
+          type: card.type as
+            | "zone-info"
+            | "parcel-info"
+            | "parcel-analysis"
+            | "incentives-summary"
+            | "area-plan-context"
+            | "permit-process"
+            | "code-citation"
+            | "opportunity-list"
+            | "home-listing"
+            | "homes-list"
+            | "commercial-property"
+            | "commercial-properties-list"
+            | "development-site"
+            | "development-sites-list",
           data: card.data,
         })),
       });
