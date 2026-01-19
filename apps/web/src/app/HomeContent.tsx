@@ -75,8 +75,6 @@ interface StreetViewModalState {
 export default function HomeContent() {
   const { isLoaded: isAuthLoaded } = useAuth()
   const [isVoiceActive, setIsVoiceActive] = useState(false)
-  // Layer panel state - controlled by header button
-  const [isLayersPanelOpen, setIsLayersPanelOpen] = useState(false)
   const [_selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -361,9 +359,6 @@ export default function HomeContent() {
     setIsVoiceActive((prev) => !prev)
   }, [])
 
-  const handleLayersClick = useCallback(() => {
-    setIsLayersPanelOpen((prev) => !prev)
-  }, [])
 
   // Visualizer store
   const { openVisualizer, setSourceImage, setZoningContext } = useVisualizerStore()
@@ -1079,8 +1074,6 @@ export default function HomeContent() {
         <AppShell
           isVoiceActive={isVoiceActive}
           onVoiceToggle={handleVoiceToggle}
-          isLayersPanelOpen={isLayersPanelOpen}
-          onLayersClick={handleLayersClick}
           onVisualizeClick={handleVisualizeClick}
           onLogoClick={handleLogoClick}
           isSidebarOpen={isSidebarOpen}
@@ -1122,7 +1115,7 @@ export default function HomeContent() {
               onParcelClear={handleParcelClear}
               onParcelAsk={handleParcelAsk}
               onParcelVisualize={handleParcelVisualize}
-              showLayerPanel={isLayersPanelOpen}
+              showLayerPanel={false}
             />
           }
         />

@@ -63,10 +63,17 @@ function getStrokeLayerId(layerId: ESRILayerType): string {
 }
 
 /**
- * Generate unique highlight layer ID
+ * Generate unique highlight layer ID (stroke)
  */
 function getHighlightLayerId(layerId: ESRILayerType): string {
   return `esri-highlight-${layerId}`
+}
+
+/**
+ * Generate unique highlight fill layer ID
+ */
+function getHighlightFillLayerId(layerId: ESRILayerType): string {
+  return `esri-highlight-fill-${layerId}`
 }
 
 // =============================================================================
@@ -285,33 +292,66 @@ export class ESRILayerManager {
   }
 
   /**
-   * Add highlight layer for selected/hovered features
+   * Add highlight layers for selected/hovered features
+   * Includes both a fill layer (semi-transparent) and a stroke layer (bold outline)
    */
   private addHighlightLayer(layerId: ESRILayerType, sourceId: string): void {
-    const highlightLayerId = getHighlightLayerId(layerId)
+    const highlightFillLayerId = getHighlightFillLayerId(layerId)
+    const highlightLineLayerId = getHighlightLayerId(layerId)
 
-    if (this.map.getLayer(highlightLayerId)) return
+    // Add fill highlight layer (semi-transparent blue fill for selected parcel)
+    if (!this.map.getLayer(highlightFillLayerId)) {
+      this.map.addLayer({
+        id: highlightFillLayerId,
+        type: 'fill',
+        source: sourceId,
+        layout: {
+          visibility: 'visible',
+        },
+        paint: {
+          'fill-color': '#3B82F6', // blue-500
+          'fill-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            0.35, // Semi-transparent when selected
+            ['boolean', ['feature-state', 'hover'], false],
+            0.15, // Light fill on hover
+            0, // Invisible when not selected/hovered
+          ],
+        },
+      })
+    }
 
-    this.map.addLayer({
-      id: highlightLayerId,
-      type: 'line',
-      source: sourceId,
-      layout: {
-        visibility: 'visible',
-      },
-      paint: {
-        'line-color': '#0EA5E9', // sky-500
-        'line-width': 3,
-        'line-opacity': [
-          'case',
-          ['boolean', ['feature-state', 'selected'], false],
-          1,
-          ['boolean', ['feature-state', 'hover'], false],
-          0.7,
-          0,
-        ],
-      },
-    })
+    // Add line highlight layer (bold outline for selected parcel)
+    if (!this.map.getLayer(highlightLineLayerId)) {
+      this.map.addLayer({
+        id: highlightLineLayerId,
+        type: 'line',
+        source: sourceId,
+        layout: {
+          visibility: 'visible',
+        },
+        paint: {
+          'line-color': '#2563EB', // blue-600
+          'line-width': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            3.5, // Thick border when selected
+            ['boolean', ['feature-state', 'hover'], false],
+            2, // Medium border on hover
+            0, // No border when not selected/hovered
+          ],
+          'line-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            1,
+            ['boolean', ['feature-state', 'hover'], false],
+            0.8,
+            0,
+          ],
+        },
+      })
+    }
   }
 
   /**

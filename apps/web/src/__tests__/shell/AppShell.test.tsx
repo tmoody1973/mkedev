@@ -15,7 +15,7 @@ vi.mock('@/contexts/MapContext', () => ({
     setMap: vi.fn(),
     selectedParcelId: null,
     setSelectedParcelId: vi.fn(),
-    layerVisibility: {},
+    layerVisibility: { parcels: true, zoning: true },
     toggleLayerVisibility: vi.fn(),
     setLayerVisibility: vi.fn(),
     layerOpacity: {},
@@ -31,6 +31,11 @@ vi.mock('@/contexts/MapContext', () => ({
     toggle3DMode: vi.fn(),
     animateTo3DView: vi.fn(),
     animateTo2DView: vi.fn(),
+    captureMapScreenshot: vi.fn(),
+    highlightParcel: vi.fn(),
+    registerHighlightParcel: vi.fn(),
+    clearParcelSelection: vi.fn(),
+    registerClearParcelSelection: vi.fn(),
   }),
 }))
 
@@ -55,24 +60,20 @@ describe('AppShell', () => {
     expect(screen.getByText('MKE.dev')).toBeInTheDocument()
     expect(screen.getByLabelText(/voice mode/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Toggle 3D view')).toBeInTheDocument()
-    expect(screen.getByLabelText('Toggle map layers panel')).toBeInTheDocument()
+    expect(screen.getByLabelText('Toggle layers menu')).toBeInTheDocument()
     expect(screen.getByTestId('user-menu')).toBeInTheDocument()
   })
 
-  it('calls onLayersClick when layers button is clicked', () => {
-    const onLayersClick = vi.fn()
-    render(
-      <AppShell
-        chatPanel={mockChatPanel}
-        mapPanel={mockMapPanel}
-        onLayersClick={onLayersClick}
-      />
-    )
+  it('opens layers dropdown when layers button is clicked', () => {
+    render(<AppShell chatPanel={mockChatPanel} mapPanel={mockMapPanel} />)
 
-    const layersButton = screen.getByLabelText('Toggle map layers panel')
+    const layersButton = screen.getByLabelText('Toggle layers menu')
     fireEvent.click(layersButton)
 
-    expect(onLayersClick).toHaveBeenCalledTimes(1)
+    // Check that the dropdown opened with layer options
+    expect(screen.getByText('Layers')).toBeInTheDocument()
+    expect(screen.getByText('Parcels')).toBeInTheDocument()
+    expect(screen.getByText('Zoning')).toBeInTheDocument()
   })
 
   it('toggles voice state when voice button is clicked', () => {

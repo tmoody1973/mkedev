@@ -37,6 +37,7 @@ import type * as ingestion_types from "../ingestion/types.js";
 import type * as lib_opik from "../lib/opik.js";
 import type * as reports from "../reports.js";
 import type * as users from "../users.js";
+import type * as visualization_gallery from "../visualization/gallery.js";
 import type * as visualization_generate from "../visualization/generate.js";
 
 import type {
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   "lib/opik": typeof lib_opik;
   reports: typeof reports;
   users: typeof users;
+  "visualization/gallery": typeof visualization_gallery;
   "visualization/generate": typeof visualization_generate;
 }>;
 

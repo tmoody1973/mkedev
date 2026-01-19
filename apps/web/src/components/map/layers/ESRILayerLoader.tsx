@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Loader2, AlertTriangle } from 'lucide-react'
+import { useMap } from '@/contexts/MapContext'
 import { useESRILayers } from './useESRILayers'
 import { ZoningTooltip } from './ZoningTooltip'
 import type { ParcelData } from './esri-layer-manager'
@@ -43,8 +44,19 @@ export function ESRILayerLoader({
   showZoningTooltip = true,
   isStyleChanging = false,
 }: ESRILayerLoaderProps) {
-  const { isLoading, error, selectedParcel, zoningTooltip, reinitializeLayers } =
+  const { registerHighlightParcel, registerClearParcelSelection } = useMap()
+  const { isLoading, error, selectedParcel, zoningTooltip, reinitializeLayers, highlightParcel, clearSelectedParcel } =
     useESRILayers()
+
+  // Register highlight functions with MapContext so copilot/chat can use them
+  useEffect(() => {
+    if (highlightParcel) {
+      registerHighlightParcel(highlightParcel)
+    }
+    if (clearSelectedParcel) {
+      registerClearParcelSelection(clearSelectedParcel)
+    }
+  }, [highlightParcel, clearSelectedParcel, registerHighlightParcel, registerClearParcelSelection])
 
   const [tooltipPosition, setTooltipPosition] = useState<{
     x: number

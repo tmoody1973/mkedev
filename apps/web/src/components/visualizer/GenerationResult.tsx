@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Download, Save, RefreshCw, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
+import { Download, Save, RefreshCw, ChevronLeft, ChevronRight, Layers, Loader2, Check } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
+import { useVisualizationStorage } from '@/hooks/useVisualizationStorage';
 
 /**
  * GenerationResult - Before/after comparison view
@@ -11,16 +12,21 @@ export function GenerationResult() {
   const {
     sourceImage,
     generatedImage,
+    maskImage,
     prompt,
     setMode,
     address,
+    coordinates,
     zoningContext,
-    saveVisualization,
+    sourceType,
+    saveVisualization: saveToLocalStore,
     setSourceImage,
     setMaskImage,
     setPrompt,
     setGeneratedImage,
   } = useVisualizerStore();
+
+  const { saveVisualization: saveToConvex, isUploading } = useVisualizationStorage();
 
   const [viewMode, setViewMode] = useState<'side-by-side' | 'slider'>('side-by-side');
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -40,12 +46,29 @@ export function GenerationResult() {
   // Handle save to gallery
   const [isSaved, setIsSaved] = useState(false);
 
-  const handleSave = useCallback(() => {
-    if (!generatedImage || !sourceImage || isSaved) return;
+  const handleSave = useCallback(async () => {
+    if (!generatedImage || !sourceImage || isSaved || isUploading) return;
 
-    saveVisualization();
-    setIsSaved(true);
-  }, [generatedImage, sourceImage, isSaved, saveVisualization]);
+    try {
+      // Save to Convex (with image upload)
+      await saveToConvex({
+        sourceImage,
+        generatedImage,
+        maskImage: maskImage || undefined,
+        prompt,
+        sourceType: sourceType === 'map' ? 'map_screenshot' : sourceType === 'street_view' ? 'street_view' : 'upload',
+        address: address || undefined,
+        coordinates: coordinates || undefined,
+        zoningContext: zoningContext || undefined,
+      });
+
+      // Also save to local store for immediate display
+      saveToLocalStore();
+      setIsSaved(true);
+    } catch (error) {
+      console.error('Failed to save visualization:', error);
+    }
+  }, [generatedImage, sourceImage, maskImage, prompt, sourceType, address, coordinates, zoningContext, isSaved, isUploading, saveToConvex, saveToLocalStore]);
 
   // Handle try again (go back to edit with original source)
   const handleTryAgain = useCallback(() => {
@@ -53,13 +76,28 @@ export function GenerationResult() {
   }, [setMode]);
 
   // Handle iterate - use generated image as new source for further editing
-  const handleIterate = useCallback(() => {
-    if (!generatedImage) return;
+  const handleIterate = useCallback(async () => {
+    if (!generatedImage || !sourceImage) return;
 
     // Save current visualization first if not saved
-    if (!isSaved) {
-      saveVisualization();
-      setIsSaved(true);
+    if (!isSaved && !isUploading) {
+      try {
+        await saveToConvex({
+          sourceImage,
+          generatedImage,
+          maskImage: maskImage || undefined,
+          prompt,
+          sourceType: sourceType === 'map' ? 'map_screenshot' : sourceType === 'street_view' ? 'street_view' : 'upload',
+          address: address || undefined,
+          coordinates: coordinates || undefined,
+          zoningContext: zoningContext || undefined,
+        });
+        saveToLocalStore();
+        setIsSaved(true);
+      } catch (error) {
+        console.error('Failed to save before iterating:', error);
+        // Continue anyway - user can save manually later
+      }
     }
 
     // Use the generated image as the new source
@@ -68,7 +106,7 @@ export function GenerationResult() {
     setGeneratedImage(null); // Clear previous result
     setPrompt(''); // Clear prompt for new instruction
     setMode('edit');
-  }, [generatedImage, isSaved, saveVisualization, setSourceImage, setMaskImage, setGeneratedImage, setPrompt, setMode]);
+  }, [generatedImage, sourceImage, maskImage, prompt, sourceType, address, coordinates, zoningContext, isSaved, isUploading, saveToConvex, saveToLocalStore, setSourceImage, setMaskImage, setGeneratedImage, setPrompt, setMode]);
 
   // Handle slider drag
   const handleSliderMove = useCallback(
@@ -252,7 +290,7 @@ export function GenerationResult() {
 
           <button
             onClick={handleSave}
-            disabled={isSaved}
+            disabled={isSaved || isUploading}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-black
               font-medium
               shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
@@ -260,11 +298,17 @@ export function GenerationResult() {
               active:translate-y-1 active:shadow-none
               disabled:opacity-70 disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
               transition-all duration-100
-              ${isSaved ? 'bg-green-500 text-white' : 'bg-sky-500 text-white'}
+              ${isSaved ? 'bg-green-500 text-white' : isUploading ? 'bg-sky-400 text-white' : 'bg-sky-500 text-white'}
             `}
           >
-            <Save className="w-4 h-4" />
-            {isSaved ? 'Saved!' : 'Save'}
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isSaved ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isUploading ? 'Saving...' : isSaved ? 'Saved!' : 'Save'}
           </button>
 
           <button

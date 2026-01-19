@@ -231,6 +231,7 @@ export class PMTilesLayerManager {
   private is3DMode = false
   private onFeatureClick?: PMTilesLayerManagerOptions['onFeatureClick']
   private onFeatureHover?: PMTilesLayerManagerOptions['onFeatureHover']
+  private selectedFeatureId: string | number | null = null
 
   constructor(options: PMTilesLayerManagerOptions) {
     this.map = options.map
@@ -311,8 +312,69 @@ export class PMTilesLayerManager {
       })
     }
 
+    // Add highlight layers for parcel selection
+    this.addHighlightLayers()
+
     // Setup click handlers
     this.setupEventHandlers()
+  }
+
+  /**
+   * Add highlight layers for selected parcels
+   */
+  private addHighlightLayers(): void {
+    const highlightFillId = 'pmtiles-parcels-highlight-fill'
+    const highlightLineId = 'pmtiles-parcels-highlight-line'
+
+    // Add fill highlight layer (semi-transparent blue fill)
+    if (!this.map.getLayer(highlightFillId)) {
+      this.map.addLayer({
+        id: highlightFillId,
+        type: 'fill',
+        source: this.sourceId,
+        'source-layer': SOURCE_LAYER_IDS.parcels,
+        paint: {
+          'fill-color': '#3B82F6', // blue-500
+          'fill-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            0.35, // Semi-transparent when selected
+            ['boolean', ['feature-state', 'hover'], false],
+            0.15, // Light fill on hover
+            0, // Invisible when not selected/hovered
+          ],
+        },
+      })
+    }
+
+    // Add line highlight layer (bold outline)
+    if (!this.map.getLayer(highlightLineId)) {
+      this.map.addLayer({
+        id: highlightLineId,
+        type: 'line',
+        source: this.sourceId,
+        'source-layer': SOURCE_LAYER_IDS.parcels,
+        paint: {
+          'line-color': '#2563EB', // blue-600
+          'line-width': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            3.5, // Thick border when selected
+            ['boolean', ['feature-state', 'hover'], false],
+            2, // Medium border on hover
+            0, // No border when not selected/hovered
+          ],
+          'line-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            1,
+            ['boolean', ['feature-state', 'hover'], false],
+            0.8,
+            0,
+          ],
+        },
+      })
+    }
   }
 
   /**
@@ -423,6 +485,19 @@ export class PMTilesLayerManager {
       if (!e.features || e.features.length === 0) return
 
       const feature = e.features[0]
+
+      // Clear previous selection
+      this.clearSelection()
+
+      // Set new selection
+      if (feature.id !== undefined) {
+        this.selectedFeatureId = feature.id
+        this.map.setFeatureState(
+          { source: this.sourceId, sourceLayer: SOURCE_LAYER_IDS.parcels, id: feature.id },
+          { selected: true }
+        )
+      }
+
       this.onFeatureClick?.({
         layerId: 'parcels',
         properties: feature.properties || {},
@@ -462,19 +537,55 @@ export class PMTilesLayerManager {
   }
 
   /**
-   * Clear parcel selection (stub for compatibility)
+   * Clear parcel selection
    */
   clearSelection(): void {
-    // PMTiles doesn't track selection state the same way
-    // The selection highlight is handled via map feature state if needed
+    if (this.selectedFeatureId !== null) {
+      this.map.setFeatureState(
+        { source: this.sourceId, sourceLayer: SOURCE_LAYER_IDS.parcels, id: this.selectedFeatureId },
+        { selected: false }
+      )
+      this.selectedFeatureId = null
+    }
   }
 
   /**
-   * Highlight parcel by tax key (stub for compatibility)
+   * Highlight parcel by tax key
    */
-  highlightParcelByTaxKey(_taxKey: string): void {
-    // This could be implemented using map.setFeatureState if needed
-    // For now, this is a compatibility stub
+  highlightParcelByTaxKey(taxKey: string): void {
+    // Query rendered features to find the parcel with matching tax key
+    const features = this.map.querySourceFeatures(this.sourceId, {
+      sourceLayer: SOURCE_LAYER_IDS.parcels,
+      filter: ['==', ['get', 'TAXKEY'], taxKey],
+    })
+
+    if (features.length > 0 && features[0].id !== undefined) {
+      // Clear previous selection
+      this.clearSelection()
+
+      // Set new selection
+      this.selectedFeatureId = features[0].id
+      this.map.setFeatureState(
+        { source: this.sourceId, sourceLayer: SOURCE_LAYER_IDS.parcels, id: features[0].id },
+        { selected: true }
+      )
+
+      // Optionally fly to the parcel if it has geometry
+      const geometry = features[0].geometry
+      if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') {
+        // Calculate centroid for panning
+        const coords = geometry.type === 'Polygon'
+          ? geometry.coordinates[0]
+          : geometry.coordinates[0][0]
+        if (coords.length > 0) {
+          const centroid = coords.reduce(
+            (acc, coord) => [acc[0] + coord[0], acc[1] + coord[1]],
+            [0, 0]
+          ).map((v: number) => v / coords.length)
+          this.map.flyTo({ center: centroid as [number, number], zoom: 17 })
+        }
+      }
+    }
   }
 
   /**
@@ -497,6 +608,14 @@ export class PMTilesLayerManager {
       // Remove 3D zoning layer if it exists
       if (this.map.getLayer('pmtiles-zoning-3d')) {
         this.map.removeLayer('pmtiles-zoning-3d')
+      }
+
+      // Remove highlight layers
+      if (this.map.getLayer('pmtiles-parcels-highlight-fill')) {
+        this.map.removeLayer('pmtiles-parcels-highlight-fill')
+      }
+      if (this.map.getLayer('pmtiles-parcels-highlight-line')) {
+        this.map.removeLayer('pmtiles-parcels-highlight-line')
       }
 
       // Remove standard layers

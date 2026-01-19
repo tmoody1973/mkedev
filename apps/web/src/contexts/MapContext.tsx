@@ -70,6 +70,14 @@ export interface MapContextValue {
   animateTo2DView: () => void
   /** Capture the current map view as a base64 PNG image */
   captureMapScreenshot: () => string | null
+  /** Highlight a parcel by tax key (triggers visual highlight and fly-to) */
+  highlightParcel: (taxKey: string) => void
+  /** Register a highlight function from the layer manager */
+  registerHighlightParcel: (fn: (taxKey: string) => void) => void
+  /** Clear parcel selection/highlight */
+  clearParcelSelection: () => void
+  /** Register a clear selection function from the layer manager */
+  registerClearParcelSelection: (fn: () => void) => void
 }
 
 // =============================================================================
@@ -174,6 +182,10 @@ export function MapProvider({
   const [mapError, setMapError] = useState<string | null>(null)
   // Always start with false to match server render, sync from localStorage after hydration
   const [is3DMode, setIs3DModeState] = useState<boolean>(false)
+
+  // Refs for parcel highlight functions (registered by layer manager)
+  const highlightParcelRef = useRef<((taxKey: string) => void) | null>(null)
+  const clearParcelSelectionRef = useRef<(() => void) | null>(null)
 
   // Sync 3D mode from localStorage after hydration (avoids hydration mismatch)
   useEffect(() => {
@@ -324,6 +336,28 @@ export function MapProvider({
     }
   }, [])
 
+  // Parcel highlight functions - called by copilot/chat components
+  const highlightParcel = useCallback((taxKey: string) => {
+    if (highlightParcelRef.current) {
+      highlightParcelRef.current(taxKey)
+    }
+  }, [])
+
+  const registerHighlightParcel = useCallback((fn: (taxKey: string) => void) => {
+    highlightParcelRef.current = fn
+  }, [])
+
+  const clearParcelSelection = useCallback(() => {
+    if (clearParcelSelectionRef.current) {
+      clearParcelSelectionRef.current()
+    }
+    setSelectedParcelId(null)
+  }, [])
+
+  const registerClearParcelSelection = useCallback((fn: () => void) => {
+    clearParcelSelectionRef.current = fn
+  }, [])
+
   // Persist 3D mode to localStorage on change
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -357,6 +391,10 @@ export function MapProvider({
     animateTo3DView,
     animateTo2DView,
     captureMapScreenshot,
+    highlightParcel,
+    registerHighlightParcel,
+    clearParcelSelection,
+    registerClearParcelSelection,
   }
 
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>
