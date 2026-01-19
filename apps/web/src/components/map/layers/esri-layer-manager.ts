@@ -63,17 +63,10 @@ function getStrokeLayerId(layerId: ESRILayerType): string {
 }
 
 /**
- * Generate unique highlight layer ID (stroke)
+ * Generate unique highlight layer ID (stroke) - kept for legacy cleanup
  */
 function getHighlightLayerId(layerId: ESRILayerType): string {
   return `esri-highlight-${layerId}`
-}
-
-/**
- * Generate unique highlight fill layer ID
- */
-function getHighlightFillLayerId(layerId: ESRILayerType): string {
-  return `esri-highlight-fill-${layerId}`
 }
 
 // =============================================================================
@@ -84,13 +77,18 @@ function getHighlightFillLayerId(layerId: ESRILayerType): string {
  * Manages ESRI ArcGIS FeatureServer layers within a Mapbox GL map
  * Provides methods for adding, removing, and controlling layer visibility
  */
+// Highlight source/layer IDs
+const HIGHLIGHT_SOURCE_ID = 'parcel-highlight-source'
+const HIGHLIGHT_FILL_LAYER_ID = 'parcel-highlight-fill'
+const HIGHLIGHT_LINE_LAYER_ID = 'parcel-highlight-line'
+
 export class ESRILayerManager {
   private map: MapboxMap
   private featureServices: Map<ESRILayerType, FeatureService> = new Map()
   private layerConfigs: Map<ESRILayerType, ESRILayerConfig> = new Map()
   private onFeatureClick?: (event: LayerClickEvent) => void
   private onFeatureHover?: (event: LayerClickEvent | null) => void
-  private selectedFeatureId: string | null = null
+  private selectedFeatureGeometry: GeoJSON.Geometry | null = null
 
   constructor(options: ESRILayerManagerOptions) {
     this.map = options.map
@@ -116,6 +114,9 @@ export class ESRILayerManager {
     for (const config of reversedConfigs) {
       await this.addLayer(config, initialVisibility[config.id] ?? config.defaultVisible)
     }
+
+    // Initialize the dedicated highlight layers (uses GeoJSON source for better ESRI compatibility)
+    this.initializeHighlightLayers()
 
     // Set up event handlers for interactive layers
     this.setupEventHandlers()
@@ -292,66 +293,78 @@ export class ESRILayerManager {
   }
 
   /**
-   * Add highlight layers for selected/hovered features
-   * Includes both a fill layer (semi-transparent) and a stroke layer (bold outline)
+   * Initialize the dedicated highlight source and layers
+   * Uses a separate GeoJSON source for the selected parcel (works better with ESRI)
    */
-  private addHighlightLayer(layerId: ESRILayerType, sourceId: string): void {
-    const highlightFillLayerId = getHighlightFillLayerId(layerId)
-    const highlightLineLayerId = getHighlightLayerId(layerId)
-
-    // Add fill highlight layer (semi-transparent blue fill for selected parcel)
-    if (!this.map.getLayer(highlightFillLayerId)) {
-      this.map.addLayer({
-        id: highlightFillLayerId,
-        type: 'fill',
-        source: sourceId,
-        layout: {
-          visibility: 'visible',
+  private initializeHighlightLayers(): void {
+    // Add empty GeoJSON source for highlights
+    if (!this.map.getSource(HIGHLIGHT_SOURCE_ID)) {
+      this.map.addSource(HIGHLIGHT_SOURCE_ID, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [],
         },
+      })
+    }
+
+    // Add fill highlight layer (semi-transparent blue fill)
+    if (!this.map.getLayer(HIGHLIGHT_FILL_LAYER_ID)) {
+      this.map.addLayer({
+        id: HIGHLIGHT_FILL_LAYER_ID,
+        type: 'fill',
+        source: HIGHLIGHT_SOURCE_ID,
         paint: {
           'fill-color': '#3B82F6', // blue-500
-          'fill-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            0.35, // Semi-transparent when selected
-            ['boolean', ['feature-state', 'hover'], false],
-            0.15, // Light fill on hover
-            0, // Invisible when not selected/hovered
-          ],
+          'fill-opacity': 0.35,
         },
       })
     }
 
-    // Add line highlight layer (bold outline for selected parcel)
-    if (!this.map.getLayer(highlightLineLayerId)) {
+    // Add line highlight layer (bold outline)
+    if (!this.map.getLayer(HIGHLIGHT_LINE_LAYER_ID)) {
       this.map.addLayer({
-        id: highlightLineLayerId,
+        id: HIGHLIGHT_LINE_LAYER_ID,
         type: 'line',
-        source: sourceId,
-        layout: {
-          visibility: 'visible',
-        },
+        source: HIGHLIGHT_SOURCE_ID,
         paint: {
           'line-color': '#2563EB', // blue-600
-          'line-width': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            3.5, // Thick border when selected
-            ['boolean', ['feature-state', 'hover'], false],
-            2, // Medium border on hover
-            0, // No border when not selected/hovered
-          ],
-          'line-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            1,
-            ['boolean', ['feature-state', 'hover'], false],
-            0.8,
-            0,
-          ],
+          'line-width': 3.5,
         },
       })
     }
+  }
+
+  /**
+   * Update the highlight source with the selected feature's geometry
+   */
+  private updateHighlightGeometry(geometry: GeoJSON.Geometry | null): void {
+    const source = this.map.getSource(HIGHLIGHT_SOURCE_ID) as mapboxgl.GeoJSONSource
+    if (!source) return
+
+    if (geometry) {
+      source.setData({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: {},
+          geometry,
+        }],
+      })
+    } else {
+      source.setData({
+        type: 'FeatureCollection',
+        features: [],
+      })
+    }
+  }
+
+  /**
+   * Add highlight layer for interactive layers (legacy - kept for compatibility)
+   */
+  private addHighlightLayer(_layerId: ESRILayerType, _sourceId: string): void {
+    // Now using dedicated highlight source instead
+    // This method is kept for API compatibility but does nothing
   }
 
   /**
@@ -377,21 +390,10 @@ export class ESRILayerManager {
         lotSize: properties.LOT_AREA || properties.lot_area,
       }
 
-      // Update selected feature state
-      if (this.selectedFeatureId) {
-        this.map.setFeatureState(
-          { source: getSourceId('parcels'), id: this.selectedFeatureId },
-          { selected: false }
-        )
-      }
-
-      const featureId = feature.id?.toString()
-      if (featureId) {
-        this.selectedFeatureId = featureId
-        this.map.setFeatureState(
-          { source: getSourceId('parcels'), id: featureId },
-          { selected: true }
-        )
+      // Update highlight using dedicated GeoJSON source (more reliable for ESRI features)
+      if (feature.geometry) {
+        this.selectedFeatureGeometry = feature.geometry as GeoJSON.Geometry
+        this.updateHighlightGeometry(this.selectedFeatureGeometry)
       }
 
       // Trigger callback
@@ -481,13 +483,9 @@ export class ESRILayerManager {
    * Clear selected parcel highlight
    */
   clearSelection(): void {
-    if (this.selectedFeatureId) {
-      this.map.setFeatureState(
-        { source: getSourceId('parcels'), id: this.selectedFeatureId },
-        { selected: false }
-      )
-      this.selectedFeatureId = null
-    }
+    // Clear the highlight geometry
+    this.selectedFeatureGeometry = null
+    this.updateHighlightGeometry(null)
   }
 
   /**
@@ -503,13 +501,14 @@ export class ESRILayerManager {
       filter: ['==', ['get', 'TAXKEY'], taxKey],
     })
 
-    if (features.length > 0 && features[0].id) {
-      this.clearSelection()
-      this.selectedFeatureId = features[0].id.toString()
-      this.map.setFeatureState(
-        { source: getSourceId('parcels'), id: this.selectedFeatureId },
-        { selected: true }
-      )
+    if (features.length > 0) {
+      const feature = features[0]
+
+      // Update highlight using the feature's geometry
+      if (feature.geometry) {
+        this.selectedFeatureGeometry = feature.geometry as GeoJSON.Geometry
+        this.updateHighlightGeometry(this.selectedFeatureGeometry)
+      }
     }
   }
 
@@ -538,7 +537,22 @@ export class ESRILayerManager {
       return
     }
 
-    // Remove all layers
+    // Remove highlight layers and source first
+    try {
+      if (this.map.getLayer(HIGHLIGHT_LINE_LAYER_ID)) {
+        this.map.removeLayer(HIGHLIGHT_LINE_LAYER_ID)
+      }
+      if (this.map.getLayer(HIGHLIGHT_FILL_LAYER_ID)) {
+        this.map.removeLayer(HIGHLIGHT_FILL_LAYER_ID)
+      }
+      if (this.map.getSource(HIGHLIGHT_SOURCE_ID)) {
+        this.map.removeSource(HIGHLIGHT_SOURCE_ID)
+      }
+    } catch {
+      // Ignore errors during cleanup
+    }
+
+    // Remove all ESRI layers
     ALL_LAYER_CONFIGS.forEach((config) => {
       const fillLayerId = getFillLayerId(config.id)
       const strokeLayerId = getStrokeLayerId(config.id)
