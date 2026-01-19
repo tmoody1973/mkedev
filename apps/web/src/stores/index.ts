@@ -6,5 +6,6 @@ export type {
   HistoryEntry,
   ScreenshotEntry,
   ScreenshotSourceType,
+  VisualizationEntry,
   VisualizerState,
 } from './visualizerStore';

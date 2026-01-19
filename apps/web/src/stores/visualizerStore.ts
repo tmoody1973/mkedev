@@ -5,7 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 // Site Visualizer Store - Zustand state management for AI visualization
 // =============================================================================
 
-export type VisualizerMode = 'idle' | 'capture' | 'edit' | 'generate' | 'result';
+export type VisualizerMode = 'idle' | 'capture' | 'edit' | 'generate' | 'result' | 'gallery';
 export type ToolType = 'brush' | 'eraser';
 
 export interface ZoningContext {
@@ -37,6 +37,19 @@ export type ScreenshotSourceType = 'map' | 'street_view' | 'upload';
 export interface ScreenshotEntry {
   id: string;
   image: string;
+  address?: string;
+  zoneCode?: string;
+  coordinates?: [number, number];
+  sourceType?: ScreenshotSourceType;
+  timestamp: number;
+}
+
+export interface VisualizationEntry {
+  id: string;
+  sourceImage: string;
+  generatedImage: string;
+  maskImage?: string;
+  prompt: string;
   address?: string;
   zoneCode?: string;
   coordinates?: [number, number];
@@ -78,6 +91,9 @@ export interface VisualizerState {
 
   // Screenshot gallery
   screenshots: ScreenshotEntry[];
+
+  // Visualization gallery (completed generations)
+  visualizations: VisualizationEntry[];
 
   // Actions
   openVisualizer: () => void;
@@ -127,6 +143,12 @@ export interface VisualizerState {
   selectScreenshot: (id: string) => void;
   clearScreenshots: () => void;
 
+  // Visualization gallery actions
+  saveVisualization: () => void;
+  removeVisualization: (id: string) => void;
+  loadVisualization: (id: string) => void;
+  clearVisualizations: () => void;
+
   // Reset
   reset: () => void;
 }
@@ -152,6 +174,7 @@ const initialState = {
   history: [],
   historyIndex: -1,
   screenshots: [] as ScreenshotEntry[],
+  visualizations: [] as VisualizationEntry[],
 };
 
 export const useVisualizerStore = create<VisualizerState>()(
@@ -300,6 +323,56 @@ export const useVisualizerStore = create<VisualizerState>()(
       },
 
       clearScreenshots: () => set({ screenshots: [] }),
+
+      // Visualization gallery actions
+      saveVisualization: () => {
+        const state = get();
+        if (!state.sourceImage || !state.generatedImage) return;
+
+        const newVisualization: VisualizationEntry = {
+          id: `viz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          sourceImage: state.sourceImage,
+          generatedImage: state.generatedImage,
+          maskImage: state.maskImage || undefined,
+          prompt: state.prompt,
+          address: state.address || undefined,
+          zoneCode: state.zoningContext?.zoningDistrict,
+          coordinates: state.coordinates || undefined,
+          sourceType: state.sourceType || undefined,
+          timestamp: Date.now(),
+        };
+
+        set((s) => ({
+          visualizations: [newVisualization, ...s.visualizations].slice(0, 50), // Keep max 50
+        }));
+      },
+
+      removeVisualization: (id) => {
+        set((state) => ({
+          visualizations: state.visualizations.filter((v) => v.id !== id),
+        }));
+      },
+
+      loadVisualization: (id) => {
+        const visualization = get().visualizations.find((v) => v.id === id);
+        if (visualization) {
+          set({
+            sourceImage: visualization.sourceImage,
+            generatedImage: visualization.generatedImage,
+            maskImage: visualization.maskImage || null,
+            prompt: visualization.prompt,
+            address: visualization.address || null,
+            coordinates: visualization.coordinates || null,
+            zoningContext: visualization.zoneCode
+              ? { zoningDistrict: visualization.zoneCode }
+              : null,
+            sourceType: visualization.sourceType || null,
+            mode: 'result',
+          });
+        }
+      },
+
+      clearVisualizations: () => set({ visualizations: [] }),
 
       // Reset
       reset: () => set(initialState),

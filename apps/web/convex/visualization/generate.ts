@@ -192,128 +192,169 @@ export const generate = action({
 
     console.log("[visualization/generate] Enhanced prompt:", enhancedPrompt);
 
-    try {
-      // Prepare image parts for multimodal request
-      const imageParts: Array<{ inlineData: { mimeType: string; data: string } }> = [];
+    // Prepare image parts for multimodal request
+    const imageParts: Array<{ inlineData: { mimeType: string; data: string } }> = [];
 
-      // Add source image
-      const sourceImageData = args.sourceImageBase64.replace(/^data:image\/\w+;base64,/, "");
+    // Add source image
+    const sourceImageData = args.sourceImageBase64.replace(/^data:image\/\w+;base64,/, "");
+    imageParts.push({
+      inlineData: {
+        mimeType: "image/png",
+        data: sourceImageData,
+      },
+    });
+
+    // Add mask if provided (for inpainting)
+    if (args.maskImageBase64) {
+      const maskImageData = args.maskImageBase64.replace(/^data:image\/\w+;base64,/, "");
       imageParts.push({
         inlineData: {
           mimeType: "image/png",
-          data: sourceImageData,
+          data: maskImageData,
         },
       });
+    }
 
-      // Add mask if provided (for inpainting)
-      if (args.maskImageBase64) {
-        const maskImageData = args.maskImageBase64.replace(/^data:image\/\w+;base64,/, "");
-        imageParts.push({
-          inlineData: {
-            mimeType: "image/png",
-            data: maskImageData,
-          },
-        });
-      }
-
-      // Build request body for Gemini 3 Pro Image
-      const requestBody = {
-        contents: [
-          {
-            parts: [
-              ...imageParts,
-              {
-                text: args.maskImageBase64
-                  ? `I have provided a source image and a mask image (white areas indicate regions to modify). ${enhancedPrompt}`
-                  : `I have provided a reference image of a site. ${enhancedPrompt}`,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.9,
-          maxOutputTokens: 8192,
-          // Enable image generation mode
-          responseModalities: ["TEXT", "IMAGE"],
-        },
-      };
-
-      // Call Gemini 3 Pro Image API
-      console.log("[visualization/generate] Calling API:", `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent`);
-      console.log("[visualization/generate] Image count:", imageParts.length);
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`,
+    // Build request body for Gemini 3 Pro Image
+    const requestBody = {
+      contents: [
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
+          parts: [
+            ...imageParts,
+            {
+              text: args.maskImageBase64
+                ? `I have provided a source image and a mask image (white areas indicate regions to modify). ${enhancedPrompt}`
+                : `I have provided a reference image of a site. ${enhancedPrompt}`,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.9,
+        maxOutputTokens: 8192,
+        // Enable image generation mode
+        responseModalities: ["TEXT", "IMAGE"],
+      },
+    };
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[visualization/generate] API error:", response.status, errorText);
+    // Retry logic with exponential backoff for overloaded API
+    const MAX_RETRIES = 3;
+    const BASE_DELAY_MS = 2000;
+    let lastError: Error | null = null;
 
-        // Handle rate limiting
-        if (response.status === 429) {
-          throw new Error("Rate limited - please try again in a moment");
-        }
-
-        throw new Error(`Gemini API error: ${response.status}`);
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 1000;
+        console.log(`[visualization/generate] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
-      const data = await response.json();
-      console.log("[visualization/generate] Response received, structure:", JSON.stringify({
-        hasCandidate: !!data.candidates?.[0],
-        hasContent: !!data.candidates?.[0]?.content,
-        partsCount: data.candidates?.[0]?.content?.parts?.length,
-        partTypes: data.candidates?.[0]?.content?.parts?.map((p: { inlineData?: unknown; text?: unknown }) =>
-          p.inlineData ? 'image' : p.text ? 'text' : 'unknown'
-        ),
-        promptFeedback: data.promptFeedback,
-      }));
+      try {
+        // Call Gemini 3 Pro Image API
+        console.log("[visualization/generate] Calling API:", `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent`);
+        console.log("[visualization/generate] Image count:", imageParts.length);
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+          }
+        );
 
-      // Extract generated image from response
-      let generatedImageBase64: string | null = null;
-      let responseText = "";
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("[visualization/generate] API error:", response.status, errorText);
 
-      if (data.candidates && data.candidates.length > 0) {
-        const candidate = data.candidates[0];
-        if (candidate.content && candidate.content.parts) {
-          for (const part of candidate.content.parts) {
-            if (part.inlineData) {
-              // This is an image part
-              generatedImageBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            } else if (part.text) {
-              responseText = part.text;
+          // Handle rate limiting and overload - retry
+          if (response.status === 429 || response.status === 503) {
+            lastError = new Error(response.status === 429
+              ? "Rate limited - API is busy"
+              : "Model overloaded - API is at capacity");
+            continue; // Retry
+          }
+
+          throw new Error(`Gemini API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("[visualization/generate] Response received, structure:", JSON.stringify({
+          hasCandidate: !!data.candidates?.[0],
+          hasContent: !!data.candidates?.[0]?.content,
+          partsCount: data.candidates?.[0]?.content?.parts?.length,
+          partTypes: data.candidates?.[0]?.content?.parts?.map((p: { inlineData?: unknown; text?: unknown }) =>
+            p.inlineData ? 'image' : p.text ? 'text' : 'unknown'
+          ),
+          promptFeedback: data.promptFeedback,
+        }));
+
+        // Extract generated image from response
+        let generatedImageBase64: string | null = null;
+        let responseText = "";
+
+        if (data.candidates && data.candidates.length > 0) {
+          const candidate = data.candidates[0];
+          if (candidate.content && candidate.content.parts) {
+            for (const part of candidate.content.parts) {
+              if (part.inlineData) {
+                // This is an image part
+                generatedImageBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+              } else if (part.text) {
+                responseText = part.text;
+              }
             }
           }
         }
+
+        const generationTimeMs = Date.now() - startTime;
+        console.log(`[visualization/generate] Generation completed in ${generationTimeMs}ms`);
+
+        // If no image was generated, the model might have returned text describing why
+        if (!generatedImageBase64) {
+          console.error("[visualization/generate] No image generated. Full response data:", JSON.stringify(data, null, 2));
+          console.error("[visualization/generate] Response text:", responseText);
+
+          // Check for specific error conditions
+          if (data.promptFeedback?.blockReason) {
+            lastError = new Error(`Content blocked: ${data.promptFeedback.blockReason}. Try a different prompt.`);
+            continue; // Retry
+          }
+          if (data.candidates?.[0]?.finishReason === "SAFETY") {
+            throw new Error("Generation blocked by safety filters. Try rephrasing your request.");
+          }
+          if (data.candidates?.[0]?.finishReason === "RECITATION") {
+            throw new Error("Generation blocked due to content policy. Try a different prompt.");
+          }
+
+          // Model returned text instead of image - retry
+          lastError = new Error(responseText || "Model returned text instead of image");
+          continue;
+        }
+
+        // Success - return the result
+        return {
+          success: true,
+          generatedImageBase64,
+          enhancedPrompt,
+          responseText,
+          generationTimeMs,
+        };
+      } catch (error) {
+        console.error(`[visualization/generate] Attempt ${attempt + 1} error:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        // Continue to next retry
       }
-
-      const generationTimeMs = Date.now() - startTime;
-      console.log(`[visualization/generate] Generation completed in ${generationTimeMs}ms`);
-
-      // If no image was generated, the model might have returned text describing why
-      if (!generatedImageBase64) {
-        console.error("[visualization/generate] No image generated. Response:", responseText);
-        throw new Error(responseText || "Failed to generate image - no image in response");
-      }
-
-      return {
-        success: true,
-        generatedImageBase64,
-        enhancedPrompt,
-        responseText,
-        generationTimeMs,
-      };
-    } catch (error) {
-      console.error("[visualization/generate] Error:", error);
-      throw error;
     }
+
+    // All retries exhausted
+    console.error("[visualization/generate] All retries exhausted. Last error:", lastError);
+    throw new Error(
+      lastError?.message ||
+      "Failed to generate image after multiple attempts. The Gemini 3 Pro Image API may be overloaded - please try again in a few moments."
+    );
   },
 });
 

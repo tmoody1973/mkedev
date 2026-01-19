@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Download, Save, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Save, RefreshCw, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
 
 /**
@@ -15,11 +15,15 @@ export function GenerationResult() {
     setMode,
     address,
     zoningContext,
+    saveVisualization,
+    setSourceImage,
+    setMaskImage,
+    setPrompt,
+    setGeneratedImage,
   } = useVisualizerStore();
 
   const [viewMode, setViewMode] = useState<'side-by-side' | 'slider'>('side-by-side');
   const [sliderPosition, setSliderPosition] = useState(50);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Handle download
   const handleDownload = useCallback(() => {
@@ -34,26 +38,37 @@ export function GenerationResult() {
   }, [generatedImage]);
 
   // Handle save to gallery
-  const handleSave = useCallback(async () => {
-    if (!generatedImage || !sourceImage) return;
+  const [isSaved, setIsSaved] = useState(false);
 
-    setIsSaving(true);
-    try {
-      // TODO: Call Convex mutation to save visualization
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert('Saved to your gallery!');
-    } catch (error) {
-      console.error('Save error:', error);
-      alert('Failed to save visualization');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [generatedImage, sourceImage]);
+  const handleSave = useCallback(() => {
+    if (!generatedImage || !sourceImage || isSaved) return;
 
-  // Handle try again
+    saveVisualization();
+    setIsSaved(true);
+  }, [generatedImage, sourceImage, isSaved, saveVisualization]);
+
+  // Handle try again (go back to edit with original source)
   const handleTryAgain = useCallback(() => {
     setMode('edit');
   }, [setMode]);
+
+  // Handle iterate - use generated image as new source for further editing
+  const handleIterate = useCallback(() => {
+    if (!generatedImage) return;
+
+    // Save current visualization first if not saved
+    if (!isSaved) {
+      saveVisualization();
+      setIsSaved(true);
+    }
+
+    // Use the generated image as the new source
+    setSourceImage(generatedImage);
+    setMaskImage(null); // Clear mask for new edits
+    setGeneratedImage(null); // Clear previous result
+    setPrompt(''); // Clear prompt for new instruction
+    setMode('edit');
+  }, [generatedImage, isSaved, saveVisualization, setSourceImage, setMaskImage, setGeneratedImage, setPrompt, setMode]);
 
   // Handle slider drag
   const handleSliderMove = useCallback(
@@ -207,7 +222,21 @@ export function GenerationResult() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          {/* Primary action - Continue iterating */}
+          <button
+            onClick={handleIterate}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-black
+              bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium
+              shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
+              hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+              active:translate-y-1 active:shadow-none
+              transition-all duration-100"
+          >
+            <Layers className="w-4 h-4" />
+            Continue Editing
+          </button>
+
           <button
             onClick={handleTryAgain}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-black
@@ -223,23 +252,25 @@ export function GenerationResult() {
 
           <button
             onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-black
-              bg-sky-500 text-white font-medium
+            disabled={isSaved}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-black
+              font-medium
               shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
               hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
               active:translate-y-1 active:shadow-none
-              disabled:opacity-50
-              transition-all duration-100"
+              disabled:opacity-70 disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
+              transition-all duration-100
+              ${isSaved ? 'bg-green-500 text-white' : 'bg-sky-500 text-white'}
+            `}
           >
             <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save to Gallery'}
+            {isSaved ? 'Saved!' : 'Save'}
           </button>
 
           <button
             onClick={handleDownload}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-black
-              bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium
+              bg-amber-400 text-stone-900 font-medium
               shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
               hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
               active:translate-y-1 active:shadow-none

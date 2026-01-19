@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { X, Undo2, Redo2, Home, AlertCircle } from 'lucide-react';
+import { X, Undo2, Redo2, AlertCircle, Images, Camera } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
 import { VisualizerCanvas } from './VisualizerCanvas';
 import { MaskToolbar } from './MaskToolbar';
@@ -9,6 +9,7 @@ import { ZoningSidebar } from './ZoningSidebar';
 import { PromptInput } from './PromptInput';
 import { GenerationResult } from './GenerationResult';
 import { ImageCapture } from './ImageCapture';
+import { VisualizationGallery } from './VisualizationGallery';
 
 /**
  * SiteVisualizer - Main container for AI site visualization
@@ -69,6 +70,10 @@ export function SiteVisualizer() {
     setMode('capture');
   }, [setMode]);
 
+  const handleGoToGallery = useCallback(() => {
+    setMode('gallery');
+  }, [setMode]);
+
   if (!isOpen) return null;
 
   return (
@@ -82,28 +87,38 @@ export function SiteVisualizer() {
         {/* Header */}
         <header className="flex items-center justify-between h-14 px-4 border-b-2 border-black dark:border-stone-700">
           <div className="flex items-center gap-3">
-            {/* Back to capture button (when in edit/result mode) */}
-            {mode !== 'capture' && (
+            {/* Navigation tabs */}
+            <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-lg p-1 border-2 border-stone-300 dark:border-stone-600">
               <button
                 onClick={handleBackToCapture}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium
-                  bg-stone-100 dark:bg-stone-800 rounded-lg border-2 border-black
-                  shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-                  hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
-                  active:translate-y-1 active:shadow-none
-                  transition-all duration-100"
-                aria-label="Back to image capture"
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all
+                  ${mode === 'capture' || mode === 'edit' || mode === 'generate' || mode === 'result'
+                    ? 'bg-white dark:bg-stone-700 shadow-sm text-stone-900 dark:text-stone-100'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+                  }`}
               >
-                <Home className="w-4 h-4" />
-                <span>New Image</span>
+                <Camera className="w-4 h-4" />
+                <span className="hidden sm:inline">Create</span>
               </button>
-            )}
+              <button
+                onClick={handleGoToGallery}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all
+                  ${mode === 'gallery'
+                    ? 'bg-white dark:bg-stone-700 shadow-sm text-stone-900 dark:text-stone-100'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+                  }`}
+              >
+                <Images className="w-4 h-4" />
+                <span className="hidden sm:inline">Gallery</span>
+              </button>
+            </div>
 
             <h1 className="text-lg font-bold font-head">
               {mode === 'capture' && 'Capture Site Image'}
               {mode === 'edit' && 'Edit & Prompt'}
               {mode === 'generate' && 'Generating...'}
               {mode === 'result' && 'Visualization Result'}
+              {mode === 'gallery' && 'Your Gallery'}
             </h1>
           </div>
 
@@ -210,6 +225,9 @@ export function SiteVisualizer() {
 
           {/* Result Mode */}
           {mode === 'result' && <GenerationResult />}
+
+          {/* Gallery Mode */}
+          {mode === 'gallery' && <VisualizationGallery />}
         </main>
       </div>
     </div>
