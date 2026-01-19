@@ -1,7 +1,7 @@
 'use client'
 
 import { SignInButton, SignUpButton } from '@clerk/nextjs'
-import { Map, Mic, FileText, Building2, Search, Sparkles, MessageSquare, Layers, Home, ChevronRight } from 'lucide-react'
+import { Map, Mic, FileText, Building2, Search, MessageSquare, Layers, Home, ChevronRight, Wand2, ArrowRight } from 'lucide-react'
 
 /**
  * Landing page for MKE.dev - shown to unauthenticated users.
@@ -148,6 +148,123 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* AI Visualizer Section */}
+      <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-violet-50 to-stone-50 dark:from-violet-950/30 dark:to-stone-950 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-sm font-medium rounded-full border border-violet-300 dark:border-violet-700 mb-4">
+              <Wand2 className="w-4 h-4" />
+              <span>Powered by Gemini 3</span>
+            </div>
+            <h2 className="font-head text-3xl lg:text-5xl font-bold text-stone-900 dark:text-white mb-4">
+              AI Site <span className="text-violet-500">Visualizer</span>
+            </h2>
+            <p className="text-lg lg:text-xl text-stone-600 dark:text-stone-400 max-w-3xl mx-auto">
+              See your vision come to life. Paint over any site and let AI generate
+              stunning architectural visualizations in seconds.
+            </p>
+          </div>
+
+          {/* Before/After Comparison */}
+          <div className="relative max-w-5xl mx-auto mb-12">
+            <div className="absolute inset-0 bg-violet-200 dark:bg-violet-900/30 rounded-2xl border-2 border-black transform rotate-1 translate-x-3 translate-y-3"></div>
+            <div className="relative bg-white dark:bg-stone-900 rounded-2xl border-2 border-black shadow-[8px_8px_0_0_black] overflow-hidden">
+              <img
+                src="/viz/MKE-dev-Milwaukee-Civic-Intelligence-01-19-2026_05_19_AM.png"
+                alt="AI Site Visualizer showing before and after comparison - empty lot transformed into community park"
+                className="w-full h-auto"
+              />
+            </div>
+          </div>
+
+          {/* Visualizer Examples Grid */}
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto mb-12">
+            {/* Example 1: Park */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-emerald-200 dark:bg-emerald-900/30 rounded-xl border-2 border-black transform rotate-1 translate-x-2 translate-y-2 group-hover:rotate-2 transition-transform"></div>
+              <div className="relative bg-white dark:bg-stone-800 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] overflow-hidden">
+                <img
+                  src="/viz/mkedev-visualization-1768821560575.png"
+                  alt="AI-generated community park with walking paths, trees, and benches"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium rounded border border-emerald-300 dark:border-emerald-700">
+                      Community Park
+                    </span>
+                  </div>
+                  <p className="text-sm text-stone-600 dark:text-stone-400">
+                    &quot;Transform into a community park with trees and walking paths&quot;
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Example 2: Modern House */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-amber-200 dark:bg-amber-900/30 rounded-xl border-2 border-black transform -rotate-1 translate-x-2 translate-y-2 group-hover:-rotate-2 transition-transform"></div>
+              <div className="relative bg-white dark:bg-stone-800 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] overflow-hidden">
+                <img
+                  src="/viz/mkedev-visualization-1768826313715.png"
+                  alt="AI-generated modern residential home with contemporary architecture"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-medium rounded border border-amber-300 dark:border-amber-700">
+                      Modern Home
+                    </span>
+                  </div>
+                  <p className="text-sm text-stone-600 dark:text-stone-400">
+                    &quot;Build a modern single-family home with landscaping&quot;
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* How It Works */}
+          <div className="max-w-4xl mx-auto">
+            <h3 className="font-head text-xl font-bold text-stone-900 dark:text-white text-center mb-8">
+              How It Works
+            </h3>
+            <div className="grid sm:grid-cols-3 gap-4 lg:gap-6">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-full border-2 border-violet-300 dark:border-violet-700 mb-3 font-bold text-lg">
+                  1
+                </div>
+                <h4 className="font-bold text-stone-900 dark:text-white mb-1">Capture</h4>
+                <p className="text-sm text-stone-600 dark:text-stone-400">
+                  Take a screenshot from the map or Street View
+                </p>
+              </div>
+              <div className="text-center relative">
+                <ArrowRight className="hidden sm:block absolute -left-3 top-6 w-6 h-6 text-stone-300 dark:text-stone-600" />
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-full border-2 border-violet-300 dark:border-violet-700 mb-3 font-bold text-lg">
+                  2
+                </div>
+                <h4 className="font-bold text-stone-900 dark:text-white mb-1">Paint</h4>
+                <p className="text-sm text-stone-600 dark:text-stone-400">
+                  Mask the area you want to transform
+                </p>
+              </div>
+              <div className="text-center relative">
+                <ArrowRight className="hidden sm:block absolute -left-3 top-6 w-6 h-6 text-stone-300 dark:text-stone-600" />
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-full border-2 border-violet-300 dark:border-violet-700 mb-3 font-bold text-lg">
+                  3
+                </div>
+                <h4 className="font-bold text-stone-900 dark:text-white mb-1">Generate</h4>
+                <p className="text-sm text-stone-600 dark:text-stone-400">
+                  Describe your vision and watch AI bring it to life
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -192,10 +309,10 @@ export function LandingPage() {
               color="rose"
             />
             <FeatureCard
-              icon={<Sparkles className="w-7 h-7" />}
-              title="PDF Reports"
-              description="Export your research as professional PDF reports to share with stakeholders."
-              color="indigo"
+              icon={<Wand2 className="w-7 h-7" />}
+              title="AI Visualizer"
+              description="Generate stunning architectural visualizations of any site using Gemini 3 AI."
+              color="violet"
             />
           </div>
         </div>
@@ -359,7 +476,7 @@ function FeatureCard({
   icon: React.ReactNode
   title: string
   description: string
-  color: 'sky' | 'amber' | 'emerald' | 'purple' | 'rose' | 'indigo'
+  color: 'sky' | 'amber' | 'emerald' | 'purple' | 'rose' | 'indigo' | 'violet'
 }) {
   const colorClasses = {
     sky: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 border-sky-300 dark:border-sky-700',
@@ -368,6 +485,7 @@ function FeatureCard({
     purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-700',
     rose: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700',
     indigo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700',
+    violet: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700',
   }
 
   return (
