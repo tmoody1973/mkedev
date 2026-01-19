@@ -1572,4 +1572,114 @@ The Site Visualizer showcases Gemini 3's unique capabilities:
 
 ---
 
+## 2026-01-19 - Parcel Highlight Fix & Layer Opacity Controls
+
+### Completed
+- [x] Fix parcel highlight not working when clicking on ESRI features
+- [x] Add layer opacity sliders to LayersDropdown
+
+### Parcel Highlight Fix
+
+**Problem:** Clicking on parcels didn't show the blue highlight. The ESRI features don't have proper IDs for Mapbox's `feature-state` system to work.
+
+**Root Cause:** Unlike PMTiles which can use `promoteId` to assign feature IDs, ESRI FeatureServer features have inconsistent or missing IDs that Mapbox's `setFeatureState()` can't target.
+
+**Solution:** Switched from `feature-state` approach to dedicated GeoJSON source:
+
+```typescript
+// Constants for highlight source/layers
+const HIGHLIGHT_SOURCE_ID = 'parcel-highlight-source'
+const HIGHLIGHT_FILL_LAYER_ID = 'parcel-highlight-fill'
+const HIGHLIGHT_LINE_LAYER_ID = 'parcel-highlight-line'
+
+// Initialize empty GeoJSON source for highlights
+initializeHighlightLayers(): void {
+  this.map.addSource(HIGHLIGHT_SOURCE_ID, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] }
+  })
+
+  // Add fill layer (semi-transparent blue)
+  this.map.addLayer({
+    id: HIGHLIGHT_FILL_LAYER_ID,
+    type: 'fill',
+    source: HIGHLIGHT_SOURCE_ID,
+    paint: { 'fill-color': '#3B82F6', 'fill-opacity': 0.35 }
+  })
+
+  // Add line layer (bold outline)
+  this.map.addLayer({
+    id: HIGHLIGHT_LINE_LAYER_ID,
+    type: 'line',
+    source: HIGHLIGHT_SOURCE_ID,
+    paint: { 'line-color': '#2563EB', 'line-width': 3.5 }
+  })
+}
+
+// Update highlight with clicked feature's geometry
+updateHighlightGeometry(geometry: GeoJSON.Geometry | null): void {
+  const source = this.map.getSource(HIGHLIGHT_SOURCE_ID)
+  source.setData(geometry ? {
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', properties: {}, geometry }]
+  } : { type: 'FeatureCollection', features: [] })
+}
+```
+
+**Changes to Click Handler:**
+```typescript
+this.map.on('click', parcelsFillLayer, (e) => {
+  const feature = e.features[0]
+  if (feature.geometry) {
+    this.selectedFeatureGeometry = feature.geometry
+    this.updateHighlightGeometry(this.selectedFeatureGeometry)
+  }
+})
+```
+
+### Layer Opacity Controls
+
+**Problem:** LayersDropdown only had on/off checkboxes, no opacity sliders.
+
+**Solution:** Added expandable opacity sliders for each active layer:
+
+| Feature | Description |
+|---------|-------------|
+| Expand chevron | Click to reveal opacity slider for active layers |
+| Range slider | 0-100% opacity with visual percentage display |
+| Real-time update | Calls `setLayerOpacity()` from MapContext |
+| Default values | Each layer has appropriate default (zoning 50%, parcels 0%, etc.) |
+
+**UI Flow:**
+1. Toggle layer on with checkbox
+2. Click chevron (>) to expand opacity controls
+3. Drag slider to adjust transparency
+4. Percentage shown on right side
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `esri-layer-manager.ts` | GeoJSON source highlight instead of feature-state |
+| `LayersDropdown.tsx` | Added expandable opacity sliders with chevron toggle |
+
+### Git Commits
+
+```
+b9df741 fix(map): Fix parcel highlight and add layer opacity controls
+```
+
+### Technical Notes
+
+1. **GeoJSON source vs feature-state** - More reliable for ESRI data since we capture actual geometry
+2. **Cleanup in destroy()** - Now removes highlight source and layers on unmount
+3. **Removed unused field** - `selectedFeatureId` no longer needed since highlight uses geometry
+4. **PMTiles highlight works** - Uses feature-state which works with PMTiles' `promoteId`
+
+### Next Up
+- [ ] Add Gemini Live voice interface
+- [ ] Production deployment preparation
+
+---
+
 *Log entries below will be added as development progresses*

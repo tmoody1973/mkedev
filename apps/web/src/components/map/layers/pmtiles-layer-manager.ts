@@ -218,6 +218,11 @@ const SOURCE_LAYER_IDS: Record<ESRILayerType, string> = {
   cityOwned: 'city-owned',
 }
 
+// Highlight source/layer IDs (dedicated GeoJSON source for reliable highlighting)
+const HIGHLIGHT_SOURCE_ID = 'pmtiles-parcel-highlight-source'
+const HIGHLIGHT_FILL_LAYER_ID = 'pmtiles-parcel-highlight-fill-geojson'
+const HIGHLIGHT_LINE_LAYER_ID = 'pmtiles-parcel-highlight-line-geojson'
+
 /**
  * PMTiles Layer Manager
  * Uses pre-generated vector tiles for high-performance rendering
@@ -231,7 +236,7 @@ export class PMTilesLayerManager {
   private is3DMode = false
   private onFeatureClick?: PMTilesLayerManagerOptions['onFeatureClick']
   private onFeatureHover?: PMTilesLayerManagerOptions['onFeatureHover']
-  private selectedFeatureId: string | number | null = null
+  private selectedFeatureGeometry: GeoJSON.Geometry | null = null
 
   constructor(options: PMTilesLayerManagerOptions) {
     this.map = options.map
@@ -320,59 +325,68 @@ export class PMTilesLayerManager {
   }
 
   /**
-   * Add highlight layers for selected parcels
+   * Add highlight layers for selected parcels using dedicated GeoJSON source
+   * This approach is more reliable than feature-state for PMTiles without promoteId
    */
   private addHighlightLayers(): void {
-    const highlightFillId = 'pmtiles-parcels-highlight-fill'
-    const highlightLineId = 'pmtiles-parcels-highlight-line'
+    // Add empty GeoJSON source for highlights
+    if (!this.map.getSource(HIGHLIGHT_SOURCE_ID)) {
+      this.map.addSource(HIGHLIGHT_SOURCE_ID, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+        },
+      })
+    }
 
     // Add fill highlight layer (semi-transparent blue fill)
-    if (!this.map.getLayer(highlightFillId)) {
+    if (!this.map.getLayer(HIGHLIGHT_FILL_LAYER_ID)) {
       this.map.addLayer({
-        id: highlightFillId,
+        id: HIGHLIGHT_FILL_LAYER_ID,
         type: 'fill',
-        source: this.sourceId,
-        'source-layer': SOURCE_LAYER_IDS.parcels,
+        source: HIGHLIGHT_SOURCE_ID,
         paint: {
           'fill-color': '#3B82F6', // blue-500
-          'fill-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            0.35, // Semi-transparent when selected
-            ['boolean', ['feature-state', 'hover'], false],
-            0.15, // Light fill on hover
-            0, // Invisible when not selected/hovered
-          ],
+          'fill-opacity': 0.35,
         },
       })
     }
 
     // Add line highlight layer (bold outline)
-    if (!this.map.getLayer(highlightLineId)) {
+    if (!this.map.getLayer(HIGHLIGHT_LINE_LAYER_ID)) {
       this.map.addLayer({
-        id: highlightLineId,
+        id: HIGHLIGHT_LINE_LAYER_ID,
         type: 'line',
-        source: this.sourceId,
-        'source-layer': SOURCE_LAYER_IDS.parcels,
+        source: HIGHLIGHT_SOURCE_ID,
         paint: {
           'line-color': '#2563EB', // blue-600
-          'line-width': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            3.5, // Thick border when selected
-            ['boolean', ['feature-state', 'hover'], false],
-            2, // Medium border on hover
-            0, // No border when not selected/hovered
-          ],
-          'line-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            1,
-            ['boolean', ['feature-state', 'hover'], false],
-            0.8,
-            0,
-          ],
+          'line-width': 3.5,
         },
+      })
+    }
+  }
+
+  /**
+   * Update the highlight source with the selected feature's geometry
+   */
+  private updateHighlightGeometry(geometry: GeoJSON.Geometry | null): void {
+    const source = this.map.getSource(HIGHLIGHT_SOURCE_ID) as mapboxgl.GeoJSONSource
+    if (!source) return
+
+    if (geometry) {
+      source.setData({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: {},
+          geometry,
+        }],
+      })
+    } else {
+      source.setData({
+        type: 'FeatureCollection',
+        features: [],
       })
     }
   }
@@ -486,16 +500,10 @@ export class PMTilesLayerManager {
 
       const feature = e.features[0]
 
-      // Clear previous selection
-      this.clearSelection()
-
-      // Set new selection
-      if (feature.id !== undefined) {
-        this.selectedFeatureId = feature.id
-        this.map.setFeatureState(
-          { source: this.sourceId, sourceLayer: SOURCE_LAYER_IDS.parcels, id: feature.id },
-          { selected: true }
-        )
+      // Update highlight using dedicated GeoJSON source (more reliable than feature-state)
+      if (feature.geometry) {
+        this.selectedFeatureGeometry = feature.geometry as GeoJSON.Geometry
+        this.updateHighlightGeometry(this.selectedFeatureGeometry)
       }
 
       this.onFeatureClick?.({
@@ -540,13 +548,9 @@ export class PMTilesLayerManager {
    * Clear parcel selection
    */
   clearSelection(): void {
-    if (this.selectedFeatureId !== null) {
-      this.map.setFeatureState(
-        { source: this.sourceId, sourceLayer: SOURCE_LAYER_IDS.parcels, id: this.selectedFeatureId },
-        { selected: false }
-      )
-      this.selectedFeatureId = null
-    }
+    // Clear the highlight geometry
+    this.selectedFeatureGeometry = null
+    this.updateHighlightGeometry(null)
   }
 
   /**
@@ -559,19 +563,17 @@ export class PMTilesLayerManager {
       filter: ['==', ['get', 'TAXKEY'], taxKey],
     })
 
-    if (features.length > 0 && features[0].id !== undefined) {
-      // Clear previous selection
-      this.clearSelection()
+    if (features.length > 0) {
+      const feature = features[0]
 
-      // Set new selection
-      this.selectedFeatureId = features[0].id
-      this.map.setFeatureState(
-        { source: this.sourceId, sourceLayer: SOURCE_LAYER_IDS.parcels, id: features[0].id },
-        { selected: true }
-      )
+      // Update highlight using the feature's geometry
+      if (feature.geometry) {
+        this.selectedFeatureGeometry = feature.geometry as GeoJSON.Geometry
+        this.updateHighlightGeometry(this.selectedFeatureGeometry)
+      }
 
-      // Optionally fly to the parcel if it has geometry
-      const geometry = features[0].geometry
+      // Fly to the parcel if it has geometry
+      const geometry = feature.geometry
       if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') {
         // Calculate centroid for panning
         const coords = geometry.type === 'Polygon'
@@ -610,12 +612,15 @@ export class PMTilesLayerManager {
         this.map.removeLayer('pmtiles-zoning-3d')
       }
 
-      // Remove highlight layers
-      if (this.map.getLayer('pmtiles-parcels-highlight-fill')) {
-        this.map.removeLayer('pmtiles-parcels-highlight-fill')
+      // Remove GeoJSON highlight layers and source first
+      if (this.map.getLayer(HIGHLIGHT_LINE_LAYER_ID)) {
+        this.map.removeLayer(HIGHLIGHT_LINE_LAYER_ID)
       }
-      if (this.map.getLayer('pmtiles-parcels-highlight-line')) {
-        this.map.removeLayer('pmtiles-parcels-highlight-line')
+      if (this.map.getLayer(HIGHLIGHT_FILL_LAYER_ID)) {
+        this.map.removeLayer(HIGHLIGHT_FILL_LAYER_ID)
+      }
+      if (this.map.getSource(HIGHLIGHT_SOURCE_ID)) {
+        this.map.removeSource(HIGHLIGHT_SOURCE_ID)
       }
 
       // Remove standard layers
