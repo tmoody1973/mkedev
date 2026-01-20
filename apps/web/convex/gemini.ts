@@ -54,7 +54,7 @@ export const getCredentials = action({
     return {
       apiKey,
       model: 'gemini-2.0-flash-live-001',
-      wsEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent',
+      wsEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
     }
   },
 })
