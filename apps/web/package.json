@@ -24,6 +24,7 @@
     "@copilotkit/react-core": "^1.51.1",
     "@copilotkit/react-ui": "^1.51.1",
     "@google/adk": "^0.2.2",
+    "@google/genai": "^1.37.0",
     "@google/generative-ai": "^0.24.1",
     "@mapbox/search-js-react": "^1.5.1",
     "@mendable/firecrawl-js": "^4.10.0",
