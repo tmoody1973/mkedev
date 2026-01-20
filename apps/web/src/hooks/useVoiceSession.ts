@@ -32,9 +32,24 @@ import { useMap } from '@/contexts/MapContext'
 
 /**
  * Card data for generative UI rendering in chat
+ * Matches the GenerativeCard types from ChatPanel
  */
 export interface VoiceGeneratedCard {
-  type: 'homes-list' | 'home-listing' | 'zone-info' | 'parcel-info'
+  type:
+    | 'zone-info'
+    | 'parcel-info'
+    | 'parcel-analysis'
+    | 'incentives-summary'
+    | 'area-plan-context'
+    | 'permit-process'
+    | 'code-citation'
+    | 'opportunity-list'
+    | 'home-listing'
+    | 'homes-list'
+    | 'commercial-properties-list'
+    | 'commercial-property'
+    | 'development-sites-list'
+    | 'development-site'
   data: unknown
 }
 
@@ -66,6 +81,39 @@ interface UseVoiceSessionReturn {
   toggleSession: () => Promise<void>
   sendText: (text: string) => void
   clearTranscript: () => void
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Get zoning category from code prefix
+ * Maps Milwaukee zoning codes to display categories
+ */
+function getZoningCategory(code: string): string {
+  const prefix = code.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 2)
+
+  const categoryMap: Record<string, string> = {
+    'RS': 'Residential - Single Family',
+    'RT': 'Residential - Two Family',
+    'RM': 'Residential - Multi-Family',
+    'RO': 'Residential - Office',
+    'LB': 'Local Business',
+    'NS': 'Neighborhood Shopping',
+    'CS': 'Commercial Service',
+    'RB': 'Regional Business',
+    'IL': 'Industrial - Light',
+    'IM': 'Industrial - Mixed',
+    'IH': 'Industrial - Heavy',
+    'IC': 'Industrial - Commercial',
+    'PK': 'Parks',
+    'IN': 'Institutional',
+    'DT': 'Downtown',
+    'PD': 'Planned Development',
+  }
+
+  return categoryMap[prefix] || 'Mixed Use / Special'
 }
 
 // ============================================================================
@@ -190,6 +238,17 @@ export function useVoiceSession(
               const feature = result.features[0]
               const [lng, lat] = feature.center
               flyTo([lng, lat], 17)
+
+              // Generate a parcel-info card for the searched address
+              pendingCardsRef.current.push({
+                type: 'parcel-info',
+                data: {
+                  address: feature.place_name,
+                  coordinates: [lng, lat],
+                  status: 'complete',
+                },
+              })
+
               return {
                 success: true,
                 address: feature.place_name,
@@ -250,9 +309,21 @@ export function useVoiceSession(
           try {
             // Use the zoning agent to answer the question
             const result = await queryZoning({ message: question })
+
+            // Generate a code-citation card for zoning questions
+            pendingCardsRef.current.push({
+              type: 'code-citation',
+              data: {
+                question,
+                answer: result.response ? result.response.substring(0, 500) : 'Zoning code information retrieved',
+                source: 'Milwaukee Zoning Code (Chapter 295)',
+                status: 'complete',
+              },
+            })
+
             return {
               success: true,
-              answer: result,
+              answer: result.response,
             }
           } catch (error) {
             return { success: false, error: 'Failed to query zoning code' }
@@ -266,9 +337,21 @@ export function useVoiceSession(
             const result = await queryZoning({
               message: `Explain what zoning code ${code} means in Milwaukee. What uses are allowed and what are the key restrictions?`,
             })
+
+            // Generate a zone-info card
+            pendingCardsRef.current.push({
+              type: 'zone-info',
+              data: {
+                zoningDistrict: code.toUpperCase(),
+                zoningDescription: result.response ? result.response.substring(0, 200) : 'Zoning information retrieved',
+                zoningCategory: getZoningCategory(code),
+                status: 'complete',
+              },
+            })
+
             return {
               success: true,
-              explanation: result,
+              explanation: result.response,
             }
           } catch (error) {
             return { success: false, error: 'Failed to explain zoning code' }
@@ -508,6 +591,18 @@ export function useVoiceSession(
         emitChatMessage('assistant', text, cards)
       })
 
+      // Handle user speech transcription (what the user said via voice)
+      clientRef.current.setOnUserTranscript((text) => {
+        addTranscriptEntry({
+          id: `user-${Date.now()}`,
+          role: 'user',
+          content: text,
+          timestamp: Date.now(),
+        })
+        // Emit user's spoken words to chat
+        emitChatMessage('user', text)
+      })
+
       clientRef.current.setOnFunctionCall(handleFunctionCall)
 
       clientRef.current.setOnTurnComplete(() => {
@@ -570,9 +665,12 @@ export function useVoiceSession(
       timestamp: Date.now(),
     })
 
+    // Emit user message to chat
+    emitChatMessage('user', text)
+
     clientRef.current.sendText(text)
     updateState('processing')
-  }, [addTranscriptEntry, updateState])
+  }, [addTranscriptEntry, updateState, emitChatMessage])
 
   const clearTranscript = useCallback(() => {
     setSession((prev) => ({ ...prev, transcript: [] }))

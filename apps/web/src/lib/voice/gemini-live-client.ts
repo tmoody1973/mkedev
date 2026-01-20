@@ -81,6 +81,7 @@ export class GeminiLiveClient {
   // Callbacks
   private onAudioReceived: ((data: ArrayBuffer) => void) | null = null
   private onTextReceived: ((text: string) => void) | null = null
+  private onUserTranscript: ((text: string) => void) | null = null
   private onFunctionCall: ((call: GeminiFunctionCall) => Promise<unknown>) | null = null
   private onTurnComplete: (() => void) | null = null
   private onError: ((error: Error) => void) | null = null
@@ -111,8 +112,9 @@ export class GeminiLiveClient {
       const ai = new GoogleGenAI({ apiKey })
 
       // Build config matching SDK format
+      // Include both AUDIO and TEXT so responses appear in chat while also being spoken
       const config = {
-        responseModalities: [Modality.AUDIO],
+        responseModalities: [Modality.AUDIO, Modality.TEXT],
         speechConfig: {
           voiceConfig: {
             prebuiltVoiceConfig: {
@@ -120,6 +122,8 @@ export class GeminiLiveClient {
             },
           },
         },
+        // Enable transcription of user's spoken input so we can show it in chat
+        inputAudioTranscription: {},
         systemInstruction: this.config.systemInstruction,
         tools: this.config.tools && this.config.tools.length > 0
           ? [{ functionDeclarations: this.config.tools.map(convertToolToSDKFormat) }]
@@ -259,6 +263,10 @@ export class GeminiLiveClient {
     this.onTextReceived = handler
   }
 
+  setOnUserTranscript(handler: (text: string) => void): void {
+    this.onUserTranscript = handler
+  }
+
   setOnFunctionCall(handler: (call: GeminiFunctionCall) => Promise<unknown>): void {
     this.onFunctionCall = handler
   }
@@ -285,6 +293,9 @@ export class GeminiLiveClient {
 
   private async handleMessage(message: LiveServerMessage): Promise<void> {
     try {
+      // Debug log all messages to understand what we're receiving
+      console.log('[GeminiLive] Message received:', JSON.stringify(message, null, 2).substring(0, 500))
+
       // Handle tool calls
       if (message.toolCall) {
         this.emitEvent({ type: 'function_call', timestamp: Date.now(), data: message.toolCall })
@@ -344,6 +355,18 @@ export class GeminiLiveClient {
             this.emitEvent({ type: 'speaking_start', timestamp: Date.now() })
           }
         }
+      }
+
+      // Handle user input transcription (what the user said)
+      if (message.serverContent?.inputTranscription?.text) {
+        const userText = message.serverContent.inputTranscription.text
+        console.log('[GeminiLive] User transcript:', userText)
+        this.onUserTranscript?.(userText)
+        this.emitEvent({
+          type: 'transcript_update',
+          timestamp: Date.now(),
+          data: { role: 'user', text: userText },
+        })
       }
 
       // Handle turn complete

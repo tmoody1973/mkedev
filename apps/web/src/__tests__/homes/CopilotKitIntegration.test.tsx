@@ -10,9 +10,7 @@
  * - GenerativeCard type includes home-listing and homes-list
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi } from 'vitest'
 
 // =============================================================================
 // Test: GenerativeCard Type Union
