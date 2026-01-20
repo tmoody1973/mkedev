@@ -35,10 +35,13 @@ import type * as ingestion_rag from "../ingestion/rag.js";
 import type * as ingestion_ragV2 from "../ingestion/ragV2.js";
 import type * as ingestion_trigger from "../ingestion/trigger.js";
 import type * as ingestion_types from "../ingestion/types.js";
+import type * as ingestion_vacantLotsSync from "../ingestion/vacantLotsSync.js";
+import type * as ingestion_vacantLotsSyncMutations from "../ingestion/vacantLotsSyncMutations.js";
 import type * as lib_opik from "../lib/opik.js";
 import type * as mapbox from "../mapbox.js";
 import type * as reports from "../reports.js";
 import type * as users from "../users.js";
+import type * as vacantLots from "../vacantLots.js";
 import type * as visualization_gallery from "../visualization/gallery.js";
 import type * as visualization_generate from "../visualization/generate.js";
 
@@ -76,10 +79,13 @@ declare const fullApi: ApiFromModules<{
   "ingestion/ragV2": typeof ingestion_ragV2;
   "ingestion/trigger": typeof ingestion_trigger;
   "ingestion/types": typeof ingestion_types;
+  "ingestion/vacantLotsSync": typeof ingestion_vacantLotsSync;
+  "ingestion/vacantLotsSyncMutations": typeof ingestion_vacantLotsSyncMutations;
   "lib/opik": typeof lib_opik;
   mapbox: typeof mapbox;
   reports: typeof reports;
   users: typeof users;
+  vacantLots: typeof vacantLots;
   "visualization/gallery": typeof visualization_gallery;
   "visualization/generate": typeof visualization_generate;
 }>;

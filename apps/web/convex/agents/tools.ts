@@ -312,6 +312,56 @@ export const TOOL_DECLARATIONS = [
       required: ["siteId"],
     },
   },
+  // ---------------------------------------------------------------------------
+  // Vacant Lots Tools - City-Owned Vacant Lots
+  // ---------------------------------------------------------------------------
+  {
+    name: "search_vacant_lots",
+    description:
+      "Search for city-owned vacant lots available in Milwaukee through the Strong Neighborhoods program. Returns a list of vacant parcels with their key details. Use this when users ask about vacant lots, empty land for sale by the city, city-owned parcels, or land available for development or purchase from the city.",
+    parameters: {
+      type: "object",
+      properties: {
+        neighborhood: {
+          type: "string",
+          description: "Filter by neighborhood name (e.g., Bay View, Harambee, Sherman Park). Case-insensitive partial match supported.",
+        },
+        status: {
+          type: "string",
+          enum: ["available", "pending", "sold", "all"],
+          description: "Filter by disposition status (default: available)",
+        },
+        zoning: {
+          type: "string",
+          description: "Filter by zoning code (e.g., RS6, RT4, LB2)",
+        },
+        minLotSize: {
+          type: "number",
+          description: "Minimum lot size in square feet",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results to return (default: 10, max: 50)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_vacant_lot_details",
+    description:
+      "Get detailed information about a specific city-owned vacant lot, including zoning, lot size, disposition status, acquisition date, and precise location. Use this after search_vacant_lots to get more details about a specific lot, or when you have a lot ID from a previous interaction.",
+    parameters: {
+      type: "object",
+      properties: {
+        lotId: {
+          type: "string",
+          description: "The Convex document ID of the vacant lot (obtained from search_vacant_lots results)",
+        },
+      },
+      required: ["lotId"],
+    },
+  },
 ];
 
 // =============================================================================
@@ -1043,6 +1093,166 @@ export async function getDevelopmentSiteDetails(
     return {
       success: false,
       error: `Failed to get development site details: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+// =============================================================================
+// Vacant Lots Tool Implementations
+// =============================================================================
+
+/**
+ * Vacant lot summary type returned by search_vacant_lots.
+ */
+export interface VacantLotSummary {
+  lotId: string;
+  address: string;
+  neighborhood?: string;
+  coordinates: [number, number];
+  status: "available" | "pending" | "sold" | "unknown";
+  zoning?: string;
+  lotSizeSqFt?: number;
+}
+
+/**
+ * Full vacant lot details type returned by get_vacant_lot_details.
+ */
+export interface VacantLotDetails {
+  lotId: string;
+  taxKey?: string;
+  address: string;
+  neighborhood?: string;
+  aldermanicDistrict?: number;
+  coordinates: [number, number];
+  zoning?: string;
+  propertyType?: string;
+  lotSizeSqFt?: number;
+  dispositionStatus?: string;
+  dispositionStrategy?: string;
+  acquisitionDate?: string;
+  currentOwner?: string;
+  status: "available" | "pending" | "sold" | "unknown";
+}
+
+/**
+ * Search for city-owned vacant lots in Milwaukee.
+ * Calls the Convex vacantLots.searchLots query.
+ */
+export async function searchVacantLots(
+  ctx: ActionCtx,
+  params: {
+    neighborhood?: string;
+    status?: "available" | "pending" | "sold" | "all";
+    zoning?: string;
+    minLotSize?: number;
+    limit?: number;
+  }
+): Promise<{
+  success: boolean;
+  lots?: VacantLotSummary[];
+  count?: number;
+  error?: string;
+}> {
+  try {
+    // Enforce reasonable limit
+    const limit = Math.min(params.limit ?? 10, 50);
+
+    // Note: The searchLots query only supports available lots by default
+    // The status filter from the tool is informational - query returns available lots
+    // Query lots from Convex
+    const lots = await ctx.runQuery(api.vacantLots.searchLots, {
+      neighborhood: params.neighborhood,
+      zoning: params.zoning,
+      limit,
+    });
+
+    // Transform to tool response format
+    const lotSummaries: VacantLotSummary[] = lots.map(
+      (lot: {
+        _id: string;
+        address: string;
+        neighborhood?: string;
+        coordinates: number[];
+        status: "available" | "pending" | "sold" | "unknown";
+        zoning?: string;
+        lotSizeSqFt?: number;
+      }) => ({
+        lotId: lot._id,
+        address: lot.address,
+        neighborhood: lot.neighborhood,
+        coordinates: lot.coordinates as [number, number],
+        status: lot.status,
+        zoning: lot.zoning,
+        lotSizeSqFt: lot.lotSizeSqFt,
+      })
+    );
+
+    return {
+      success: true,
+      lots: lotSummaries,
+      count: lotSummaries.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to search vacant lots: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Get detailed information about a specific vacant lot.
+ * Calls the Convex vacantLots.getById query.
+ */
+export async function getVacantLotDetails(
+  ctx: ActionCtx,
+  params: {
+    lotId: string;
+  }
+): Promise<{
+  success: boolean;
+  lot?: VacantLotDetails;
+  error?: string;
+}> {
+  try {
+    // Query lot from Convex
+    const lot = await ctx.runQuery(api.vacantLots.getById, {
+      id: params.lotId as Id<"vacantLots">,
+    });
+
+    if (!lot) {
+      return {
+        success: false,
+        error: `Vacant lot not found with ID: ${params.lotId}`,
+      };
+    }
+
+    // Transform to tool response format
+    const lotDetails: VacantLotDetails = {
+      lotId: lot._id,
+      taxKey: lot.taxKey,
+      address: lot.address,
+      neighborhood: lot.neighborhood,
+      aldermanicDistrict: lot.aldermanicDistrict,
+      coordinates: lot.coordinates as [number, number],
+      zoning: lot.zoning,
+      propertyType: lot.propertyType,
+      lotSizeSqFt: lot.lotSizeSqFt,
+      dispositionStatus: lot.dispositionStatus,
+      dispositionStrategy: lot.dispositionStrategy,
+      acquisitionDate: lot.acquisitionDate,
+      currentOwner: lot.currentOwner,
+      status: lot.status,
+    };
+
+    return {
+      success: true,
+      lot: lotDetails,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to get vacant lot details: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 }

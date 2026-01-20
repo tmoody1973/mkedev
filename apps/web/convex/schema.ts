@@ -168,7 +168,9 @@ export default defineSchema({
             v.literal("commercial-property"),
             v.literal("commercial-properties-list"),
             v.literal("development-site"),
-            v.literal("development-sites-list")
+            v.literal("development-sites-list"),
+            v.literal("vacant-lot"),
+            v.literal("vacant-lots-list")
           ),
           data: v.any(),
         })
@@ -551,6 +553,50 @@ export default defineSchema({
     .index("by_browseAiTaskId", ["browseAiTaskId"])
     .index("by_status", ["status"])
     .index("by_zoning", ["zoning"]),
+
+  // ---------------------------------------------------------------------------
+  // Vacant Lots - City-owned vacant lots from Strong Neighborhoods ESRI
+  // ---------------------------------------------------------------------------
+  vacantLots: defineTable({
+    // ESRI identification
+    esriObjectId: v.string(), // OBJECTID from ESRI - unique identifier for sync
+    taxKey: v.string(), // TAXKEY field - Milwaukee tax key
+
+    // Location
+    address: v.string(), // COMBINEDADDRESS field
+    neighborhood: v.optional(v.string()), // NEIGHBORHOOD field (if available)
+    coordinates: v.array(v.number()), // [longitude, latitude] in WGS84
+
+    // Property details
+    zoning: v.optional(v.string()), // ZONING field
+    propertyType: v.optional(v.string()), // PROPERTYTYPE field
+    aldermanicDistrict: v.optional(v.number()), // ALDERMANICDISTRICT field
+    lotSizeSqFt: v.optional(v.number()), // Size if available
+
+    // Disposition info
+    dispositionStatus: v.optional(v.string()), // DISPOSITIONSTATUS field
+    dispositionStrategy: v.optional(v.string()), // DISPOSITIONSTRATEGY field (if available)
+    acquisitionDate: v.optional(v.string()), // ACQUISITIONDATE field (if available)
+    currentOwner: v.optional(v.string()), // Current owner (typically City of Milwaukee)
+
+    // Status - derived from DISPOSITIONSTATUS
+    status: v.union(
+      v.literal("available"),
+      v.literal("pending"),
+      v.literal("sold"),
+      v.literal("unknown")
+    ),
+
+    // Sync metadata
+    lastSyncedAt: v.number(), // Timestamp of last successful sync
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_taxKey", ["taxKey"])
+    .index("by_status", ["status"])
+    .index("by_neighborhood", ["neighborhood"])
+    .index("by_dispositionStatus", ["dispositionStatus"])
+    .index("by_esriObjectId", ["esriObjectId"]),
 
   // ---------------------------------------------------------------------------
   // Visualizations - AI-generated site visualizations using Gemini 3 Pro Image

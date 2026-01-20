@@ -22,6 +22,8 @@ import {
   getCommercialPropertyDetails,
   searchDevelopmentSites,
   getDevelopmentSiteDetails,
+  searchVacantLots,
+  getVacantLotDetails,
 } from "./tools";
 import { createTraceManager } from "../lib/opik";
 
@@ -51,6 +53,8 @@ You have access to these tools:
 10. **get_commercial_property_details** - Get detailed information about a specific commercial property
 11. **search_development_sites** - Search for development sites with incentives (TIF, Opportunity Zone, NMTC)
 12. **get_development_site_details** - Get detailed information about a specific development site
+13. **search_vacant_lots** - Search for city-owned vacant lots available through the Strong Neighborhoods program
+14. **get_vacant_lot_details** - Get detailed information about a specific vacant lot including disposition status
 
 ## Home Search Capabilities
 
@@ -191,6 +195,35 @@ When users want details about a specific development site:
 3. **Combining with Zoning:**
    - When a user finds a development site, offer to explain the zoning requirements
    - Example: "Here's a site in the IL1 district - would you like me to explain what uses are permitted?"
+
+## City-Owned Vacant Lots Search
+
+When users ask about city-owned vacant land, Strong Neighborhoods parcels, or lots available from the city:
+- Use **search_vacant_lots** to find city-owned vacant lots
+- Filters available: neighborhood, status (available, pending, sold), zoning, minimum lot size
+- Results include lot IDs for map display with status-based coloring
+
+When users want details about a specific vacant lot:
+- Use **get_vacant_lot_details** with the lotId
+- Returns: tax key, zoning, lot size, disposition status, acquisition date, current owner, coordinates
+
+### Vacant Lots Search Guidelines
+
+1. **When to Search Vacant Lots:**
+   - "Show me city-owned vacant lots"
+   - "What land is the city selling?"
+   - "Find me empty parcels in Harambee"
+   - "Are there any available lots for building?"
+   - "Strong Neighborhoods properties"
+
+2. **Status Types:**
+   - **available** - Lots currently available for purchase
+   - **pending** - Lots with pending transactions
+   - **sold** - Recently sold lots (for reference)
+
+3. **Combining with Zoning and Incentives:**
+   - When a user finds a vacant lot, offer to explain zoning requirements and any available incentives
+   - Example: "This lot is zoned RS6 - would you like to know what you can build here and what programs might help?"
 
 ## Interaction Guidelines
 
@@ -774,6 +807,31 @@ export const chat = action({
                 const siteDetailsArgs = fnArgs as { siteId: string };
 
                 toolResult = await getDevelopmentSiteDetails(ctx, siteDetailsArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              // ---------------------------------------------------------------
+              // Vacant Lots Tools - City-Owned Vacant Lots
+              // ---------------------------------------------------------------
+              case "search_vacant_lots": {
+                const vacantLotsSearchArgs = fnArgs as {
+                  neighborhood?: string;
+                  status?: "available" | "pending" | "sold" | "all";
+                  zoning?: string;
+                  minLotSize?: number;
+                  limit?: number;
+                };
+
+                toolResult = await searchVacantLots(ctx, vacantLotsSearchArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              case "get_vacant_lot_details": {
+                const vacantLotDetailsArgs = fnArgs as { lotId: string };
+
+                toolResult = await getVacantLotDetails(ctx, vacantLotDetailsArgs);
                 toolSuccess = !!(toolResult as { success?: boolean }).success;
                 break;
               }

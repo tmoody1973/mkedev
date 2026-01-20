@@ -35,9 +35,9 @@ export type ESRILayerType =
 
 /**
  * All layer type identifiers matching MapContext layer visibility keys
- * Includes both ESRI layers and custom layers (homes, commercial, development sites)
+ * Includes both ESRI layers and custom layers (homes, commercial, development sites, vacant lots)
  */
-export type LayerType = ESRILayerType | 'homes' | 'commercialProperties' | 'developmentSites'
+export type LayerType = ESRILayerType | 'homes' | 'commercialProperties' | 'developmentSites' | 'vacantLots'
 
 /**
  * Legend item for categorical layer display
@@ -469,6 +469,51 @@ export const DEVELOPMENT_SITES_LAYER_CONFIG: DevelopmentSitesLayerConfig = {
 }
 
 /**
+ * Vacant Lots Layer Config
+ * City-owned vacant lots from Strong Neighborhoods program via Convex
+ */
+export interface VacantLotsLayerConfig {
+  id: 'vacantLots'
+  name: string
+  description: string
+  /** Default color for layer swatch in LayerPanel */
+  color: string
+  availableColor: string
+  pendingColor: string
+  highlightColor: string
+  circleRadius: number
+  highlightRadius: number
+  strokeColor: string
+  strokeWidth: number
+  defaultVisible: boolean
+  interactive: boolean
+  legendItems: LegendItem[]
+  dataSource: string
+}
+
+export const VACANT_LOTS_LAYER_CONFIG: VacantLotsLayerConfig = {
+  id: 'vacantLots',
+  name: 'Vacant Lots',
+  description: 'City-owned vacant lots from Strong Neighborhoods program',
+  color: '#22c55e', // green-500 (uses available color as default)
+  availableColor: '#22c55e', // green-500
+  pendingColor: '#f97316', // orange-500
+  highlightColor: '#f59e0b', // amber-500
+  circleRadius: 8,
+  highlightRadius: 12,
+  strokeColor: '#ffffff',
+  strokeWidth: 2,
+  defaultVisible: false,
+  interactive: true,
+  legendItems: [
+    { label: 'Available', color: '#22c55e' },
+    { label: 'Pending', color: '#f97316' },
+    { label: 'Selected', color: '#f59e0b' },
+  ],
+  dataSource: 'Milwaukee Strong Neighborhoods ESRI',
+}
+
+/**
  * All ESRI layer configurations in display order
  */
 export const ALL_LAYER_CONFIGS: ESRILayerConfig[] = [
@@ -486,7 +531,7 @@ export const ALL_LAYER_CONFIGS: ESRILayerConfig[] = [
  * @param layerId - Layer identifier
  * @returns Layer configuration or undefined
  */
-export function getLayerConfig(layerId: LayerType): ESRILayerConfig | HomesLayerConfig | CommercialLayerConfig | DevelopmentSitesLayerConfig | undefined {
+export function getLayerConfig(layerId: LayerType): ESRILayerConfig | HomesLayerConfig | CommercialLayerConfig | DevelopmentSitesLayerConfig | VacantLotsLayerConfig | undefined {
   if (layerId === 'homes') {
     return HOMES_LAYER_CONFIG
   }
@@ -495,6 +540,9 @@ export function getLayerConfig(layerId: LayerType): ESRILayerConfig | HomesLayer
   }
   if (layerId === 'developmentSites') {
     return DEVELOPMENT_SITES_LAYER_CONFIG
+  }
+  if (layerId === 'vacantLots') {
+    return VACANT_LOTS_LAYER_CONFIG
   }
   return ALL_LAYER_CONFIGS.find((config) => config.id === layerId)
 }

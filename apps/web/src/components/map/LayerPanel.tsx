@@ -13,21 +13,24 @@ import {
   HOMES_LAYER_CONFIG,
   COMMERCIAL_LAYER_CONFIG,
   DEVELOPMENT_SITES_LAYER_CONFIG,
+  VACANT_LOTS_LAYER_CONFIG,
   type ESRILayerConfig,
   type HomesLayerConfig,
   type CommercialLayerConfig,
   type DevelopmentSitesLayerConfig,
+  type VacantLotsLayerConfig,
 } from './layers'
 
 // Combined layer config type for display
-type LayerConfig = ESRILayerConfig | HomesLayerConfig | CommercialLayerConfig | DevelopmentSitesLayerConfig
+type LayerConfig = ESRILayerConfig | HomesLayerConfig | CommercialLayerConfig | DevelopmentSitesLayerConfig | VacantLotsLayerConfig
 
-// Combined array of all layer configs (ESRI + Homes + Commercial + Development Sites)
+// Combined array of all layer configs (ESRI + Homes + Commercial + Development Sites + Vacant Lots)
 const ALL_LAYERS: LayerConfig[] = [
   ...ALL_LAYER_CONFIGS,
   HOMES_LAYER_CONFIG,
   COMMERCIAL_LAYER_CONFIG,
   DEVELOPMENT_SITES_LAYER_CONFIG,
+  VACANT_LOTS_LAYER_CONFIG,
 ]
 
 // =============================================================================

@@ -19,6 +19,8 @@ import { CommercialPropertyCard } from "./CommercialPropertyCard";
 import { CommercialPropertiesListCard, type CommercialPropertyListItem } from "./CommercialPropertiesListCard";
 import { DevelopmentSiteCard } from "./DevelopmentSiteCard";
 import { DevelopmentSitesListCard, type DevelopmentSiteListItem } from "./DevelopmentSitesListCard";
+import { VacantLotCard } from "./VacantLotCard";
+import { VacantLotsListCard, type VacantLotListItem } from "./VacantLotsListCard";
 
 interface CopilotActionsProps {
   /** Callback to fly map to coordinates */
@@ -35,6 +37,10 @@ interface CopilotActionsProps {
   onHighlightDevelopmentSites?: (siteIds: string[]) => void;
   /** Callback when a development site is selected */
   onDevelopmentSiteSelect?: (site: DevelopmentSiteListItem) => void;
+  /** Callback to highlight vacant lots on map */
+  onHighlightVacantLots?: (lotIds: string[]) => void;
+  /** Callback when a vacant lot is selected */
+  onVacantLotSelect?: (lot: VacantLotListItem) => void;
 }
 
 export function CopilotActions({
@@ -45,6 +51,8 @@ export function CopilotActions({
   onCommercialPropertySelect,
   onHighlightDevelopmentSites,
   onDevelopmentSiteSelect,
+  onHighlightVacantLots,
+  onVacantLotSelect,
 }: CopilotActionsProps = {}) {
   // Render zoning query results as a ZoneInfoCard
   useCopilotAction({
@@ -654,6 +662,157 @@ export function CopilotActions({
             listingUrl={site.listingUrl}
             description={site.description}
             status="complete"
+            onFlyTo={handleFlyTo}
+          />
+        );
+      }
+
+      return <></>;
+    },
+  });
+
+  // ==========================================================================
+  // Vacant Lots Tools - City-Owned Vacant Lots
+  // ==========================================================================
+
+  // Render search_vacant_lots results as VacantLotsListCard
+  useCopilotAction({
+    name: "search_vacant_lots",
+    available: "disabled",
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <VacantLotsListCard
+            lots={[]}
+            onLotSelect={() => {}}
+            status="loading"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          lots?: Array<{
+            lotId: string;
+            address: string;
+            coordinates?: [number, number];
+            neighborhood?: string;
+            status: "available" | "pending" | "sold" | "unknown";
+            zoning?: string;
+          }>;
+        };
+
+        // Convert to VacantLotListItem format
+        const lots: VacantLotListItem[] = (resultData.lots || []).map((l) => ({
+          id: l.lotId,
+          address: l.address,
+          coordinates: l.coordinates || [-87.9065, 43.0389],
+          neighborhood: l.neighborhood,
+          status: l.status,
+          zoning: l.zoning,
+        }));
+
+        // Trigger map highlighting when results arrive
+        if (onHighlightVacantLots && lots.length > 0) {
+          const lotIds = lots.map((l) => l.id);
+          onHighlightVacantLots(lotIds);
+        }
+
+        // Handler for lot selection from list
+        const handleLotSelect = (lot: VacantLotListItem) => {
+          if (onFlyTo) {
+            onFlyTo(lot.coordinates);
+          }
+          if (onHighlightVacantLots) {
+            onHighlightVacantLots([lot.id]);
+          }
+          if (onVacantLotSelect) {
+            onVacantLotSelect(lot);
+          }
+        };
+
+        return (
+          <VacantLotsListCard
+            lots={lots}
+            onLotSelect={handleLotSelect}
+            status="complete"
+          />
+        );
+      }
+
+      return <></>;
+    },
+  });
+
+  // Render get_vacant_lot_details results as VacantLotCard
+  useCopilotAction({
+    name: "get_vacant_lot_details",
+    available: "disabled",
+    render: ({ status, result }) => {
+      if (status === "inProgress" || status === "executing") {
+        return (
+          <VacantLotCard
+            lotId=""
+            address="Loading..."
+            cardStatus="inProgress"
+          />
+        );
+      }
+
+      if (status === "complete" && result?.success) {
+        const resultData = result as {
+          success: boolean;
+          lot?: {
+            lotId: string;
+            taxKey?: string;
+            address: string;
+            neighborhood?: string;
+            aldermanicDistrict?: number;
+            coordinates: [number, number];
+            zoning?: string;
+            propertyType?: string;
+            lotSizeSqFt?: number;
+            dispositionStatus?: string;
+            dispositionStrategy?: string;
+            acquisitionDate?: string;
+            currentOwner?: string;
+            status: "available" | "pending" | "sold" | "unknown";
+          };
+        };
+
+        if (!resultData.lot) {
+          return <></>;
+        }
+
+        const lot = resultData.lot;
+
+        const handleFlyTo = (coordinates: [number, number]) => {
+          if (onFlyTo) {
+            onFlyTo(coordinates);
+          }
+          if (onHighlightVacantLots) {
+            onHighlightVacantLots([lot.lotId]);
+          }
+        };
+
+        return (
+          <VacantLotCard
+            lotId={lot.lotId}
+            taxKey={lot.taxKey}
+            address={lot.address}
+            neighborhood={lot.neighborhood}
+            aldermanicDistrict={lot.aldermanicDistrict}
+            coordinates={lot.coordinates}
+            zoning={lot.zoning}
+            propertyType={lot.propertyType}
+            lotSizeSqFt={lot.lotSizeSqFt}
+            dispositionStatus={lot.dispositionStatus}
+            dispositionStrategy={lot.dispositionStrategy}
+            acquisitionDate={lot.acquisitionDate}
+            currentOwner={lot.currentOwner}
+            status={lot.status}
+            cardStatus="complete"
             onFlyTo={handleFlyTo}
           />
         );

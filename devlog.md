@@ -1682,4 +1682,84 @@ b9df741 fix(map): Fix parcel highlight and add layer opacity controls
 
 ---
 
+## 2026-01-20 - Hackathon Documentation & Landing Page Polish
+
+### Completed
+- [x] Fix PMTiles parcel highlight (same GeoJSON source approach as ESRI)
+- [x] Add AI Visualizer section to landing page
+- [x] Expand visualizer gallery with two use cases
+- [x] Create hackathon newsletter documentation
+- [x] Fix image file extensions and paths
+
+### Landing Page AI Visualizer
+
+**Added two showcase use cases:**
+
+| Use Case | Images | Prompt |
+|----------|--------|--------|
+| Home Renovation | `house-to-bungalow.png`, `bungalow-detail.jpg` | "Turn this house into a modern bungalow with nice landscaping" |
+| Community Vision | `lot-to-park.png`, `park-detail.jpg` | "Transform this into a community park with walking paths and trees" |
+
+**Layout:**
+- Side-by-side cards with before/after comparison (2/3 width)
+- Detail card with category badge, description, and prompt
+- Detail image showing generated result
+- Alternating layout for visual interest
+
+### Hackathon Documentation Created
+
+**Files in `agent-os/product/`:**
+
+| File | Purpose |
+|------|---------|
+| `ai-visualizer-deep-dive.md` | Newsletter content for Site Visualizer feature |
+| `context-caching-deep-dive.md` | Newsletter content for 1M context + caching |
+| `zoning-ai-demo-questions.md` | Demo questions for hackathon presentation |
+
+### Context Caching Deep Dive
+
+**Key points documented:**
+- Problem with traditional RAG (chunking, retrieval misses)
+- Solution: Full 500K+ token zoning code in context
+- Context caching reduces costs by 99% ($2,500/day → $10/day)
+- Technical implementation with code examples
+- Example conversations showing multi-section analysis
+
+### PMTiles Parcel Highlight Fix
+
+**Same issue as ESRI:** PMTiles features don't have proper IDs for `feature-state`.
+
+**Solution:** Applied same GeoJSON source approach:
+```typescript
+const HIGHLIGHT_SOURCE_ID = 'pmtiles-parcel-highlight-source'
+const HIGHLIGHT_FILL_LAYER_ID = 'pmtiles-parcel-highlight-fill-geojson'
+const HIGHLIGHT_LINE_LAYER_ID = 'pmtiles-parcel-highlight-line-geojson'
+
+// Capture geometry on click, update GeoJSON source
+this.selectedFeatureGeometry = feature.geometry
+this.updateHighlightGeometry(this.selectedFeatureGeometry)
+```
+
+### Git Commits Today
+
+```
+1dd616a feat(landing): Expand AI Visualizer gallery with two use cases
+63045b5 docs(product): Add hackathon documentation and fix visualizer image
+add6d5c feat(landing): Replace visualizer examples with better house transformation
+fdbf163 feat(landing): Add AI Site Visualizer section with screenshots
+e4d6686 fix(map): Fix parcel highlight for PMTiles layer manager
+```
+
+### Notes
+- Landing page only visible when signed out (SignedOut wrapper)
+- Image files needed correct extensions (JPEG files were named .png)
+- Hackathon deadline: February 10, 2026 (3 weeks remaining)
+
+### Next Up
+- [ ] Add Gemini Live voice interface
+- [ ] Production deployment preparation
+- [ ] Final hackathon submission materials
+
+---
+
 *Log entries below will be added as development progresses*

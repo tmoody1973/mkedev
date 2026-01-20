@@ -14,16 +14,19 @@ import { ESRILayerLoader } from './layers/ESRILayerLoader'
 import { HomesLayerLoader } from './layers/HomesLayerLoader'
 import { CommercialPropertiesLayerLoader } from './layers/CommercialPropertiesLayerLoader'
 import { DevelopmentSitesLayerLoader } from './layers/DevelopmentSitesLayerLoader'
+import { VacantLotsLayerLoader } from './layers/VacantLotsLayerLoader'
 import { LayerPanel } from './LayerPanel'
 import { ParcelPopup } from './ParcelPopup'
 import { HomePopup } from './HomePopup'
 import { CommercialPropertyPopup } from './CommercialPropertyPopup'
 import { DevelopmentSitePopup } from './DevelopmentSitePopup'
+import { VacantLotPopup } from './VacantLotPopup'
 import { MapScreenshotButton } from './MapScreenshotButton'
 import type { ParcelData } from './layers/esri-layer-manager'
 import type { HomeForSale } from './layers/homes-layer-manager'
 import type { CommercialProperty } from './layers/commercial-layer-manager'
 import type { DevelopmentSite } from './layers/development-sites-layer-manager'
+import type { VacantLot } from './layers/vacant-lots-layer-manager'
 
 // Import Mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -49,6 +52,8 @@ export interface MapContainerProps {
   enableCommercialLayer?: boolean
   /** Whether to load the development sites layer */
   enableDevelopmentSitesLayer?: boolean
+  /** Whether to load the vacant lots layer */
+  enableVacantLotsLayer?: boolean
   /** Whether to show the zoning tooltip on hover */
   showZoningTooltip?: boolean
   /** Whether to show the layer panel */
@@ -73,6 +78,12 @@ export interface MapContainerProps {
   onCommercialPropertyClick?: (property: CommercialProperty) => void
   /** Callback when a development site marker is clicked */
   onDevelopmentSiteClick?: (site: DevelopmentSite) => void
+  /** Callback when a vacant lot marker is clicked */
+  onVacantLotClick?: (lot: VacantLot) => void
+  /** Callback when user wants to analyze a vacant lot */
+  onVacantLotAnalyze?: (lot: VacantLot) => void
+  /** Callback when user wants to visualize a vacant lot */
+  onVacantLotVisualize?: (lot: VacantLot) => void
 }
 
 // =============================================================================
@@ -88,6 +99,7 @@ export function MapContainer({
   enableHomesLayer = true,
   enableCommercialLayer = true,
   enableDevelopmentSitesLayer = true,
+  enableVacantLotsLayer = true,
   showZoningTooltip = true,
   showLayerPanel = true,
   showParcelPopup = true,
@@ -100,6 +112,9 @@ export function MapContainer({
   onHomeClick,
   onCommercialPropertyClick,
   onDevelopmentSiteClick,
+  onVacantLotClick,
+  onVacantLotAnalyze,
+  onVacantLotVisualize,
 }: MapContainerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
@@ -109,6 +124,7 @@ export function MapContainer({
   const [selectedHome, setSelectedHome] = useState<HomeForSale | null>(null)
   const [selectedCommercialProperty, setSelectedCommercialProperty] = useState<CommercialProperty | null>(null)
   const [selectedDevelopmentSite, setSelectedDevelopmentSite] = useState<DevelopmentSite | null>(null)
+  const [selectedVacantLot, setSelectedVacantLot] = useState<VacantLot | null>(null)
   const [isStyleChanging, setIsStyleChanging] = useState(false)
 
   const {
@@ -165,6 +181,7 @@ export function MapContainer({
       setSelectedParcel(null)
       setSelectedCommercialProperty(null)
       setSelectedDevelopmentSite(null)
+      setSelectedVacantLot(null)
       // Show home popup
       setSelectedHome(home)
       onHomeClick?.(home)
@@ -184,6 +201,7 @@ export function MapContainer({
       setSelectedParcel(null)
       setSelectedHome(null)
       setSelectedDevelopmentSite(null)
+      setSelectedVacantLot(null)
       // Show commercial property popup
       setSelectedCommercialProperty(property)
       onCommercialPropertyClick?.(property)
@@ -203,6 +221,7 @@ export function MapContainer({
       setSelectedParcel(null)
       setSelectedHome(null)
       setSelectedCommercialProperty(null)
+      setSelectedVacantLot(null)
       // Show development site popup
       setSelectedDevelopmentSite(site)
       onDevelopmentSiteClick?.(site)
@@ -214,6 +233,44 @@ export function MapContainer({
   const handleDevelopmentSitePopupClose = useCallback(() => {
     setSelectedDevelopmentSite(null)
   }, [])
+
+  // Handle vacant lot click from layer
+  const handleVacantLotClick = useCallback(
+    (lot: VacantLot) => {
+      // Close other popups
+      setSelectedParcel(null)
+      setSelectedHome(null)
+      setSelectedCommercialProperty(null)
+      setSelectedDevelopmentSite(null)
+      // Show vacant lot popup
+      setSelectedVacantLot(lot)
+      onVacantLotClick?.(lot)
+    },
+    [onVacantLotClick]
+  )
+
+  // Handle vacant lot popup close
+  const handleVacantLotPopupClose = useCallback(() => {
+    setSelectedVacantLot(null)
+  }, [])
+
+  // Handle analyze vacant lot
+  const handleAnalyzeVacantLot = useCallback(
+    (lot: VacantLot) => {
+      onVacantLotAnalyze?.(lot)
+      setSelectedVacantLot(null)
+    },
+    [onVacantLotAnalyze]
+  )
+
+  // Handle visualize vacant lot
+  const handleVisualizeVacantLot = useCallback(
+    (lot: VacantLot) => {
+      onVacantLotVisualize?.(lot)
+      setSelectedVacantLot(null)
+    },
+    [onVacantLotVisualize]
+  )
 
   // Initial map setup
   useEffect(() => {
@@ -472,6 +529,12 @@ export function MapContainer({
               isStyleChanging={isStyleChanging}
             />
           )}
+          {enableVacantLotsLayer && (
+            <VacantLotsLayerLoader
+              onLotClick={handleVacantLotClick}
+              isStyleChanging={isStyleChanging}
+            />
+          )}
           {showLayerPanel && <LayerPanel />}
           <MapScreenshotButton />
           {showParcelPopup && selectedParcel && (
@@ -498,6 +561,14 @@ export function MapContainer({
             <DevelopmentSitePopup
               site={selectedDevelopmentSite}
               onClose={handleDevelopmentSitePopupClose}
+            />
+          )}
+          {selectedVacantLot && (
+            <VacantLotPopup
+              lot={selectedVacantLot}
+              onClose={handleVacantLotPopupClose}
+              onAnalyze={onVacantLotAnalyze ? handleAnalyzeVacantLot : undefined}
+              onVisualize={onVacantLotVisualize ? handleVisualizeVacantLot : undefined}
             />
           )}
         </>

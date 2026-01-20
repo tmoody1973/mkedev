@@ -19,6 +19,7 @@ export {
   HOMES_LAYER_CONFIG,
   COMMERCIAL_LAYER_CONFIG,
   DEVELOPMENT_SITES_LAYER_CONFIG,
+  VACANT_LOTS_LAYER_CONFIG,
   ALL_LAYER_CONFIGS,
   getLayerConfig,
 } from './layer-config'
@@ -32,6 +33,7 @@ export type {
   HomesLayerConfig,
   CommercialLayerConfig,
   DevelopmentSitesLayerConfig,
+  VacantLotsLayerConfig,
 } from './layer-config'
 
 // Layer manager
@@ -78,6 +80,17 @@ export type {
   DevelopmentSitesLayerManagerOptions,
 } from './development-sites-layer-manager'
 
+// Vacant lots layer manager
+export {
+  VacantLotsLayerManager,
+} from './vacant-lots-layer-manager'
+
+export type {
+  VacantLot,
+  VacantLotClickEvent,
+  VacantLotsLayerManagerOptions,
+} from './vacant-lots-layer-manager'
+
 // React hooks
 export {
   useESRILayers,
@@ -112,16 +125,26 @@ export type {
   UseDevelopmentSitesLayerResult,
 } from './useDevelopmentSitesLayer'
 
+export {
+  useVacantLotsLayer,
+} from './useVacantLotsLayer'
+
+export type {
+  UseVacantLotsLayerResult,
+} from './useVacantLotsLayer'
+
 // Components
 export { ZoningTooltip } from './ZoningTooltip'
 export { ESRILayerLoader } from './ESRILayerLoader'
 export { HomesLayerLoader } from './HomesLayerLoader'
 export { CommercialPropertiesLayerLoader } from './CommercialPropertiesLayerLoader'
 export { DevelopmentSitesLayerLoader } from './DevelopmentSitesLayerLoader'
+export { VacantLotsLayerLoader } from './VacantLotsLayerLoader'
 
 export type { HomesLayerLoaderProps } from './HomesLayerLoader'
 export type { CommercialPropertiesLayerLoaderProps } from './CommercialPropertiesLayerLoader'
 export type { DevelopmentSitesLayerLoaderProps } from './DevelopmentSitesLayerLoader'
+export type { VacantLotsLayerLoaderProps } from './VacantLotsLayerLoader'
 
 // 3D Buildings
 export {

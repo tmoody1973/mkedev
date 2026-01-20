@@ -20,25 +20,23 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 | P0 | App Shell | Chat-first, map-centric layout | Design System |
 | P0 | Mapbox Integration | Base map with ESRI zoning/parcel layers | App Shell |
 | P0 | Document Ingestion | Firecrawl → Gemini File Search for core PDFs | None |
-| P0 | Zoning Interpreter Agent | Primary agent with tools for zoning, area plans, incentives, homes | Document Ingestion |
-| ~~P0~~ | ~~Area Plan Advisor Agent~~ | ✅ Implemented as `query_area_plans` tool in Zoning Interpreter | Document Ingestion |
+| P0 | Zoning Interpreter Agent | Primary agent for zoning queries | Document Ingestion |
+| P0 | Area Plan Advisor Agent | Agent for neighborhood plan alignment | Document Ingestion |
 | P0 | Opik Integration | `@track` decorators on all agent functions | Agents |
 
 ### Week 2: Voice & Vision Integration (Days 8-14)
 
 | Priority | Feature | Description | Dependencies |
 |----------|---------|-------------|--------------|
-| P0 | **Gemini 3 Context Caching** | 1M token context window for full zoning corpus + Thinking Levels | RAG |
-| P0 | **Site Visualizer** | AI architectural visualization with Gemini 3 Pro Image ([spec](../specs/2026-01-18-site-visualizer/spec.md)) | Mapbox, Zoning Agent |
 | P0 | Gemini Live API | Real-time bidirectional voice interface | App Shell |
 | P0 | Live Tool Bridge | Tool-based architecture bridging Live to File Search ([arch](../../docs/architecture/gemini-live-file-search-integration.md)) | Gemini Live, RAG |
 | P0 | Voice Activity Detection | Automatic microphone management | Gemini Live |
 | P0 | Mapbox Spatial Tools | Agent tools for geocoding, POI search, isochrone, directions | Mapbox Integration |
 | P0 | Forms Integration | Actionable permit/application forms with download links | Document Ingestion |
 | P0 | FormActionCard Component | Generative UI for form actions with walkthrough | CopilotKit, Forms |
-| ~~P0~~ | ~~Nano Banana Tool~~ | ✅ Replaced by Site Visualizer with Gemini 3 Pro Image | -- |
-| ~~P0~~ | ~~Design Advisor Agent~~ | ✅ Integrated into Site Visualizer | -- |
-| P0 | VisionCard Component | Generative UI for architectural previews | Site Visualizer |
+| P0 | Nano Banana Tool | `generateArchitecturalPreview` using Gemini 3.0 Flash Image | Agents |
+| P0 | Design Advisor Agent | Agent for design guidelines + vision integration | Nano Banana |
+| P0 | VisionCard Component | Generative UI for architectural previews | CopilotKit |
 | P0 | ZoneInfoCard Component | Generative UI for zoning summaries | CopilotKit |
 | P0 | Clickable Citations | Inline [N] citations with PDF viewer modal ([spec](../specs/2026-01-15-citation-links/spec.md)) | RAG, Document Corpus |
 | P1 | VoiceIndicator | Visual feedback during voice interaction | Gemini Live |
@@ -48,8 +46,8 @@ This roadmap outlines the phased development plan for MKE.dev, starting with a 4
 
 | Priority | Feature | Description | Dependencies |
 |----------|---------|-------------|--------------|
-| ~~P0~~ | ~~Incentives Navigator Agent~~ | ✅ Implemented as `query_incentives` tool in Zoning Interpreter | Document Ingestion |
-| ~~P0~~ | ~~Orchestrator Agent~~ | Not needed - single agent with tools handles multi-domain queries | All agents |
+| P0 | Incentives Navigator Agent | Agent for TIF, OZ, and other incentives | Document Ingestion |
+| P0 | Orchestrator Agent | Meta-agent for complex multi-domain queries ([spec](../specs/2026-01-15-orchestrator-agent/spec.md)) | All agents |
 | P0 | Additional Map Layers | TIF, Opportunity Zones, Historic Districts, etc. | Mapbox |
 | P0 | Opik Evaluation Pipeline | RAG accuracy and hallucination testing | Opik Integration |
 | P1 | Prompt Optimization | Agent Optimizer cycle on Zoning Interpreter | Opik Evaluation |
@@ -209,43 +207,29 @@ Document Ingestion (Gemini File Search)
         ├── Convex HTTP API (storage)
         └── Gemini File Search Store (RAG indexing)
     │
-    └── Zoning Interpreter Agent (Consolidated - Convex)
-        ├── Agent Tools (all in single agent)
-        │   ├── geocode_address (Mapbox geocoding)
-        │   ├── query_zoning_at_point (ESRI zoning lookup)
-        │   ├── calculate_parking (parking requirements)
-        │   ├── query_zoning_code (RAG - zoning codes)
-        │   ├── query_area_plans (RAG - neighborhood plans) ← Area Plan Advisor
-        │   ├── query_incentives (RAG - housing programs) ← Incentives Navigator
-        │   ├── search_homes_for_sale (Convex query)
-        │   └── get_home_details (Convex query)
+    └── Agent System (Google ADK)
+        ├── Specialized Agents (Single-Domain)
+        │   ├── Zoning Interpreter (zoning code, parking, permitted uses)
+        │   ├── Area Plan Advisor (neighborhood vision, development goals)
+        │   ├── Incentives Navigator (TIF, OZ, tax credits)
+        │   ├── Spatial Agent (geocoding, parcel search, ESRI queries)
+        │   ├── Design Advisor + Nano Banana (vision generation)
+        │   └── Permit Navigator (form-aware guidance)
         │
-        ├── Future Tools (planned)
-        │   ├── search_commercial_properties (Browse.ai data)
-        │   └── search_development_sites (Browse.ai data)
+        ├── Memory Layer (Supermemory)
+        │   ├── User Profiles (auto-learned preferences)
+        │   ├── Project Memory (multi-session tracking)
+        │   ├── Interaction Memory (findings, calculations)
+        │   └── Semantic Recall (search past interactions)
         │
-        └── Architecture Note:
-            Single agent with tools handles multi-domain queries
-            No orchestrator needed - Gemini selects appropriate tools
-
-Gemini 3 Features (Hackathon Differentiators)
-    ├── Context Caching + 1M Token Window ✅
-    │   ├── Full zoning corpus loaded into context
-    │   ├── Smart Query Router (RAG vs Deep Analysis)
-    │   ├── Thinking Levels (gemini-3-pro-preview)
-    │   └── Cross-reference analysis across all zones
-    │
-    ├── Site Visualizer (gemini-3-pro-image-preview)
-    │   ├── Image Capture (map screenshot, Street View, upload)
-    │   ├── Konva.js Canvas with mask painting
-    │   ├── Zoning-aware prompt injection
-    │   ├── AI architectural visualization
-    │   └── User gallery (Convex file storage)
-    │
-    └── Gemini Live API (voice interface)
-        ├── Real-time bidirectional audio
-        ├── Tool bridge to File Search RAG
-        └── Voice activity detection
+        └── Orchestrator Agent (Multi-Domain)
+            ├── Query Classification (simple vs complex)
+            ├── Workflow Planning (task DAG generation)
+            ├── Parallel Execution (independent tasks)
+            ├── Result Synthesis (combine agent outputs)
+            ├── Memory Integration (user context + preferences)
+            └── Handles: feasibility analysis, site comparison,
+                incentive stacking, complex neighborhood queries
 
 Opik/Comet
     ├── Tracing (all agents)
