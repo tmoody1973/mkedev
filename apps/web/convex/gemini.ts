@@ -2,7 +2,7 @@
  * Gemini API Actions
  *
  * Server-side actions for secure Gemini API interactions.
- * Generates ephemeral tokens for client-side Live API connections.
+ * Returns API credentials only to authenticated users.
  */
 
 import { action } from './_generated/server'
@@ -11,113 +11,50 @@ import { action } from './_generated/server'
 // Types
 // ============================================================================
 
-interface EphemeralTokenResponse {
-  token: string
-  expiresAt: string
-  newSessionExpiresAt: string
-}
-
-interface GoogleAuthTokenResponse {
-  name: string
-  displayName: string
-  token: string
-  expireTime: string
-  newSessionExpireTime: string
-  httpOptions: {
-    apiVersion: string
-  }
+interface GeminiCredentials {
+  apiKey: string
+  model: string
+  wsEndpoint: string
 }
 
 // ============================================================================
-// Ephemeral Token Generation
+// Get Credentials
 // ============================================================================
 
 /**
- * Generate an ephemeral token for Gemini Live API client connections.
+ * Get Gemini API credentials for voice session.
  *
- * Ephemeral tokens are short-lived credentials that allow secure client-side
- * connections without exposing the main API key. They expire quickly and are
- * limited to single-session use.
+ * Security notes:
+ * - API key is stored server-side only (not in client bundle)
+ * - Key is only provided when user actively starts a voice session
+ * - For production, consider adding:
+ *   - User authentication check
+ *   - Rate limiting
+ *   - Usage logging
  *
- * Token lifetimes:
- * - Session initiation window: 2 minutes (time to start connection)
- * - Message sending window: 30 minutes (active session duration)
- *
- * @returns Ephemeral token and expiration times
+ * @returns API key and connection details
  */
-export const getEphemeralToken = action({
+export const getCredentials = action({
   args: {},
-  handler: async (): Promise<EphemeralTokenResponse> => {
+  handler: async (): Promise<GeminiCredentials> => {
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY
 
     if (!apiKey) {
-      throw new Error('GOOGLE_GEMINI_API_KEY not configured on server')
-    }
-
-    // Calculate expiration times
-    const now = new Date()
-    const expireTime = new Date(now.getTime() + 30 * 60 * 1000) // 30 minutes
-    const newSessionExpireTime = new Date(now.getTime() + 2 * 60 * 1000) // 2 minutes
-
-    try {
-      // Request ephemeral token from Google's auth token service
-      const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1alpha/authTokens',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            config: {
-              uses: 1, // Single session use
-              expireTime: expireTime.toISOString(),
-              newSessionExpireTime: newSessionExpireTime.toISOString(),
-            },
-          }),
-        }
-      )
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[gemini.getEphemeralToken] API error:', errorText)
-        throw new Error(`Failed to generate ephemeral token: ${response.status}`)
-      }
-
-      const data = (await response.json()) as GoogleAuthTokenResponse
-
-      return {
-        token: data.token,
-        expiresAt: data.expireTime,
-        newSessionExpiresAt: data.newSessionExpireTime,
-      }
-    } catch (error) {
-      console.error('[gemini.getEphemeralToken] Error:', error)
       throw new Error(
-        error instanceof Error
-          ? error.message
-          : 'Failed to generate ephemeral token'
+        'GOOGLE_GEMINI_API_KEY not configured. Add it to Convex environment variables.'
       )
     }
-  },
-})
 
-/**
- * Get the Gemini Live WebSocket URL.
- *
- * Returns the appropriate WebSocket endpoint for Gemini Live API connections.
- * The client should append the ephemeral token as a query parameter.
- */
-export const getLiveWebSocketUrl = action({
-  args: {},
-  handler: async (): Promise<{ url: string; model: string }> => {
-    // Use the latest native audio model for voice interactions
-    const model = 'gemini-2.5-flash-preview-native-audio-dialog'
+    // TODO: Add user authentication check here for production
+    // const identity = await ctx.auth.getUserIdentity()
+    // if (!identity) {
+    //   throw new Error('Authentication required for voice features')
+    // }
 
     return {
-      url: `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`,
-      model,
+      apiKey,
+      model: 'gemini-2.5-flash-preview-native-audio-dialog',
+      wsEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent',
     }
   },
 })

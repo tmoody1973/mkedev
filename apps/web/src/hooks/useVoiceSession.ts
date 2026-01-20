@@ -86,7 +86,7 @@ export function useVoiceSession(
   // Convex actions for server-side operations
   const geocodeAddress = useAction(api.mapbox.geocode)
   const queryZoning = useAction(api.agents.zoning.chat)
-  const getEphemeralToken = useAction(api.gemini.getEphemeralToken)
+  const getCredentials = useAction(api.gemini.getCredentials)
   // Note: These actions may need to be created if they don't exist
   // const generateVisualization = useAction(api.visualization.generate.generate)
 
@@ -335,18 +335,20 @@ export function useVoiceSession(
     updateState('connecting')
 
     try {
-      // Get ephemeral token from server (secure - API key never exposed to client)
-      console.log('[useVoiceSession] Requesting ephemeral token from server...')
-      const tokenResponse = await getEphemeralToken()
+      // Get credentials from server (API key not bundled in client code)
+      console.log('[useVoiceSession] Requesting credentials from server...')
+      const credentials = await getCredentials()
 
-      if (!tokenResponse?.token) {
-        throw new Error('Failed to get ephemeral token from server')
+      if (!credentials?.apiKey) {
+        throw new Error('Failed to get credentials from server')
       }
 
-      console.log('[useVoiceSession] Got ephemeral token, expires:', tokenResponse.expiresAt)
+      console.log('[useVoiceSession] Got credentials, connecting to Gemini Live...')
 
-      // Create client
-      clientRef.current = createGeminiLiveClient()
+      // Create client with server-provided model
+      clientRef.current = createGeminiLiveClient({
+        model: credentials.model,
+      })
 
       // Set up callbacks
       clientRef.current.setOnAudioReceived((data) => {
@@ -372,8 +374,8 @@ export function useVoiceSession(
         setError(error.message)
       })
 
-      // Connect to Gemini Live using ephemeral token (secure)
-      await clientRef.current.connectWithToken(tokenResponse.token)
+      // Connect to Gemini Live
+      await clientRef.current.connect(credentials.apiKey)
 
       // Start audio capture
       await audioManagerRef.current.startCapture((audioBlob) => {
@@ -381,13 +383,13 @@ export function useVoiceSession(
       })
 
       updateState('listening')
-      console.log('[useVoiceSession] Session started with ephemeral token')
+      console.log('[useVoiceSession] Session started')
     } catch (error) {
       console.error('[useVoiceSession] Failed to start session:', error)
       setError(error instanceof Error ? error.message : 'Failed to start voice session')
       updateState('error')
     }
-  }, [session.isActive, updateState, setError, addTranscriptEntry, handleFunctionCall, getEphemeralToken])
+  }, [session.isActive, updateState, setError, addTranscriptEntry, handleFunctionCall, getCredentials])
 
   const endSession = useCallback(() => {
     // Stop audio

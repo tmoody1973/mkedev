@@ -156,16 +156,14 @@ export class GeminiLiveClient {
   }
 
   /**
-   * Connect to Gemini Live API using API key (NOT RECOMMENDED for production)
+   * Connect to Gemini Live API using API key
    *
-   * WARNING: Only use this for local development/testing.
-   * API keys exposed client-side can be stolen and abused.
+   * Note: API key should be fetched from server at runtime,
+   * not bundled in client code (no NEXT_PUBLIC_ prefix).
    *
-   * @param apiKey - Google API key
-   * @deprecated Use connectWithToken() instead for production
+   * @param apiKey - Google API key from server
    */
   async connect(apiKey: string): Promise<void> {
-    console.warn('[GeminiLive] Using API key directly is not recommended for production. Use connectWithToken() with ephemeral tokens instead.')
     return this.establishConnection(apiKey, false)
   }
 
