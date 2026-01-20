@@ -18,8 +18,8 @@ import { VOICE_TOOLS, VOICE_SYSTEM_INSTRUCTION } from './voice-tools'
 // Constants
 // ============================================================================
 
-// Latest native audio model for voice interactions
-const GEMINI_LIVE_MODEL = 'gemini-2.5-flash-preview-native-audio-dialog'
+// Gemini Live model for real-time voice
+const GEMINI_LIVE_MODEL = 'gemini-2.0-flash-live-001'
 const RECONNECT_DELAY_MS = 1000
 const MAX_RECONNECT_ATTEMPTS = 3
 
