@@ -171,7 +171,12 @@ export function useVoiceSession(
     content: string,
     cards?: VoiceGeneratedCard[]
   ) => {
-    if (!onChatMessage) return
+    console.log('[useVoiceSession] emitChatMessage called:', { role, content: content.substring(0, 50), hasCards: !!cards, cardCount: cards?.length, hasCallback: !!onChatMessage })
+
+    if (!onChatMessage) {
+      console.warn('[useVoiceSession] onChatMessage callback is not set!')
+      return
+    }
 
     const message: VoiceChatMessage = {
       id: `voice-${role}-${Date.now()}`,
@@ -181,6 +186,7 @@ export function useVoiceSession(
       inputMode: 'voice',
       cards,
     }
+    console.log('[useVoiceSession] Emitting message to chat:', message.id, message.cards?.length, 'cards')
     onChatMessage(message)
   }, [onChatMessage])
 
@@ -647,6 +653,7 @@ export function useVoiceSession(
         // Development Sites
         // ---------------------------------------------------------------------
         case 'search_development_sites': {
+          console.log('[useVoiceSession] search_development_sites called with args:', args)
           const minLotSize = args.minLotSize as number | undefined
           const maxPrice = args.maxPrice as number | undefined
           const hasIncentives = args.hasIncentives as boolean | undefined
@@ -655,6 +662,7 @@ export function useVoiceSession(
           try {
             // Turn on the development sites layer so results appear on map
             setLayerVisibility('developmentSites', true)
+            console.log('[useVoiceSession] Querying development sites...')
 
             const sites = await convex.query(api.developmentSites.searchSites, {
               minLotSize,
@@ -663,12 +671,14 @@ export function useVoiceSession(
               // Note: hasIncentives filter would need to be applied in-memory if needed
               limit: 10,
             })
+            console.log('[useVoiceSession] Development sites query returned:', sites?.length, 'sites')
 
             // Filter by incentives if requested
             let filteredSites = sites
             if (hasIncentives && sites) {
               filteredSites = sites.filter((s) => s.incentives && s.incentives.length > 0)
             }
+            console.log('[useVoiceSession] After filtering:', filteredSites?.length, 'sites')
 
             if (filteredSites && filteredSites.length > 0) {
               // Transform to card format
@@ -684,10 +694,12 @@ export function useVoiceSession(
               }))
 
               // Emit card directly to chat
+              console.log('[useVoiceSession] Emitting development-sites-list card with', siteItems.length, 'sites')
               emitChatMessage('assistant', '', [{
                 type: 'development-sites-list',
                 data: { sites: siteItems, status: 'complete' },
               }])
+              console.log('[useVoiceSession] Card emitted!')
 
               // Fly to first site
               if (siteItems[0]?.coordinates) {
