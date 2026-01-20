@@ -171,7 +171,7 @@ export function LandingPage() {
             <div className="absolute inset-0 bg-violet-200 dark:bg-violet-900/30 rounded-2xl border-2 border-black transform rotate-1 translate-x-3 translate-y-3"></div>
             <div className="relative bg-white dark:bg-stone-900 rounded-2xl border-2 border-black shadow-[8px_8px_0_0_black] overflow-hidden">
               <img
-                src="/viz/MKE-dev-Milwaukee-Civic-Intelligence-01-19-2026_06_38_AM.png"
+                src="/viz/house-to-bungalow.png"
                 alt="AI Site Visualizer showing before and after comparison - house transformed into modern bungalow with landscaping"
                 className="w-full h-auto"
               />
