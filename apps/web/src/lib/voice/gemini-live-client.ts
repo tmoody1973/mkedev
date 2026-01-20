@@ -18,9 +18,14 @@ import { VOICE_TOOLS, VOICE_SYSTEM_INSTRUCTION } from './voice-tools'
 // Constants
 // ============================================================================
 
-const GEMINI_LIVE_MODEL = 'gemini-2.0-flash-live-001'
+// Latest native audio model for voice interactions
+const GEMINI_LIVE_MODEL = 'gemini-2.5-flash-preview-native-audio-dialog'
 const RECONNECT_DELAY_MS = 1000
 const MAX_RECONNECT_ATTEMPTS = 3
+
+// WebSocket endpoints
+const WS_ENDPOINT_EPHEMERAL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
+const WS_ENDPOINT_API_KEY = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent'
 
 // ============================================================================
 // Message Types
@@ -139,9 +144,35 @@ export class GeminiLiveClient {
   // ==========================================================================
 
   /**
-   * Connect to Gemini Live API
+   * Connect to Gemini Live API using an ephemeral token (RECOMMENDED)
+   *
+   * Ephemeral tokens are short-lived credentials generated server-side.
+   * This is the secure method for client-side connections.
+   *
+   * @param token - Ephemeral token from server
+   */
+  async connectWithToken(token: string): Promise<void> {
+    return this.establishConnection(token, true)
+  }
+
+  /**
+   * Connect to Gemini Live API using API key (NOT RECOMMENDED for production)
+   *
+   * WARNING: Only use this for local development/testing.
+   * API keys exposed client-side can be stolen and abused.
+   *
+   * @param apiKey - Google API key
+   * @deprecated Use connectWithToken() instead for production
    */
   async connect(apiKey: string): Promise<void> {
+    console.warn('[GeminiLive] Using API key directly is not recommended for production. Use connectWithToken() with ephemeral tokens instead.')
+    return this.establishConnection(apiKey, false)
+  }
+
+  /**
+   * Internal connection method
+   */
+  private async establishConnection(credential: string, isEphemeral: boolean): Promise<void> {
     if (this.isConnected) {
       console.warn('[GeminiLive] Already connected')
       return
@@ -149,8 +180,10 @@ export class GeminiLiveClient {
 
     return new Promise((resolve, reject) => {
       try {
-        // Gemini Live uses WebSocket with API key in URL
-        const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`
+        // Use appropriate endpoint and auth parameter based on credential type
+        const endpoint = isEphemeral ? WS_ENDPOINT_EPHEMERAL : WS_ENDPOINT_API_KEY
+        const authParam = isEphemeral ? `access_token=${credential}` : `key=${credential}`
+        const wsUrl = `${endpoint}?${authParam}`
 
         this.websocket = new WebSocket(wsUrl)
 
@@ -185,11 +218,12 @@ export class GeminiLiveClient {
           this.isConnected = false
           this.emitEvent({ type: 'session_end', timestamp: Date.now() })
 
-          // Attempt reconnect if unexpected close
-          if (event.code !== 1000 && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          // Attempt reconnect if unexpected close (only for API key mode)
+          // Ephemeral tokens are single-use, so don't retry
+          if (!isEphemeral && event.code !== 1000 && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             this.reconnectAttempts++
             console.log(`[GeminiLive] Attempting reconnect ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`)
-            setTimeout(() => this.connect(apiKey), RECONNECT_DELAY_MS)
+            setTimeout(() => this.establishConnection(credential, isEphemeral), RECONNECT_DELAY_MS)
           }
         }
       } catch (error) {

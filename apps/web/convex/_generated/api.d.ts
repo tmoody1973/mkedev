@@ -16,6 +16,7 @@ import type * as commercialProperties from "../commercialProperties.js";
 import type * as conversations from "../conversations.js";
 import type * as crons from "../crons.js";
 import type * as developmentSites from "../developmentSites.js";
+import type * as gemini from "../gemini.js";
 import type * as homes from "../homes.js";
 import type * as http from "../http.js";
 import type * as http_planningIngestion from "../http/planningIngestion.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   conversations: typeof conversations;
   crons: typeof crons;
   developmentSites: typeof developmentSites;
+  gemini: typeof gemini;
   homes: typeof homes;
   http: typeof http;
   "http/planningIngestion": typeof http_planningIngestion;

@@ -86,6 +86,7 @@ export function useVoiceSession(
   // Convex actions for server-side operations
   const geocodeAddress = useAction(api.mapbox.geocode)
   const queryZoning = useAction(api.agents.zoning.chat)
+  const getEphemeralToken = useAction(api.gemini.getEphemeralToken)
   // Note: These actions may need to be created if they don't exist
   // const generateVisualization = useAction(api.visualization.generate.generate)
 
@@ -334,11 +335,15 @@ export function useVoiceSession(
     updateState('connecting')
 
     try {
-      // Get API key from environment or server
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_GEMINI_API_KEY
-      if (!apiKey) {
-        throw new Error('Gemini API key not configured')
+      // Get ephemeral token from server (secure - API key never exposed to client)
+      console.log('[useVoiceSession] Requesting ephemeral token from server...')
+      const tokenResponse = await getEphemeralToken()
+
+      if (!tokenResponse?.token) {
+        throw new Error('Failed to get ephemeral token from server')
       }
+
+      console.log('[useVoiceSession] Got ephemeral token, expires:', tokenResponse.expiresAt)
 
       // Create client
       clientRef.current = createGeminiLiveClient()
@@ -367,8 +372,8 @@ export function useVoiceSession(
         setError(error.message)
       })
 
-      // Connect to Gemini Live
-      await clientRef.current.connect(apiKey)
+      // Connect to Gemini Live using ephemeral token (secure)
+      await clientRef.current.connectWithToken(tokenResponse.token)
 
       // Start audio capture
       await audioManagerRef.current.startCapture((audioBlob) => {
@@ -376,13 +381,13 @@ export function useVoiceSession(
       })
 
       updateState('listening')
-      console.log('[useVoiceSession] Session started')
+      console.log('[useVoiceSession] Session started with ephemeral token')
     } catch (error) {
       console.error('[useVoiceSession] Failed to start session:', error)
       setError(error instanceof Error ? error.message : 'Failed to start voice session')
       updateState('error')
     }
-  }, [session.isActive, updateState, setError, addTranscriptEntry, handleFunctionCall])
+  }, [session.isActive, updateState, setError, addTranscriptEntry, handleFunctionCall, getEphemeralToken])
 
   const endSession = useCallback(() => {
     // Stop audio
