@@ -361,16 +361,16 @@ export class GeminiLiveClient {
   // ==========================================================================
 
   private sendSetupMessage(): void {
-    // Match the Google SDK config structure
+    // Try without models/ prefix
     const message: SetupMessage = {
       setup: {
-        model: `models/${this.config.model}`,
+        model: this.config.model,
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
-                voiceName: this.config.voiceName || 'Zephyr',
+                voiceName: this.config.voiceName || 'Puck',
               },
             },
           },
