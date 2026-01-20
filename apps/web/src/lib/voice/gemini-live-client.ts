@@ -361,12 +361,12 @@ export class GeminiLiveClient {
   // ==========================================================================
 
   private sendSetupMessage(): void {
-    // Try with models/ prefix but without speechConfig
+    // Try lowercase 'audio' like SDK Modality.AUDIO might serialize
     const message = {
       setup: {
         model: `models/${this.config.model}`,
         generationConfig: {
-          responseModalities: ['AUDIO'],
+          responseModalities: ['audio'],
         },
       },
     }
