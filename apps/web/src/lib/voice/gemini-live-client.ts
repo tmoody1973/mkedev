@@ -361,19 +361,12 @@ export class GeminiLiveClient {
   // ==========================================================================
 
   private sendSetupMessage(): void {
-    // Try without models/ prefix
-    const message: SetupMessage = {
+    // Try with models/ prefix but without speechConfig
+    const message = {
       setup: {
-        model: this.config.model,
+        model: `models/${this.config.model}`,
         generationConfig: {
           responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: this.config.voiceName || 'Puck',
-              },
-            },
-          },
         },
       },
     }
