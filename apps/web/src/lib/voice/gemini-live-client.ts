@@ -112,7 +112,8 @@ export class GeminiLiveClient {
       const ai = new GoogleGenAI({ apiKey })
 
       // Build config matching SDK format
-      // Note: Native audio models only support AUDIO modality
+      // Use AUDIO modality with output transcription to get text in chat
+      // Note: Can't use TEXT+AUDIO together, but outputAudioTranscription gives us both
       const config = {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
@@ -122,6 +123,10 @@ export class GeminiLiveClient {
             },
           },
         },
+        // Transcribe the audio output so we can show it in chat
+        outputAudioTranscription: {},
+        // Also transcribe user's spoken input
+        inputAudioTranscription: {},
         systemInstruction: this.config.systemInstruction,
         tools: this.config.tools && this.config.tools.length > 0
           ? [{ functionDeclarations: this.config.tools.map(convertToolToSDKFormat) }]
@@ -384,6 +389,19 @@ export class GeminiLiveClient {
           type: 'transcript_update',
           timestamp: Date.now(),
           data: { role: 'user', text: userText },
+        })
+      }
+
+      // Handle output audio transcription (text version of what assistant said)
+      // This is separate from the audio chunks and gives us text for the chat
+      if (message.serverContent?.outputTranscription?.text) {
+        const assistantText = message.serverContent.outputTranscription.text
+        console.log('[GeminiLive] Assistant transcript:', assistantText)
+        this.onTextReceived?.(assistantText)
+        this.emitEvent({
+          type: 'transcript_update',
+          timestamp: Date.now(),
+          data: { role: 'assistant', text: assistantText },
         })
       }
 
