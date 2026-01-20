@@ -35,6 +35,7 @@ import type * as ingestion_ragV2 from "../ingestion/ragV2.js";
 import type * as ingestion_trigger from "../ingestion/trigger.js";
 import type * as ingestion_types from "../ingestion/types.js";
 import type * as lib_opik from "../lib/opik.js";
+import type * as mapbox from "../mapbox.js";
 import type * as reports from "../reports.js";
 import type * as users from "../users.js";
 import type * as visualization_gallery from "../visualization/gallery.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   "ingestion/trigger": typeof ingestion_trigger;
   "ingestion/types": typeof ingestion_types;
   "lib/opik": typeof lib_opik;
+  mapbox: typeof mapbox;
   reports: typeof reports;
   users: typeof users;
   "visualization/gallery": typeof visualization_gallery;

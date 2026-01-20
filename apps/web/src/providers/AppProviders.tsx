@@ -4,6 +4,7 @@ import { type ReactNode, useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { MapProvider } from '@/contexts/MapContext'
+import { VoiceProvider } from '@/components/voice'
 
 // Dynamically import CopilotKit to avoid SSR issues
 const CopilotKit = dynamic(
@@ -35,8 +36,15 @@ export function AppProviders({ children }: AppProvidersProps) {
     setIsMounted(true)
   }, [])
 
-  // Content with map provider
-  const content = <MapProvider>{children}</MapProvider>
+  // Content with map and voice providers
+  // VoiceProvider must be inside MapProvider to access map context
+  const content = (
+    <MapProvider>
+      <VoiceProvider showIndicator={true} enableTranscript={true}>
+        {children}
+      </VoiceProvider>
+    </MapProvider>
+  )
 
   return (
     <ThemeProvider
