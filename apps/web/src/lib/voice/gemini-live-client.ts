@@ -362,7 +362,7 @@ export class GeminiLiveClient {
 
   private sendSetupMessage(): void {
     // Match the Google SDK config structure
-    const message = {
+    const message: SetupMessage = {
       setup: {
         model: `models/${this.config.model}`,
         generationConfig: {
