@@ -361,30 +361,29 @@ export class GeminiLiveClient {
   // ==========================================================================
 
   private sendSetupMessage(): void {
+    // Start with minimal setup - model only
     const message: SetupMessage = {
       setup: {
         model: `models/${this.config.model}`,
         generationConfig: {
-          responseModalities: ['AUDIO', 'TEXT'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: this.config.voiceName || 'Puck',
-              },
-            },
-          },
+          responseModalities: ['AUDIO'],
         },
-        systemInstruction: this.config.systemInstruction
-          ? {
-              parts: [{ text: this.config.systemInstruction }],
-            }
-          : undefined,
-        tools: this.config.tools
-          ? [{ functionDeclarations: this.config.tools }]
-          : undefined,
       },
     }
 
+    // Add system instruction if provided (as simple string)
+    if (this.config.systemInstruction) {
+      message.setup.systemInstruction = {
+        parts: [{ text: this.config.systemInstruction }],
+      }
+    }
+
+    // Add tools if provided
+    if (this.config.tools && this.config.tools.length > 0) {
+      message.setup.tools = [{ functionDeclarations: this.config.tools }]
+    }
+
+    console.log('[GeminiLive] Sending setup:', JSON.stringify(message, null, 2))
     this.websocket?.send(JSON.stringify(message))
     console.log('[GeminiLive] Sent setup message')
   }
