@@ -132,6 +132,15 @@ export class GeminiLiveClient {
 
       console.log('[GeminiLive] Connecting with SDK...')
 
+      // Create a promise that resolves when WebSocket opens
+      let resolveOpen: () => void
+      let rejectOpen: (error: Error) => void
+      let hasOpened = false
+      const openPromise = new Promise<void>((resolve, reject) => {
+        resolveOpen = resolve
+        rejectOpen = reject
+      })
+
       this.session = await ai.live.connect({
         model: this.config.model,
         config,
@@ -139,7 +148,9 @@ export class GeminiLiveClient {
           onopen: () => {
             console.log('[GeminiLive] Connected via SDK')
             this.isConnected = true
+            hasOpened = true
             this.emitEvent({ type: 'session_start', timestamp: Date.now() })
+            resolveOpen()
           },
           onmessage: (message: LiveServerMessage) => {
             this.handleMessage(message)
@@ -147,16 +158,25 @@ export class GeminiLiveClient {
           onerror: (e: ErrorEvent) => {
             console.error('[GeminiLive] SDK error:', e.message)
             this.onError?.(new Error(e.message))
+            if (!hasOpened) {
+              rejectOpen(new Error(e.message))
+            }
           },
           onclose: (e: CloseEvent) => {
             console.log('[GeminiLive] SDK closed:', e.reason)
             this.isConnected = false
             this.emitEvent({ type: 'session_end', timestamp: Date.now() })
+            // Only reject if we haven't opened yet (connection failed)
+            if (!hasOpened) {
+              rejectOpen(new Error(e.reason || 'Connection closed before opening'))
+            }
           },
         },
       })
 
-      console.log('[GeminiLive] Session started')
+      // Wait for the WebSocket to actually open before returning
+      await openPromise
+      console.log('[GeminiLive] Session started and WebSocket open')
     } catch (error) {
       console.error('[GeminiLive] Failed to connect:', error)
       throw error
