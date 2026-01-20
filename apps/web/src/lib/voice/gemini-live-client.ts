@@ -23,9 +23,8 @@ const GEMINI_LIVE_MODEL = 'gemini-2.5-flash-preview-native-audio-dialog'
 const RECONNECT_DELAY_MS = 1000
 const MAX_RECONNECT_ATTEMPTS = 3
 
-// WebSocket endpoints
-const WS_ENDPOINT_EPHEMERAL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
-const WS_ENDPOINT_API_KEY = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent'
+// WebSocket endpoint (v1alpha required for Gemini 2.5 models)
+const WS_ENDPOINT = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
 
 // ============================================================================
 // Message Types
@@ -178,10 +177,9 @@ export class GeminiLiveClient {
 
     return new Promise((resolve, reject) => {
       try {
-        // Use appropriate endpoint and auth parameter based on credential type
-        const endpoint = isEphemeral ? WS_ENDPOINT_EPHEMERAL : WS_ENDPOINT_API_KEY
+        // Use v1alpha endpoint for all connections (required for Gemini 2.5)
         const authParam = isEphemeral ? `access_token=${credential}` : `key=${credential}`
-        const wsUrl = `${endpoint}?${authParam}`
+        const wsUrl = `${WS_ENDPOINT}?${authParam}`
 
         this.websocket = new WebSocket(wsUrl)
 
