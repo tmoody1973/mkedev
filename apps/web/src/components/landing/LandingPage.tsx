@@ -167,62 +167,23 @@ export function LandingPage() {
           </div>
 
           {/* Before/After Comparison */}
-          <div className="relative max-w-5xl mx-auto mb-12">
+          <div className="relative max-w-5xl mx-auto mb-8">
             <div className="absolute inset-0 bg-violet-200 dark:bg-violet-900/30 rounded-2xl border-2 border-black transform rotate-1 translate-x-3 translate-y-3"></div>
             <div className="relative bg-white dark:bg-stone-900 rounded-2xl border-2 border-black shadow-[8px_8px_0_0_black] overflow-hidden">
               <img
-                src="/viz/MKE-dev-Milwaukee-Civic-Intelligence-01-19-2026_05_19_AM.png"
-                alt="AI Site Visualizer showing before and after comparison - empty lot transformed into community park"
+                src="/viz/MKE-dev-Milwaukee-Civic-Intelligence-01-19-2026_06_38_AM.png"
+                alt="AI Site Visualizer showing before and after comparison - house transformed into modern bungalow with landscaping"
                 className="w-full h-auto"
               />
             </div>
           </div>
 
-          {/* Visualizer Examples Grid */}
-          <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto mb-12">
-            {/* Example 1: Park */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-emerald-200 dark:bg-emerald-900/30 rounded-xl border-2 border-black transform rotate-1 translate-x-2 translate-y-2 group-hover:rotate-2 transition-transform"></div>
-              <div className="relative bg-white dark:bg-stone-800 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] overflow-hidden">
-                <img
-                  src="/viz/mkedev-visualization-1768821560575.png"
-                  alt="AI-generated community park with walking paths, trees, and benches"
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium rounded border border-emerald-300 dark:border-emerald-700">
-                      Community Park
-                    </span>
-                  </div>
-                  <p className="text-sm text-stone-600 dark:text-stone-400">
-                    &quot;Transform into a community park with trees and walking paths&quot;
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Example 2: Modern House */}
-            <div className="group relative">
-              <div className="absolute inset-0 bg-amber-200 dark:bg-amber-900/30 rounded-xl border-2 border-black transform -rotate-1 translate-x-2 translate-y-2 group-hover:-rotate-2 transition-transform"></div>
-              <div className="relative bg-white dark:bg-stone-800 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] overflow-hidden">
-                <img
-                  src="/viz/mkedev-visualization-1768826313715.png"
-                  alt="AI-generated modern residential home with contemporary architecture"
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-medium rounded border border-amber-300 dark:border-amber-700">
-                      Modern Home
-                    </span>
-                  </div>
-                  <p className="text-sm text-stone-600 dark:text-stone-400">
-                    &quot;Build a modern single-family home with landscaping&quot;
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Prompt Example */}
+          <div className="max-w-2xl mx-auto mb-12 text-center">
+            <p className="text-stone-500 dark:text-stone-400 text-sm mb-2">Prompt used:</p>
+            <p className="text-lg font-medium text-stone-700 dark:text-stone-300 italic">
+              &quot;Turn this house into a modern bungalow with nice landscaping&quot;
+            </p>
           </div>
 
           {/* How It Works */}
