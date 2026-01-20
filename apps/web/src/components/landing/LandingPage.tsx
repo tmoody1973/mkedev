@@ -166,24 +166,103 @@ export function LandingPage() {
             </p>
           </div>
 
-          {/* Before/After Comparison */}
-          <div className="relative max-w-5xl mx-auto mb-8">
-            <div className="absolute inset-0 bg-violet-200 dark:bg-violet-900/30 rounded-2xl border-2 border-black transform rotate-1 translate-x-3 translate-y-3"></div>
-            <div className="relative bg-white dark:bg-stone-900 rounded-2xl border-2 border-black shadow-[8px_8px_0_0_black] overflow-hidden">
-              <img
-                src="/viz/house-to-bungalow.png"
-                alt="AI Site Visualizer showing before and after comparison - house transformed into modern bungalow with landscaping"
-                className="w-full h-auto"
-              />
+          {/* Use Case Gallery */}
+          <div className="space-y-12 mb-16">
+            {/* Use Case 1: Home Renovation */}
+            <div className="max-w-6xl mx-auto">
+              <div className="grid lg:grid-cols-3 gap-6 items-start">
+                {/* Main Before/After */}
+                <div className="lg:col-span-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-violet-200 dark:bg-violet-900/30 rounded-2xl border-2 border-black transform rotate-1 translate-x-2 translate-y-2"></div>
+                    <div className="relative bg-white dark:bg-stone-900 rounded-2xl border-2 border-black shadow-[6px_6px_0_0_black] overflow-hidden">
+                      <img
+                        src="/viz/house-to-bungalow.png"
+                        alt="Before and after: existing house transformed into modern bungalow with landscaping"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {/* Details Card */}
+                <div className="space-y-4">
+                  <div className="bg-white dark:bg-stone-900 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] p-5">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium rounded-full mb-3">
+                      Home Renovation
+                    </div>
+                    <h4 className="font-bold text-stone-900 dark:text-white mb-2">Reimagine Your Property</h4>
+                    <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">
+                      See what your home could look like with modern updates, new landscaping, or a complete renovation.
+                    </p>
+                    <div className="bg-stone-50 dark:bg-stone-800 rounded-lg p-3 border border-stone-200 dark:border-stone-700">
+                      <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Prompt used:</p>
+                      <p className="text-sm font-medium text-stone-700 dark:text-stone-300 italic">
+                        &quot;Turn this house into a modern bungalow with nice landscaping&quot;
+                      </p>
+                    </div>
+                  </div>
+                  {/* Detail Image */}
+                  <div className="bg-white dark:bg-stone-900 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] overflow-hidden">
+                    <img
+                      src="/viz/bungalow-detail.jpg"
+                      alt="Detail view of AI-generated modern bungalow with landscaping"
+                      className="w-full h-auto"
+                    />
+                    <div className="p-3 border-t-2 border-black">
+                      <p className="text-xs text-stone-500 dark:text-stone-400 text-center">Generated result detail</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Prompt Example */}
-          <div className="max-w-2xl mx-auto mb-12 text-center">
-            <p className="text-stone-500 dark:text-stone-400 text-sm mb-2">Prompt used:</p>
-            <p className="text-lg font-medium text-stone-700 dark:text-stone-300 italic">
-              &quot;Turn this house into a modern bungalow with nice landscaping&quot;
-            </p>
+            {/* Use Case 2: Vacant Lot Development */}
+            <div className="max-w-6xl mx-auto">
+              <div className="grid lg:grid-cols-3 gap-6 items-start">
+                {/* Details Card - Left side on this one for variety */}
+                <div className="space-y-4 order-2 lg:order-1">
+                  <div className="bg-white dark:bg-stone-900 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] p-5">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 text-xs font-medium rounded-full mb-3">
+                      Community Vision
+                    </div>
+                    <h4 className="font-bold text-stone-900 dark:text-white mb-2">Transform Vacant Lots</h4>
+                    <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">
+                      Visualize community parks, gardens, or new developments on underutilized land.
+                    </p>
+                    <div className="bg-stone-50 dark:bg-stone-800 rounded-lg p-3 border border-stone-200 dark:border-stone-700">
+                      <p className="text-xs text-stone-500 dark:text-stone-400 mb-1">Prompt used:</p>
+                      <p className="text-sm font-medium text-stone-700 dark:text-stone-300 italic">
+                        &quot;Transform this into a community park with walking paths and trees&quot;
+                      </p>
+                    </div>
+                  </div>
+                  {/* Detail Image */}
+                  <div className="bg-white dark:bg-stone-900 rounded-xl border-2 border-black shadow-[4px_4px_0_0_black] overflow-hidden">
+                    <img
+                      src="/viz/park-detail.jpg"
+                      alt="Detail view of AI-generated community park with paths and greenery"
+                      className="w-full h-auto"
+                    />
+                    <div className="p-3 border-t-2 border-black">
+                      <p className="text-xs text-stone-500 dark:text-stone-400 text-center">Generated result detail</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Main Before/After */}
+                <div className="lg:col-span-2 order-1 lg:order-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-sky-200 dark:bg-sky-900/30 rounded-2xl border-2 border-black transform -rotate-1 translate-x-2 translate-y-2"></div>
+                    <div className="relative bg-white dark:bg-stone-900 rounded-2xl border-2 border-black shadow-[6px_6px_0_0_black] overflow-hidden">
+                      <img
+                        src="/viz/lot-to-park.png"
+                        alt="Before and after: vacant lot transformed into community park with walking paths"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* How It Works */}
