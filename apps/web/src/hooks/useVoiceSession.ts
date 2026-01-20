@@ -164,6 +164,7 @@ export function useVoiceSession(
   // Convex actions and queries for server-side operations
   const convex = useConvex()
   const geocodeAddress = useAction(api.mapbox.geocode)
+  const queryZoningAtPoint = useAction(api.mapbox.queryZoningAtPoint)
   const queryZoning = useAction(api.agents.zoning.chat)
   const getCredentials = useAction(api.gemini.getCredentials)
 
@@ -255,20 +256,50 @@ export function useVoiceSession(
               const [lng, lat] = feature.center
               flyTo([lng, lat], 17)
 
-              // Emit parcel-info card directly to chat
-              emitChatMessage('assistant', '', [{
-                type: 'parcel-info',
-                data: {
-                  address: feature.place_name,
-                  coordinates: { latitude: lat, longitude: lng },
-                  status: 'complete',
-                },
-              }])
+              // Query zoning at this location
+              const zoningResult = await queryZoningAtPoint({ lng, lat })
 
-              return {
-                success: true,
-                address: feature.place_name,
-                coordinates: { lng, lat },
+              // Emit zone-info card with zoning details
+              if (zoningResult.success) {
+                emitChatMessage('assistant', '', [{
+                  type: 'zone-info',
+                  data: {
+                    address: feature.place_name,
+                    zoningDistrict: zoningResult.zoningDistrict,
+                    zoningDescription: zoningResult.zoningDescription,
+                    zoningCategory: zoningResult.zoningCategory,
+                    coordinates: { latitude: lat, longitude: lng },
+                    status: 'complete',
+                  },
+                }])
+
+                return {
+                  success: true,
+                  address: feature.place_name,
+                  coordinates: { lng, lat },
+                  zoning: {
+                    district: zoningResult.zoningDistrict,
+                    description: zoningResult.zoningDescription,
+                    category: zoningResult.zoningCategory,
+                  },
+                }
+              } else {
+                // No zoning found, emit parcel-info card instead
+                emitChatMessage('assistant', '', [{
+                  type: 'parcel-info',
+                  data: {
+                    address: feature.place_name,
+                    coordinates: { latitude: lat, longitude: lng },
+                    status: 'complete',
+                  },
+                }])
+
+                return {
+                  success: true,
+                  address: feature.place_name,
+                  coordinates: { lng, lat },
+                  zoning: null,
+                }
               }
             }
             return { success: false, error: 'Address not found' }
@@ -821,6 +852,7 @@ export function useVoiceSession(
       setLayerOpacity,
       captureMapScreenshot,
       geocodeAddress,
+      queryZoningAtPoint,
       queryZoning,
       convex,
       emitChatMessage,

@@ -83,6 +83,88 @@ export const reverseGeocode = action({
 })
 
 // ============================================================================
+// ESRI Zoning Query
+// ============================================================================
+
+const ESRI_BASE = 'https://gis.milwaukee.gov/arcgis/rest/services'
+
+/**
+ * Query zoning information at a coordinate point
+ */
+export const queryZoningAtPoint = action({
+  args: {
+    lng: v.number(),
+    lat: v.number(),
+  },
+  handler: async (_ctx, { lng, lat }) => {
+    try {
+      // Query zoning layer (inSR=4326 for WGS84 coordinates)
+      const zoningUrl = `${ESRI_BASE}/planning/zoning/MapServer/11/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`
+
+      const response = await fetch(zoningUrl)
+      if (!response.ok) {
+        throw new Error(`ESRI query failed: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const zoning = data.features?.[0]?.attributes
+
+      if (!zoning) {
+        return {
+          success: false,
+          error: 'No zoning information found at this location',
+        }
+      }
+
+      // Extract zoning details
+      const zoningDistrict = zoning.ZONING || zoning.zoning || 'Unknown'
+      const zoningDescription = zoning.ZONING_DES || zoning.zoning_des || zoning.DESCRIPTION || ''
+
+      // Determine category from code prefix
+      const prefix = zoningDistrict.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 2)
+      const categoryMap: Record<string, string> = {
+        'RS': 'Residential - Single Family',
+        'RT': 'Residential - Two Family',
+        'RM': 'Residential - Multi-Family',
+        'RO': 'Residential - Office',
+        'LB': 'Local Business',
+        'NS': 'Neighborhood Shopping',
+        'CS': 'Commercial Service',
+        'RB': 'Regional Business',
+        'IL': 'Industrial - Light',
+        'IM': 'Industrial - Mixed',
+        'IH': 'Industrial - Heavy',
+        'IC': 'Industrial - Commercial',
+        'PK': 'Parks',
+        'IN': 'Institutional',
+        'DT': 'Downtown',
+        'PD': 'Planned Development',
+        'C9': 'Central Business District',
+        'DC': 'Downtown Core',
+        'DX': 'Downtown Mixed',
+        'MX': 'Mixed Use',
+        'IO': 'Industrial - Office',
+      }
+      const zoningCategory = categoryMap[prefix] || 'Mixed Use / Special'
+
+      return {
+        success: true,
+        zoningDistrict,
+        zoningDescription,
+        zoningCategory,
+        coordinates: { lng, lat },
+      }
+    } catch (error) {
+      console.error('[mapbox.queryZoningAtPoint] Error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to query zoning',
+      }
+    }
+  },
+})
+
+// ============================================================================
 // Types
 // ============================================================================
 
