@@ -31,8 +31,7 @@ export class AudioManager {
   private scriptProcessor: ScriptProcessorNode | null = null
   private playbackContext: AudioContext | null = null
   private gainNode: GainNode | null = null
-  private audioQueue: AudioBuffer[] = []
-  private isPlayingQueue = false
+  private nextPlayTime = 0  // For seamless audio scheduling
   private state: AudioManagerState = {
     isCapturing: false,
     isPlaying: false,
@@ -143,6 +142,7 @@ export class AudioManager {
 
   /**
    * Play audio data received from Gemini
+   * Uses scheduled playback for seamless audio without gaps
    */
   async playAudio(audioData: ArrayBuffer): Promise<void> {
     if (this.state.isMuted) return
@@ -154,6 +154,7 @@ export class AudioManager {
         this.gainNode = this.playbackContext.createGain()
         this.gainNode.connect(this.playbackContext.destination)
         this.gainNode.gain.value = this.state.volume
+        this.nextPlayTime = 0
       }
 
       // Resume context if suspended (browser autoplay policy)
@@ -164,9 +165,30 @@ export class AudioManager {
       // Decode audio data
       const audioBuffer = await this.decodeAudioData(audioData)
 
-      // Add to queue and play
-      this.audioQueue.push(audioBuffer)
-      this.processAudioQueue()
+      // Schedule playback seamlessly
+      const currentTime = this.playbackContext.currentTime
+
+      // If we've fallen behind or this is first chunk, start from now + small buffer
+      if (this.nextPlayTime < currentTime) {
+        this.nextPlayTime = currentTime + 0.05 // 50ms buffer
+      }
+
+      const source = this.playbackContext.createBufferSource()
+      source.buffer = audioBuffer
+      source.connect(this.gainNode!)
+      source.start(this.nextPlayTime)
+
+      // Schedule next chunk to start right after this one ends
+      this.nextPlayTime += audioBuffer.duration
+
+      this.updateState({ isPlaying: true })
+
+      source.onended = () => {
+        // Only set not playing if no more audio is scheduled
+        if (this.playbackContext && this.playbackContext.currentTime >= this.nextPlayTime - 0.1) {
+          this.updateState({ isPlaying: false })
+        }
+      }
     } catch (error) {
       console.error('[AudioManager] Failed to play audio:', error)
     }
@@ -176,8 +198,13 @@ export class AudioManager {
    * Stop all audio playback
    */
   stopPlayback(): void {
-    this.audioQueue = []
-    this.isPlayingQueue = false
+    this.nextPlayTime = 0
+    // Close and recreate context to stop all scheduled audio
+    if (this.playbackContext) {
+      this.playbackContext.close()
+      this.playbackContext = null
+      this.gainNode = null
+    }
     this.updateState({ isPlaying: false })
   }
 
@@ -259,29 +286,6 @@ export class AudioManager {
     audioBuffer.copyToChannel(floatData, 0)
 
     return audioBuffer
-  }
-
-  private async processAudioQueue(): Promise<void> {
-    if (this.isPlayingQueue || this.audioQueue.length === 0) return
-    if (!this.playbackContext || !this.gainNode) return
-
-    this.isPlayingQueue = true
-    this.updateState({ isPlaying: true })
-
-    while (this.audioQueue.length > 0) {
-      const buffer = this.audioQueue.shift()!
-
-      await new Promise<void>((resolve) => {
-        const source = this.playbackContext!.createBufferSource()
-        source.buffer = buffer
-        source.connect(this.gainNode!)
-        source.onended = () => resolve()
-        source.start()
-      })
-    }
-
-    this.isPlayingQueue = false
-    this.updateState({ isPlaying: false })
   }
 
   private updateState(updates: Partial<AudioManagerState>): void {
