@@ -27,8 +27,9 @@ const PLAYBACK_SAMPLE_RATE = 24000  // Gemini Live outputs 24kHz audio
 export class AudioManager {
   private config: AudioConfig
   private mediaStream: MediaStream | null = null
-  private mediaRecorder: MediaRecorder | null = null
-  private audioContext: AudioContext | null = null
+  private captureContext: AudioContext | null = null
+  private scriptProcessor: ScriptProcessorNode | null = null
+  private playbackContext: AudioContext | null = null
   private gainNode: GainNode | null = null
   private audioQueue: AudioBuffer[] = []
   private isPlayingQueue = false
@@ -53,6 +54,7 @@ export class AudioManager {
 
   /**
    * Start capturing audio from the microphone
+   * Captures raw PCM audio at 16kHz for Gemini Live API
    */
   async startCapture(onAudioData: (data: Blob) => void): Promise<void> {
     if (this.state.isCapturing) {
@@ -73,22 +75,42 @@ export class AudioManager {
 
       this.onAudioData = onAudioData
 
-      // Create MediaRecorder for capturing chunks
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, {
-        mimeType: this.getSupportedMimeType(),
-      })
+      // Create AudioContext for raw PCM capture
+      // Note: Browser may use a different sample rate than requested
+      this.captureContext = new AudioContext({ sampleRate: this.config.sampleRate })
 
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && this.onAudioData) {
-          this.onAudioData(event.data)
+      // Create source from microphone stream
+      const source = this.captureContext.createMediaStreamSource(this.mediaStream)
+
+      // Use ScriptProcessorNode to capture raw PCM samples
+      // Buffer size of 4096 gives ~256ms chunks at 16kHz
+      const bufferSize = 4096
+      this.scriptProcessor = this.captureContext.createScriptProcessor(bufferSize, 1, 1)
+
+      this.scriptProcessor.onaudioprocess = (event) => {
+        if (!this.onAudioData) return
+
+        const inputData = event.inputBuffer.getChannelData(0)
+
+        // Convert Float32 (-1.0 to 1.0) to Int16 PCM
+        const pcmData = new Int16Array(inputData.length)
+        for (let i = 0; i < inputData.length; i++) {
+          // Clamp and convert to 16-bit integer
+          const s = Math.max(-1, Math.min(1, inputData[i]))
+          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7fff
         }
+
+        // Create Blob with PCM mime type
+        const blob = new Blob([pcmData.buffer], { type: 'audio/pcm' })
+        this.onAudioData(blob)
       }
 
-      // Capture audio in 100ms chunks for low latency
-      this.mediaRecorder.start(100)
+      // Connect: microphone -> processor -> destination (required for processing)
+      source.connect(this.scriptProcessor)
+      this.scriptProcessor.connect(this.captureContext.destination)
 
       this.updateState({ isCapturing: true })
-      console.log('[AudioManager] Started capturing audio')
+      console.log('[AudioManager] Started capturing audio (PCM 16kHz)')
     } catch (error) {
       console.error('[AudioManager] Failed to start capture:', error)
       throw error
@@ -99,8 +121,14 @@ export class AudioManager {
    * Stop capturing audio
    */
   stopCapture(): void {
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop()
+    if (this.scriptProcessor) {
+      this.scriptProcessor.disconnect()
+      this.scriptProcessor = null
+    }
+
+    if (this.captureContext) {
+      this.captureContext.close()
+      this.captureContext = null
     }
 
     if (this.mediaStream) {
@@ -108,7 +136,6 @@ export class AudioManager {
       this.mediaStream = null
     }
 
-    this.mediaRecorder = null
     this.onAudioData = null
     this.updateState({ isCapturing: false })
     console.log('[AudioManager] Stopped capturing audio')
@@ -122,16 +149,16 @@ export class AudioManager {
 
     try {
       // Initialize audio context on first play (must be after user gesture)
-      if (!this.audioContext) {
-        this.audioContext = new AudioContext({ sampleRate: PLAYBACK_SAMPLE_RATE })
-        this.gainNode = this.audioContext.createGain()
-        this.gainNode.connect(this.audioContext.destination)
+      if (!this.playbackContext) {
+        this.playbackContext = new AudioContext({ sampleRate: PLAYBACK_SAMPLE_RATE })
+        this.gainNode = this.playbackContext.createGain()
+        this.gainNode.connect(this.playbackContext.destination)
         this.gainNode.gain.value = this.state.volume
       }
 
       // Resume context if suspended (browser autoplay policy)
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume()
+      if (this.playbackContext.state === 'suspended') {
+        await this.playbackContext.resume()
       }
 
       // Decode audio data
@@ -182,9 +209,9 @@ export class AudioManager {
     this.stopCapture()
     this.stopPlayback()
 
-    if (this.audioContext) {
-      this.audioContext.close()
-      this.audioContext = null
+    if (this.playbackContext) {
+      this.playbackContext.close()
+      this.playbackContext = null
     }
 
     this.gainNode = null
@@ -209,7 +236,7 @@ export class AudioManager {
   // ==========================================================================
 
   private async decodeAudioData(data: ArrayBuffer): Promise<AudioBuffer> {
-    if (!this.audioContext) {
+    if (!this.playbackContext) {
       throw new Error('AudioContext not initialized')
     }
 
@@ -224,7 +251,7 @@ export class AudioManager {
     }
 
     // Create AudioBuffer
-    const audioBuffer = this.audioContext.createBuffer(
+    const audioBuffer = this.playbackContext.createBuffer(
       1, // mono
       floatData.length,
       PLAYBACK_SAMPLE_RATE
@@ -236,7 +263,7 @@ export class AudioManager {
 
   private async processAudioQueue(): Promise<void> {
     if (this.isPlayingQueue || this.audioQueue.length === 0) return
-    if (!this.audioContext || !this.gainNode) return
+    if (!this.playbackContext || !this.gainNode) return
 
     this.isPlayingQueue = true
     this.updateState({ isPlaying: true })
@@ -245,7 +272,7 @@ export class AudioManager {
       const buffer = this.audioQueue.shift()!
 
       await new Promise<void>((resolve) => {
-        const source = this.audioContext!.createBufferSource()
+        const source = this.playbackContext!.createBufferSource()
         source.buffer = buffer
         source.connect(this.gainNode!)
         source.onended = () => resolve()
@@ -255,25 +282,6 @@ export class AudioManager {
 
     this.isPlayingQueue = false
     this.updateState({ isPlaying: false })
-  }
-
-  private getSupportedMimeType(): string {
-    // Prefer webm/opus for smaller size, fallback to others
-    const types = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/mp4',
-    ]
-
-    for (const type of types) {
-      if (MediaRecorder.isTypeSupported(type)) {
-        return type
-      }
-    }
-
-    // Fallback to default
-    return ''
   }
 
   private updateState(updates: Partial<AudioManagerState>): void {
