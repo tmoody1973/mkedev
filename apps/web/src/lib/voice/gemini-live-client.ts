@@ -23,8 +23,8 @@ const GEMINI_LIVE_MODEL = 'gemini-2.0-flash-live-001'
 const RECONNECT_DELAY_MS = 1000
 const MAX_RECONNECT_ATTEMPTS = 3
 
-// WebSocket endpoint (v1alpha required for Gemini 2.5 models)
-const WS_ENDPOINT = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
+// WebSocket endpoint (v1beta for Gemini 2.0 Live models)
+const WS_ENDPOINT = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent'
 
 // ============================================================================
 // Message Types
