@@ -282,6 +282,10 @@ export const VOICE_TOOLS: VoiceTool[] = [
     parameters: {
       type: 'object',
       properties: {
+        neighborhood: {
+          type: 'string',
+          description: "Optional neighborhood to filter by (e.g., 'Walker\\'s Point', 'Third Ward', 'Bay View')",
+        },
         propertyType: {
           type: 'string',
           enum: ['retail', 'office', 'industrial', 'warehouse', 'mixed-use', 'land', 'all'],
@@ -333,6 +337,10 @@ export const VOICE_TOOLS: VoiceTool[] = [
     parameters: {
       type: 'object',
       properties: {
+        neighborhood: {
+          type: 'string',
+          description: "Optional neighborhood to filter by (e.g., 'Harambee', 'Walker\\'s Point', 'Bay View')",
+        },
         minLotSize: {
           type: 'number',
           description: 'Minimum lot size in square feet',

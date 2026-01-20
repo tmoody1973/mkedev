@@ -144,6 +144,14 @@ export function useVoiceSession(
   const clientRef = useRef<GeminiLiveClient | null>(null)
   const audioManagerRef = useRef(getAudioManager())
 
+  // Ref for onChatMessage to avoid stale closure issues in callbacks
+  const onChatMessageRef = useRef(onChatMessage)
+
+  // Keep the ref updated with the latest callback
+  useEffect(() => {
+    onChatMessageRef.current = onChatMessage
+  }, [onChatMessage])
+
   // Map context for function calling
   const {
     flyTo,
@@ -171,9 +179,11 @@ export function useVoiceSession(
     content: string,
     cards?: VoiceGeneratedCard[]
   ) => {
-    console.log('[useVoiceSession] emitChatMessage called:', { role, content: content.substring(0, 50), hasCards: !!cards, cardCount: cards?.length, hasCallback: !!onChatMessage })
+    // Use ref to get the latest callback (avoids stale closure issues)
+    const callback = onChatMessageRef.current
+    console.log('[useVoiceSession] emitChatMessage called:', { role, content: content.substring(0, 50), hasCards: !!cards, cardCount: cards?.length, hasCallback: !!callback })
 
-    if (!onChatMessage) {
+    if (!callback) {
       console.warn('[useVoiceSession] onChatMessage callback is not set!')
       return
     }
@@ -187,8 +197,8 @@ export function useVoiceSession(
       cards,
     }
     console.log('[useVoiceSession] Emitting message to chat:', message.id, message.cards?.length, 'cards')
-    onChatMessage(message)
-  }, [onChatMessage])
+    callback(message)
+  }, []) // No dependencies - uses ref to get latest callback
 
   // ==========================================================================
   // State Updates
@@ -654,6 +664,7 @@ export function useVoiceSession(
         // ---------------------------------------------------------------------
         case 'search_development_sites': {
           console.log('[useVoiceSession] search_development_sites called with args:', args)
+          const neighborhood = args.neighborhood as string | undefined
           const minLotSize = args.minLotSize as number | undefined
           const maxPrice = args.maxPrice as number | undefined
           const hasIncentives = args.hasIncentives as boolean | undefined
@@ -662,23 +673,34 @@ export function useVoiceSession(
           try {
             // Turn on the development sites layer so results appear on map
             setLayerVisibility('developmentSites', true)
-            console.log('[useVoiceSession] Querying development sites...')
+            console.log('[useVoiceSession] Querying development sites...', { neighborhood, minLotSize, maxPrice, zoning })
 
             const sites = await convex.query(api.developmentSites.searchSites, {
               minLotSize,
               maxPrice,
               zoning,
               // Note: hasIncentives filter would need to be applied in-memory if needed
-              limit: 10,
+              limit: 20, // Fetch more to allow for filtering
             })
             console.log('[useVoiceSession] Development sites query returned:', sites?.length, 'sites')
 
-            // Filter by incentives if requested
+            // Filter by neighborhood if requested (check siteName and description)
             let filteredSites = sites
-            if (hasIncentives && sites) {
-              filteredSites = sites.filter((s) => s.incentives && s.incentives.length > 0)
+            if (neighborhood && sites) {
+              const neighborhoodLower = neighborhood.toLowerCase()
+              filteredSites = sites.filter((s) =>
+                s.siteName?.toLowerCase().includes(neighborhoodLower) ||
+                s.description?.toLowerCase().includes(neighborhoodLower) ||
+                s.address?.toLowerCase().includes(neighborhoodLower)
+              )
+              console.log('[useVoiceSession] After neighborhood filter:', filteredSites?.length, 'sites')
             }
-            console.log('[useVoiceSession] After filtering:', filteredSites?.length, 'sites')
+
+            // Filter by incentives if requested
+            if (hasIncentives && filteredSites) {
+              filteredSites = filteredSites.filter((s) => s.incentives && s.incentives.length > 0)
+            }
+            console.log('[useVoiceSession] After all filters:', filteredSites?.length, 'sites')
 
             if (filteredSites && filteredSites.length > 0) {
               // Transform to card format
