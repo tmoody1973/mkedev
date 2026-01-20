@@ -16,6 +16,9 @@ import { CommercialPropertiesLayerLoader } from './layers/CommercialPropertiesLa
 import { DevelopmentSitesLayerLoader } from './layers/DevelopmentSitesLayerLoader'
 import { LayerPanel } from './LayerPanel'
 import { ParcelPopup } from './ParcelPopup'
+import { HomePopup } from './HomePopup'
+import { CommercialPropertyPopup } from './CommercialPropertyPopup'
+import { DevelopmentSitePopup } from './DevelopmentSitePopup'
 import { MapScreenshotButton } from './MapScreenshotButton'
 import type { ParcelData } from './layers/esri-layer-manager'
 import type { HomeForSale } from './layers/homes-layer-manager'
@@ -103,6 +106,9 @@ export function MapContainer({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
+  const [selectedHome, setSelectedHome] = useState<HomeForSale | null>(null)
+  const [selectedCommercialProperty, setSelectedCommercialProperty] = useState<CommercialProperty | null>(null)
+  const [selectedDevelopmentSite, setSelectedDevelopmentSite] = useState<DevelopmentSite | null>(null)
   const [isStyleChanging, setIsStyleChanging] = useState(false)
 
   const {
@@ -151,6 +157,63 @@ export function MapContainer({
     },
     [onParcelAsk]
   )
+
+  // Handle home click from layer
+  const handleHomeClick = useCallback(
+    (home: HomeForSale) => {
+      // Close other popups
+      setSelectedParcel(null)
+      setSelectedCommercialProperty(null)
+      setSelectedDevelopmentSite(null)
+      // Show home popup
+      setSelectedHome(home)
+      onHomeClick?.(home)
+    },
+    [onHomeClick]
+  )
+
+  // Handle home popup close
+  const handleHomePopupClose = useCallback(() => {
+    setSelectedHome(null)
+  }, [])
+
+  // Handle commercial property click from layer
+  const handleCommercialPropertyClick = useCallback(
+    (property: CommercialProperty) => {
+      // Close other popups
+      setSelectedParcel(null)
+      setSelectedHome(null)
+      setSelectedDevelopmentSite(null)
+      // Show commercial property popup
+      setSelectedCommercialProperty(property)
+      onCommercialPropertyClick?.(property)
+    },
+    [onCommercialPropertyClick]
+  )
+
+  // Handle commercial property popup close
+  const handleCommercialPropertyPopupClose = useCallback(() => {
+    setSelectedCommercialProperty(null)
+  }, [])
+
+  // Handle development site click from layer
+  const handleDevelopmentSiteClick = useCallback(
+    (site: DevelopmentSite) => {
+      // Close other popups
+      setSelectedParcel(null)
+      setSelectedHome(null)
+      setSelectedCommercialProperty(null)
+      // Show development site popup
+      setSelectedDevelopmentSite(site)
+      onDevelopmentSiteClick?.(site)
+    },
+    [onDevelopmentSiteClick]
+  )
+
+  // Handle development site popup close
+  const handleDevelopmentSitePopupClose = useCallback(() => {
+    setSelectedDevelopmentSite(null)
+  }, [])
 
   // Initial map setup
   useEffect(() => {
@@ -393,19 +456,19 @@ export function MapContainer({
           )}
           {enableHomesLayer && (
             <HomesLayerLoader
-              onHomeClick={onHomeClick}
+              onHomeClick={handleHomeClick}
               isStyleChanging={isStyleChanging}
             />
           )}
           {enableCommercialLayer && (
             <CommercialPropertiesLayerLoader
-              onPropertyClick={onCommercialPropertyClick}
+              onPropertyClick={handleCommercialPropertyClick}
               isStyleChanging={isStyleChanging}
             />
           )}
           {enableDevelopmentSitesLayer && (
             <DevelopmentSitesLayerLoader
-              onSiteClick={onDevelopmentSiteClick}
+              onSiteClick={handleDevelopmentSiteClick}
               isStyleChanging={isStyleChanging}
             />
           )}
@@ -417,6 +480,24 @@ export function MapContainer({
               onClose={handlePopupClose}
               onAskAbout={onParcelAsk ? handleAskAboutParcel : undefined}
               onVisualize={onParcelVisualize}
+            />
+          )}
+          {selectedHome && (
+            <HomePopup
+              home={selectedHome}
+              onClose={handleHomePopupClose}
+            />
+          )}
+          {selectedCommercialProperty && (
+            <CommercialPropertyPopup
+              property={selectedCommercialProperty}
+              onClose={handleCommercialPropertyPopupClose}
+            />
+          )}
+          {selectedDevelopmentSite && (
+            <DevelopmentSitePopup
+              site={selectedDevelopmentSite}
+              onClose={handleDevelopmentSitePopupClose}
             />
           )}
         </>
