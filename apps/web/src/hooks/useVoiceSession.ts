@@ -8,7 +8,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useAction } from 'convex/react'
+import { useAction, useConvex } from 'convex/react'
 import { api } from '@convex/_generated/api'
 import {
   GeminiLiveClient,
@@ -30,11 +30,33 @@ import { useMap } from '@/contexts/MapContext'
 // Types
 // ============================================================================
 
+/**
+ * Card data for generative UI rendering in chat
+ */
+export interface VoiceGeneratedCard {
+  type: 'homes-list' | 'home-listing' | 'zone-info' | 'parcel-info'
+  data: unknown
+}
+
+/**
+ * Chat message emitted from voice session for integration with chat panel
+ */
+export interface VoiceChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+  inputMode: 'voice'
+  cards?: VoiceGeneratedCard[]
+}
+
 interface UseVoiceSessionOptions {
   apiKey?: string
   onTranscriptUpdate?: (transcript: TranscriptEntry[]) => void
   onStateChange?: (state: VoiceSessionState) => void
   onError?: (error: Error) => void
+  /** Called when a message should be added to chat */
+  onChatMessage?: (message: VoiceChatMessage) => void
 }
 
 interface UseVoiceSessionReturn {
@@ -65,7 +87,7 @@ const initialSession: VoiceSession = {
 export function useVoiceSession(
   options: UseVoiceSessionOptions = {}
 ): UseVoiceSessionReturn {
-  const { onTranscriptUpdate, onStateChange, onError } = options
+  const { onTranscriptUpdate, onStateChange, onError, onChatMessage } = options
 
   // State
   const [session, setSession] = useState<VoiceSession>(initialSession)
@@ -83,12 +105,36 @@ export function useVoiceSession(
     resetView,
   } = useMap()
 
-  // Convex actions for server-side operations
+  // Convex actions and queries for server-side operations
+  const convex = useConvex()
   const geocodeAddress = useAction(api.mapbox.geocode)
   const queryZoning = useAction(api.agents.zoning.chat)
   const getCredentials = useAction(api.gemini.getCredentials)
-  // Note: These actions may need to be created if they don't exist
-  // const generateVisualization = useAction(api.visualization.generate.generate)
+
+  // Pending cards to attach to next assistant message
+  const pendingCardsRef = useRef<VoiceGeneratedCard[]>([])
+
+  // ==========================================================================
+  // Chat Message Emission
+  // ==========================================================================
+
+  const emitChatMessage = useCallback((
+    role: 'user' | 'assistant',
+    content: string,
+    cards?: VoiceGeneratedCard[]
+  ) => {
+    if (!onChatMessage) return
+
+    const message: VoiceChatMessage = {
+      id: `voice-${role}-${Date.now()}`,
+      role,
+      content,
+      timestamp: new Date(),
+      inputMode: 'voice',
+      cards,
+    }
+    onChatMessage(message)
+  }, [onChatMessage])
 
   // ==========================================================================
   // State Updates
@@ -285,21 +331,110 @@ export function useVoiceSession(
         }
 
         // ---------------------------------------------------------------------
-        // City Properties
+        // City Properties / Homes For Sale
         // ---------------------------------------------------------------------
         case 'show_city_properties': {
-          // Toggle the city-owned layer
-          setLayerVisibility('cityOwned', true)
-          return {
-            success: true,
-            message: 'Showing city-owned properties',
+          const neighborhood = args.neighborhood as string | undefined
+
+          try {
+            // Query homes from database
+            const homes = await convex.query(api.homes.searchHomes, {
+              neighborhood,
+              limit: 10,
+            })
+
+            // Toggle the city-owned layer on map
+            setLayerVisibility('cityOwned', true)
+
+            if (homes && homes.length > 0) {
+              // Transform to card format
+              const homeItems = homes.map((h) => ({
+                id: h._id,
+                address: h.address,
+                neighborhood: h.neighborhood,
+                coordinates: h.coordinates as [number, number],
+                bedrooms: h.bedrooms,
+                fullBaths: h.fullBaths,
+                halfBaths: h.halfBaths,
+              }))
+
+              // Add card to pending (will be attached to next assistant message)
+              pendingCardsRef.current.push({
+                type: 'homes-list',
+                data: { homes: homeItems, status: 'complete' },
+              })
+
+              // Fly to first home
+              if (homeItems[0]?.coordinates) {
+                flyTo(homeItems[0].coordinates, 14)
+              }
+
+              return {
+                success: true,
+                count: homes.length,
+                homes: homeItems.slice(0, 5).map(h => ({
+                  address: h.address,
+                  neighborhood: h.neighborhood,
+                  bedrooms: h.bedrooms,
+                })),
+                message: `Found ${homes.length} homes for sale${neighborhood ? ` in ${neighborhood}` : ''}.`,
+              }
+            }
+
+            return {
+              success: true,
+              count: 0,
+              message: 'No homes currently for sale matching those criteria.',
+            }
+          } catch (error) {
+            console.error('[useVoiceSession] Failed to search homes:', error)
+            return { success: false, error: 'Failed to search homes' }
           }
         }
 
         case 'get_property_details': {
-          return {
-            success: true,
-            message: 'Property details functionality coming soon',
+          const propertyId = args.propertyId as string
+
+          try {
+            // Try to find by tax key first
+            const home = await convex.query(api.homes.getByTaxKey, {
+              taxKey: propertyId,
+            })
+
+            if (home) {
+              // Fly to the property
+              if (home.coordinates) {
+                flyTo(home.coordinates as [number, number], 18)
+              }
+
+              // Add card to pending
+              pendingCardsRef.current.push({
+                type: 'home-listing',
+                data: {
+                  id: home._id,
+                  address: home.address,
+                  neighborhood: home.neighborhood,
+                  coordinates: home.coordinates,
+                  bedrooms: home.bedrooms,
+                  fullBaths: home.fullBaths,
+                  halfBaths: home.halfBaths,
+                  status: 'complete',
+                },
+              })
+
+              return {
+                success: true,
+                address: home.address,
+                neighborhood: home.neighborhood,
+                bedrooms: home.bedrooms,
+                baths: home.fullBaths + home.halfBaths * 0.5,
+              }
+            }
+
+            return { success: false, error: 'Property not found' }
+          } catch (error) {
+            console.error('[useVoiceSession] Failed to get property details:', error)
+            return { success: false, error: 'Failed to get property details' }
           }
         }
 
@@ -319,6 +454,7 @@ export function useVoiceSession(
       captureMapScreenshot,
       geocodeAddress,
       queryZoning,
+      convex,
     ]
   )
 
@@ -362,6 +498,14 @@ export function useVoiceSession(
           content: text,
           timestamp: Date.now(),
         })
+
+        // Emit to chat with any pending cards from function calls
+        const cards = pendingCardsRef.current.length > 0
+          ? [...pendingCardsRef.current]
+          : undefined
+        pendingCardsRef.current = [] // Clear pending cards
+
+        emitChatMessage('assistant', text, cards)
       })
 
       clientRef.current.setOnFunctionCall(handleFunctionCall)
@@ -389,7 +533,7 @@ export function useVoiceSession(
       setError(error instanceof Error ? error.message : 'Failed to start voice session')
       updateState('error')
     }
-  }, [session.isActive, updateState, setError, addTranscriptEntry, handleFunctionCall, getCredentials])
+  }, [session.isActive, updateState, setError, addTranscriptEntry, handleFunctionCall, getCredentials, emitChatMessage])
 
   const endSession = useCallback(() => {
     // Stop audio

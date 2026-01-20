@@ -8,6 +8,7 @@ import { ChatPanel, ConversationSidebar, type ChatMessage, type GenerativeCard }
 import { useZoningAgent } from '@/hooks/useZoningAgent'
 import { useConversations } from '@/hooks/useConversations'
 import { useReportGenerator } from '@/hooks/useReportGenerator'
+import { useVoiceSession, type VoiceChatMessage } from '@/hooks/useVoiceSession'
 import { useMap } from '@/contexts/MapContext'
 import {
   ZoneInfoCard,
@@ -74,8 +75,9 @@ interface StreetViewModalState {
  */
 export default function HomeContent() {
   const { isLoaded: isAuthLoaded } = useAuth()
-  const [isVoiceActive, setIsVoiceActive] = useState(false)
   const [_selectedParcel, setSelectedParcel] = useState<ParcelData | null>(null)
+  // Voice messages state - messages emitted from voice session
+  const [voiceMessages, setVoiceMessages] = useState<ChatMessage[]>([])
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   // Track last processed message to avoid duplicate map movements
@@ -89,6 +91,33 @@ export default function HomeContent() {
 
   // Map context for flying to locations and capturing screenshots
   const { flyTo, captureMapScreenshot } = useMap()
+
+  // Voice session with chat integration
+  const handleVoiceChatMessage = useCallback((message: VoiceChatMessage) => {
+    // Convert VoiceChatMessage to ChatMessage format
+    const chatMessage: ChatMessage = {
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      timestamp: message.timestamp,
+      inputMode: 'voice',
+      cards: message.cards?.map(card => ({
+        type: card.type as GenerativeCard['type'],
+        data: card.data,
+      })),
+    }
+    setVoiceMessages(prev => [...prev, chatMessage])
+  }, [])
+
+  const {
+    session: voiceSession,
+    toggleSession: toggleVoiceSession,
+  } = useVoiceSession({
+    onChatMessage: handleVoiceChatMessage,
+    onError: (error) => {
+      console.error('[HomeContent] Voice error:', error)
+    },
+  })
 
   // PDF viewer modal state
   const [pdfModal, setPdfModal] = useState<PDFModalState>({
@@ -151,7 +180,7 @@ export default function HomeContent() {
   // Report generation
   const { isGenerating: isGeneratingReport, pdfUrl: reportPdfUrl, generateReport, clearPdfUrl: clearReportPdfUrl } = useReportGenerator()
 
-  // Convert agent messages to ChatMessage format, combining with persisted conversation
+  // Convert agent messages to ChatMessage format, combining with persisted conversation and voice
   const messages: ChatMessage[] = useMemo(() => {
     // Start with persisted conversation messages if viewing one
     const persistedMessages: ChatMessage[] = currentConversation?.messages?.map((msg) => ({
@@ -188,9 +217,12 @@ export default function HomeContent() {
         cards: msg.cards,
       }))
 
-    // Combine: persisted history + new session messages (deduplicated)
-    return [...persistedMessages, ...sessionMessages]
-  }, [agentMessages, currentConversation])
+    // Combine: persisted history + new session messages + voice messages (deduplicated)
+    // Sort all by timestamp
+    const allMessages = [...persistedMessages, ...sessionMessages, ...voiceMessages]
+    allMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+    return allMessages
+  }, [agentMessages, currentConversation, voiceMessages])
 
   // Clear persisted tracking when conversation changes
   useEffect(() => {
@@ -355,9 +387,9 @@ export default function HomeContent() {
     [flyTo, sendMessage]
   )
 
-  const handleVoiceToggle = useCallback(() => {
-    setIsVoiceActive((prev) => !prev)
-  }, [])
+  const handleVoiceToggle = useCallback(async () => {
+    await toggleVoiceSession()
+  }, [toggleVoiceSession])
 
 
   // Visualizer store
@@ -545,12 +577,10 @@ export default function HomeContent() {
     sendMessage(content)
   }, [sendMessage, geocodeAndFlyToAddress])
 
-  const handleVoiceInput = useCallback(() => {
-    // Voice input placeholder - will be implemented in Week 2
-    console.log('Voice input triggered - coming in Week 2')
-    // Send a message about voice
-    sendMessage('Tell me about voice input capabilities')
-  }, [sendMessage])
+  const handleVoiceInput = useCallback(async () => {
+    // Toggle voice session when mic button is clicked in chat
+    await toggleVoiceSession()
+  }, [toggleVoiceSession])
 
   /**
    * Handle download report button click.
@@ -1072,7 +1102,7 @@ export default function HomeContent() {
       {/* Main app for authenticated users */}
       <SignedIn>
         <AppShell
-          isVoiceActive={isVoiceActive}
+          isVoiceActive={voiceSession.isActive}
           onVoiceToggle={handleVoiceToggle}
           onVisualizeClick={handleVisualizeClick}
           onLogoClick={handleLogoClick}
