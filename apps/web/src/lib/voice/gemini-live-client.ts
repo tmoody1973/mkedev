@@ -112,9 +112,9 @@ export class GeminiLiveClient {
       const ai = new GoogleGenAI({ apiKey })
 
       // Build config matching SDK format
-      // Include both AUDIO and TEXT so responses appear in chat while also being spoken
+      // Note: Native audio models only support AUDIO modality
       const config = {
-        responseModalities: [Modality.AUDIO, Modality.TEXT],
+        responseModalities: [Modality.AUDIO],
         speechConfig: {
           voiceConfig: {
             prebuiltVoiceConfig: {
@@ -122,8 +122,6 @@ export class GeminiLiveClient {
             },
           },
         },
-        // Enable transcription of user's spoken input so we can show it in chat
-        inputAudioTranscription: {},
         systemInstruction: this.config.systemInstruction,
         tools: this.config.tools && this.config.tools.length > 0
           ? [{ functionDeclarations: this.config.tools.map(convertToolToSDKFormat) }]
