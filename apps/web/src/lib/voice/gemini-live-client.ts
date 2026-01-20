@@ -18,13 +18,13 @@ import { VOICE_TOOLS, VOICE_SYSTEM_INSTRUCTION } from './voice-tools'
 // Constants
 // ============================================================================
 
-// Gemini Live model for real-time voice
-const GEMINI_LIVE_MODEL = 'gemini-2.0-flash-live-001'
+// Gemini Live model - only native-audio models support bidiGenerateContent
+const GEMINI_LIVE_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025'
 const RECONNECT_DELAY_MS = 1000
 const MAX_RECONNECT_ATTEMPTS = 3
 
-// WebSocket endpoint (v1beta for Gemini 2.0 Live models)
-const WS_ENDPOINT = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent'
+// WebSocket endpoint (v1alpha for Gemini 2.5 native-audio models)
+const WS_ENDPOINT = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
 
 // ============================================================================
 // Message Types
