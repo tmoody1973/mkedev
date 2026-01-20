@@ -231,27 +231,26 @@ export const VOICE_TOOLS: VoiceTool[] = [
   },
 
   // ---------------------------------------------------------------------------
-  // City Properties Tools
+  // City Properties Tools (Homes MKE)
   // ---------------------------------------------------------------------------
   {
     name: 'show_city_properties',
     description:
-      'Display city-owned properties (Homes MKE) available for purchase and development. Can filter by neighborhood or price range.',
+      'Display city-owned residential properties (Homes MKE) available for purchase. Can filter by neighborhood or bedrooms.',
     parameters: {
       type: 'object',
       properties: {
         neighborhood: {
           type: 'string',
-          description: "Optional neighborhood to filter by (e.g., 'Walker\\'s Point', 'Harambee')",
+          description: "Optional neighborhood to filter by (e.g., 'Walker\\'s Point', 'Harambee', 'Bay View')",
         },
-        maxPrice: {
+        minBedrooms: {
           type: 'number',
-          description: 'Optional maximum price filter in dollars',
+          description: 'Minimum number of bedrooms',
         },
-        propertyType: {
-          type: 'string',
-          enum: ['lot', 'house', 'all'],
-          description: "Type of property to show. Default is 'all'.",
+        maxBedrooms: {
+          type: 'number',
+          description: 'Maximum number of bedrooms',
         },
       },
     },
@@ -260,16 +259,113 @@ export const VOICE_TOOLS: VoiceTool[] = [
   {
     name: 'get_property_details',
     description:
-      'Get detailed information about a specific city-owned property including price, lot size, photos, and eligibility requirements.',
+      'Get detailed information about a specific city-owned home including bedrooms, bathrooms, lot size, and listing URL.',
     parameters: {
       type: 'object',
       properties: {
         propertyId: {
           type: 'string',
-          description: 'The property ID or address to look up',
+          description: 'The property ID or tax key to look up',
         },
       },
       required: ['propertyId'],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Commercial Properties Tools
+  // ---------------------------------------------------------------------------
+  {
+    name: 'search_commercial_properties',
+    description:
+      'Search for commercial properties for sale in Milwaukee including retail, office, industrial, warehouse, and mixed-use properties.',
+    parameters: {
+      type: 'object',
+      properties: {
+        propertyType: {
+          type: 'string',
+          enum: ['retail', 'office', 'industrial', 'warehouse', 'mixed-use', 'land', 'all'],
+          description: "Type of commercial property to search for. Default is 'all'.",
+        },
+        minSqFt: {
+          type: 'number',
+          description: 'Minimum building square footage',
+        },
+        maxSqFt: {
+          type: 'number',
+          description: 'Maximum building square footage',
+        },
+        maxPrice: {
+          type: 'number',
+          description: 'Maximum asking price in dollars',
+        },
+        zoning: {
+          type: 'string',
+          description: 'Filter by zoning code (e.g., LB2, IL1, DC)',
+        },
+      },
+    },
+  },
+
+  {
+    name: 'get_commercial_property_details',
+    description:
+      'Get detailed information about a specific commercial property including square footage, price, zoning, and description.',
+    parameters: {
+      type: 'object',
+      properties: {
+        propertyId: {
+          type: 'string',
+          description: 'The property ID to look up',
+        },
+      },
+      required: ['propertyId'],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Development Sites Tools
+  // ---------------------------------------------------------------------------
+  {
+    name: 'search_development_sites',
+    description:
+      'Search for development sites and land opportunities in Milwaukee, including vacant lots and redevelopment parcels with incentives.',
+    parameters: {
+      type: 'object',
+      properties: {
+        minLotSize: {
+          type: 'number',
+          description: 'Minimum lot size in square feet',
+        },
+        maxPrice: {
+          type: 'number',
+          description: 'Maximum asking price in dollars',
+        },
+        hasIncentives: {
+          type: 'boolean',
+          description: 'Filter to only show sites with incentives (TIF, Opportunity Zone, etc.)',
+        },
+        zoning: {
+          type: 'string',
+          description: 'Filter by zoning code',
+        },
+      },
+    },
+  },
+
+  {
+    name: 'get_development_site_details',
+    description:
+      'Get detailed information about a specific development site including lot size, zoning, available incentives, and proposed uses.',
+    parameters: {
+      type: 'object',
+      properties: {
+        siteId: {
+          type: 'string',
+          description: 'The site ID to look up',
+        },
+      },
+      required: ['siteId'],
     },
   },
 ]

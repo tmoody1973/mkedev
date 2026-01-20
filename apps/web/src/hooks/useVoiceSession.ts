@@ -239,15 +239,15 @@ export function useVoiceSession(
               const [lng, lat] = feature.center
               flyTo([lng, lat], 17)
 
-              // Generate a parcel-info card for the searched address
-              pendingCardsRef.current.push({
+              // Emit parcel-info card directly to chat
+              emitChatMessage('assistant', '', [{
                 type: 'parcel-info',
                 data: {
                   address: feature.place_name,
-                  coordinates: [lng, lat],
+                  coordinates: { latitude: lat, longitude: lng },
                   status: 'complete',
                 },
-              })
+              }])
 
               return {
                 success: true,
@@ -310,8 +310,8 @@ export function useVoiceSession(
             // Use the zoning agent to answer the question
             const result = await queryZoning({ message: question })
 
-            // Generate a code-citation card for zoning questions
-            pendingCardsRef.current.push({
+            // Emit code-citation card directly to chat
+            emitChatMessage('assistant', '', [{
               type: 'code-citation',
               data: {
                 question,
@@ -319,7 +319,7 @@ export function useVoiceSession(
                 source: 'Milwaukee Zoning Code (Chapter 295)',
                 status: 'complete',
               },
-            })
+            }])
 
             return {
               success: true,
@@ -338,8 +338,8 @@ export function useVoiceSession(
               message: `Explain what zoning code ${code} means in Milwaukee. What uses are allowed and what are the key restrictions?`,
             })
 
-            // Generate a zone-info card
-            pendingCardsRef.current.push({
+            // Emit zone-info card directly to chat
+            emitChatMessage('assistant', '', [{
               type: 'zone-info',
               data: {
                 zoningDistrict: code.toUpperCase(),
@@ -347,7 +347,7 @@ export function useVoiceSession(
                 zoningCategory: getZoningCategory(code),
                 status: 'complete',
               },
-            })
+            }])
 
             return {
               success: true,
@@ -420,14 +420,14 @@ export function useVoiceSession(
           const neighborhood = args.neighborhood as string | undefined
 
           try {
+            // Turn on the homes layer so results appear on map
+            setLayerVisibility('homes', true)
+
             // Query homes from database
             const homes = await convex.query(api.homes.searchHomes, {
               neighborhood,
               limit: 10,
             })
-
-            // Toggle the city-owned layer on map
-            setLayerVisibility('cityOwned', true)
 
             if (homes && homes.length > 0) {
               // Transform to card format
@@ -441,11 +441,11 @@ export function useVoiceSession(
                 halfBaths: h.halfBaths,
               }))
 
-              // Add card to pending (will be attached to next assistant message)
-              pendingCardsRef.current.push({
+              // Emit card directly to chat (don't wait for transcription)
+              emitChatMessage('assistant', '', [{
                 type: 'homes-list',
                 data: { homes: homeItems, status: 'complete' },
-              })
+              }])
 
               // Fly to first home
               if (homeItems[0]?.coordinates) {
@@ -490,8 +490,8 @@ export function useVoiceSession(
                 flyTo(home.coordinates as [number, number], 18)
               }
 
-              // Add card to pending
-              pendingCardsRef.current.push({
+              // Emit card directly to chat
+              emitChatMessage('assistant', '', [{
                 type: 'home-listing',
                 data: {
                   id: home._id,
@@ -503,7 +503,7 @@ export function useVoiceSession(
                   halfBaths: home.halfBaths,
                   status: 'complete',
                 },
-              })
+              }])
 
               return {
                 success: true,
@@ -518,6 +518,257 @@ export function useVoiceSession(
           } catch (error) {
             console.error('[useVoiceSession] Failed to get property details:', error)
             return { success: false, error: 'Failed to get property details' }
+          }
+        }
+
+        // ---------------------------------------------------------------------
+        // Commercial Properties
+        // ---------------------------------------------------------------------
+        case 'search_commercial_properties': {
+          const propertyType = args.propertyType as string | undefined
+          const minSqFt = args.minSqFt as number | undefined
+          const maxSqFt = args.maxSqFt as number | undefined
+          const maxPrice = args.maxPrice as number | undefined
+          const zoning = args.zoning as string | undefined
+
+          try {
+            // Turn on the commercial properties layer so results appear on map
+            setLayerVisibility('commercialProperties', true)
+
+            const properties = await convex.query(api.commercialProperties.searchProperties, {
+              propertyType: propertyType as 'retail' | 'office' | 'industrial' | 'warehouse' | 'mixed-use' | 'land' | 'all' | undefined,
+              minSqFt,
+              maxSqFt,
+              maxPrice,
+              zoning,
+              limit: 10,
+            })
+
+            if (properties && properties.length > 0) {
+              // Transform to card format
+              const propertyItems = properties.map((p) => ({
+                id: p._id,
+                address: p.address,
+                propertyType: p.propertyType,
+                coordinates: p.coordinates as [number, number],
+                buildingSqFt: p.buildingSqFt,
+                askingPrice: p.askingPrice,
+                zoning: p.zoning,
+              }))
+
+              // Emit card directly to chat
+              emitChatMessage('assistant', '', [{
+                type: 'commercial-properties-list',
+                data: { properties: propertyItems, status: 'complete' },
+              }])
+
+              // Fly to first property
+              if (propertyItems[0]?.coordinates) {
+                flyTo(propertyItems[0].coordinates, 14)
+              }
+
+              return {
+                success: true,
+                count: properties.length,
+                properties: propertyItems.slice(0, 5).map(p => ({
+                  address: p.address,
+                  propertyType: p.propertyType,
+                  sqFt: p.buildingSqFt,
+                  price: p.askingPrice,
+                })),
+                message: `Found ${properties.length} commercial properties.`,
+              }
+            }
+
+            return {
+              success: true,
+              count: 0,
+              message: 'No commercial properties found matching those criteria.',
+            }
+          } catch (error) {
+            console.error('[useVoiceSession] Failed to search commercial properties:', error)
+            return { success: false, error: 'Failed to search commercial properties' }
+          }
+        }
+
+        case 'get_commercial_property_details': {
+          const propertyId = args.propertyId as string
+
+          try {
+            // Get the property by ID
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const property = await convex.query(api.commercialProperties.getById, {
+              id: propertyId as any,
+            })
+
+            if (property) {
+              // Fly to the property
+              if (property.coordinates) {
+                flyTo(property.coordinates as [number, number], 18)
+              }
+
+              // Emit card directly to chat
+              emitChatMessage('assistant', '', [{
+                type: 'commercial-property',
+                data: {
+                  id: property._id,
+                  address: property.address,
+                  propertyType: property.propertyType,
+                  coordinates: property.coordinates,
+                  buildingSqFt: property.buildingSqFt,
+                  lotSizeSqFt: property.lotSizeSqFt,
+                  askingPrice: property.askingPrice,
+                  zoning: property.zoning,
+                  description: property.description,
+                  listingUrl: property.listingUrl,
+                  status: 'complete',
+                },
+              }])
+
+              return {
+                success: true,
+                address: property.address,
+                propertyType: property.propertyType,
+                sqFt: property.buildingSqFt,
+                lotSize: property.lotSizeSqFt,
+                price: property.askingPrice,
+                zoning: property.zoning,
+              }
+            }
+
+            return { success: false, error: 'Commercial property not found' }
+          } catch (error) {
+            console.error('[useVoiceSession] Failed to get commercial property details:', error)
+            return { success: false, error: 'Failed to get commercial property details' }
+          }
+        }
+
+        // ---------------------------------------------------------------------
+        // Development Sites
+        // ---------------------------------------------------------------------
+        case 'search_development_sites': {
+          const minLotSize = args.minLotSize as number | undefined
+          const maxPrice = args.maxPrice as number | undefined
+          const hasIncentives = args.hasIncentives as boolean | undefined
+          const zoning = args.zoning as string | undefined
+
+          try {
+            // Turn on the development sites layer so results appear on map
+            setLayerVisibility('developmentSites', true)
+
+            const sites = await convex.query(api.developmentSites.searchSites, {
+              minLotSize,
+              maxPrice,
+              zoning,
+              // Note: hasIncentives filter would need to be applied in-memory if needed
+              limit: 10,
+            })
+
+            // Filter by incentives if requested
+            let filteredSites = sites
+            if (hasIncentives && sites) {
+              filteredSites = sites.filter((s) => s.incentives && s.incentives.length > 0)
+            }
+
+            if (filteredSites && filteredSites.length > 0) {
+              // Transform to card format
+              const siteItems = filteredSites.map((s) => ({
+                id: s._id,
+                address: s.address,
+                siteName: s.siteName,
+                coordinates: s.coordinates as [number, number],
+                lotSizeSqFt: s.lotSizeSqFt,
+                askingPrice: s.askingPrice,
+                zoning: s.zoning,
+                incentives: s.incentives,
+              }))
+
+              // Emit card directly to chat
+              emitChatMessage('assistant', '', [{
+                type: 'development-sites-list',
+                data: { sites: siteItems, status: 'complete' },
+              }])
+
+              // Fly to first site
+              if (siteItems[0]?.coordinates) {
+                flyTo(siteItems[0].coordinates, 14)
+              }
+
+              return {
+                success: true,
+                count: filteredSites.length,
+                sites: siteItems.slice(0, 5).map(s => ({
+                  address: s.address,
+                  siteName: s.siteName,
+                  lotSize: s.lotSizeSqFt,
+                  price: s.askingPrice,
+                  incentives: s.incentives?.slice(0, 3),
+                })),
+                message: `Found ${filteredSites.length} development sites.`,
+              }
+            }
+
+            return {
+              success: true,
+              count: 0,
+              message: 'No development sites found matching those criteria.',
+            }
+          } catch (error) {
+            console.error('[useVoiceSession] Failed to search development sites:', error)
+            return { success: false, error: 'Failed to search development sites' }
+          }
+        }
+
+        case 'get_development_site_details': {
+          const siteId = args.siteId as string
+
+          try {
+            // Get the site by ID
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const site = await convex.query(api.developmentSites.getById, {
+              id: siteId as any,
+            })
+
+            if (site) {
+              // Fly to the site
+              if (site.coordinates) {
+                flyTo(site.coordinates as [number, number], 18)
+              }
+
+              // Emit card directly to chat
+              emitChatMessage('assistant', '', [{
+                type: 'development-site',
+                data: {
+                  id: site._id,
+                  address: site.address,
+                  siteName: site.siteName,
+                  coordinates: site.coordinates,
+                  lotSizeSqFt: site.lotSizeSqFt,
+                  askingPrice: site.askingPrice,
+                  zoning: site.zoning,
+                  incentives: site.incentives,
+                  proposedUse: site.proposedUse,
+                  description: site.description,
+                  listingUrl: site.listingUrl,
+                  status: 'complete',
+                },
+              }])
+
+              return {
+                success: true,
+                address: site.address,
+                siteName: site.siteName,
+                lotSize: site.lotSizeSqFt,
+                price: site.askingPrice,
+                zoning: site.zoning,
+                incentives: site.incentives,
+              }
+            }
+
+            return { success: false, error: 'Development site not found' }
+          } catch (error) {
+            console.error('[useVoiceSession] Failed to get development site details:', error)
+            return { success: false, error: 'Failed to get development site details' }
           }
         }
 
@@ -538,6 +789,7 @@ export function useVoiceSession(
       geocodeAddress,
       queryZoning,
       convex,
+      emitChatMessage,
     ]
   )
 
