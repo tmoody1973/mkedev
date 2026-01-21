@@ -28,7 +28,6 @@ export const upsertLots = internalMutation({
         coordinates: v.array(v.number()),
         zoning: v.optional(v.string()),
         propertyType: v.optional(v.string()),
-        aldermanicDistrict: v.optional(v.number()),
         lotSizeSqFt: v.optional(v.number()),
         dispositionStatus: v.optional(v.string()),
         dispositionStrategy: v.optional(v.string()),

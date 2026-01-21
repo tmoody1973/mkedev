@@ -289,9 +289,97 @@ interface SyncResult {
 export const triggerSync = action({
   args: {},
   handler: async (ctx): Promise<SyncResult> => {
-    return await ctx.runAction(
-      internal.ingestion.vacantLotsSync.syncFromESRI,
-      {}
-    );
+    try {
+      return await ctx.runAction(
+        internal.ingestion.vacantLotsSync.syncFromESRI,
+        {}
+      );
+    } catch (error) {
+      // Capture and return the full error message
+      const errorMessage = error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : String(error);
+      console.error("Sync error details:", errorMessage);
+      return {
+        success: false,
+        message: `Sync failed: ${errorMessage}`,
+      };
+    }
+  },
+});
+
+/**
+ * Sync all vacant lots from ESRI.
+ * This is a simplified version that works in the Convex action runtime.
+ */
+export const quickSync = action({
+  args: {},
+  handler: async (ctx): Promise<{ success: boolean; message: string; count?: number }> => {
+    try {
+      console.log("[SYNC] Starting...");
+
+      // Fetch ALL records (up to 2000)
+      const url = "https://milwaukeemaps.milwaukee.gov/arcgis/rest/services/StrongNeighborhood/StrongNeighborhood/MapServer/1/query?where=1%3D1&outFields=*&outSR=4326&returnGeometry=true&resultRecordCount=2000&f=json";
+
+      console.log("[QUICK SYNC] Fetching from ESRI...");
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.error) {
+        return { success: false, message: `ESRI error: ${data.error.message}` };
+      }
+
+      console.log(`[QUICK SYNC] Got ${data.features?.length || 0} features`);
+
+      const now = Date.now();
+      const lots = [];
+
+      for (const feature of data.features || []) {
+        const attrs = feature.attributes;
+        const geo = feature.geometry;
+
+        if (!geo || !geo.x || !geo.y) continue;
+
+        lots.push({
+          esriObjectId: String(attrs.OBJECTID),
+          taxKey: attrs.TAXKEY || String(attrs.OBJECTID),
+          address: attrs.COMBINEDADDRESS || "Unknown",
+          neighborhood: attrs.NEIGHBORHOOD || undefined,
+          coordinates: [geo.x, geo.y],
+          zoning: attrs.ZONING || undefined,
+          propertyType: attrs.PROPERTYTYPE || undefined,
+          lotSizeSqFt: attrs.LOTSIZE ? Number(attrs.LOTSIZE) : undefined,
+          dispositionStatus: attrs.DISPOSITIONSTATUS || undefined,
+          dispositionStrategy: attrs.DISPOSITIONSTRATEGY || undefined,
+          acquisitionDate: attrs.ACQUISITIONDATE
+            ? new Date(attrs.ACQUISITIONDATE).toISOString().split("T")[0]
+            : undefined,
+          currentOwner: attrs.CURRENTOWNER || undefined,
+          status: "available" as const,
+          lastSyncedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      console.log(`[QUICK SYNC] Transformed ${lots.length} lots`);
+
+      if (lots.length === 0) {
+        return { success: false, message: "No valid lots to insert" };
+      }
+
+      await ctx.runMutation(internal.ingestion.vacantLotsSyncMutations.upsertLots, {
+        lots,
+        syncedObjectIds: [],
+      });
+
+      return { success: true, message: `Inserted ${lots.length} lots`, count: lots.length };
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : String(error);
+      console.error("[QUICK SYNC] Error:", errorMessage);
+      return { success: false, message: `Failed: ${errorMessage}` };
+    }
   },
 });

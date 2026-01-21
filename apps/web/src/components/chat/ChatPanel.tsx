@@ -36,6 +36,8 @@ export interface GenerativeCard {
     | 'commercial-property'
     | 'development-sites-list'
     | 'development-site'
+    | 'vacant-lots-list'
+    | 'vacant-lot'
   data: unknown
 }
 

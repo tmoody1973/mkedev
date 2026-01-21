@@ -1151,6 +1151,7 @@ export async function searchVacantLots(
   success: boolean;
   lots?: VacantLotSummary[];
   count?: number;
+  message?: string;
   error?: string;
 }> {
   try {
@@ -1187,10 +1188,23 @@ export async function searchVacantLots(
       })
     );
 
+    // Return informative message based on results
+    if (lotSummaries.length === 0) {
+      return {
+        success: true,
+        lots: [],
+        count: 0,
+        message: params.neighborhood
+          ? `No city-owned vacant lots currently available in ${params.neighborhood}. The Strong Neighborhoods program inventory changes frequently. Users can check https://city.milwaukee.gov/strongneighborhoods for the latest listings.`
+          : "No city-owned vacant lots currently match the search criteria. The vacant lots data may need to be synced, or there may be no lots matching the specified filters. Try broadening the search or checking specific neighborhoods like Harambee, Lindsay Heights, or Washington Park.",
+      };
+    }
+
     return {
       success: true,
       lots: lotSummaries,
       count: lotSummaries.length,
+      message: `Found ${lotSummaries.length} city-owned vacant lot${lotSummaries.length === 1 ? "" : "s"}. These lots are available through the Strong Neighborhoods program.`,
     };
   } catch (error) {
     return {

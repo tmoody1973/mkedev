@@ -19,9 +19,12 @@ import {
   CommercialPropertiesListCard,
   DevelopmentSiteCard,
   DevelopmentSitesListCard,
+  VacantLotCard,
+  VacantLotsListCard,
   type HomeListItem,
   type CommercialPropertyListItem,
   type DevelopmentSiteListItem,
+  type VacantLotListItem,
 } from '@/components/copilot'
 import { LandingPage } from '@/components/landing'
 import dynamic from 'next/dynamic'
@@ -701,6 +704,45 @@ export default function HomeContent() {
   }, [flyTo])
 
   /**
+   * Handle vacant lot selection from VacantLotsListCard.
+   * Flies to the lot and asks agent for details.
+   */
+  const handleVacantLotSelect = useCallback((lot: VacantLotListItem) => {
+    console.log('[handleVacantLotSelect] Lot selected:', lot.address, lot.coordinates)
+
+    // Fly to the selected lot
+    if (lot.coordinates && Array.isArray(lot.coordinates)) {
+      console.log('[handleVacantLotSelect] Flying to:', lot.coordinates)
+      flyTo(lot.coordinates, 17, {
+        pitch: 45,
+        duration: 2000,
+      })
+    }
+
+    // Ask agent for detailed lot info
+    sendMessage(`Tell me more about the vacant lot at ${lot.address}`)
+  }, [flyTo, sendMessage])
+
+  /**
+   * Handle fly to location from VacantLotCard.
+   */
+  const handleVacantLotFlyTo = useCallback((coordinates: [number, number]) => {
+    flyTo(coordinates, 17, {
+      pitch: 45,
+      duration: 2000,
+    })
+  }, [flyTo])
+
+  /**
+   * Handle "Analyze Lot" from map popup.
+   * Sends the lot context to chat for zoning analysis.
+   */
+  const handleVacantLotAnalyze = useCallback((lot: { address: string; zoning?: string }) => {
+    const zoningInfo = lot.zoning ? ` It's currently zoned ${lot.zoning}.` : ''
+    sendMessage(`Tell me about the vacant lot at ${lot.address}.${zoningInfo} What can be built there and what programs might help?`)
+  }, [sendMessage])
+
+  /**
    * Render generative UI cards based on tool results.
    */
   const renderCard = useCallback((card: GenerativeCard): ReactNode => {
@@ -1068,10 +1110,72 @@ export default function HomeContent() {
         );
       }
 
+      // ========================================================================
+      // Vacant Lots Cards - City-Owned Vacant Land
+      // ========================================================================
+
+      case 'vacant-lots-list': {
+        const data = card.data as {
+          lots: Array<{
+            id: string;
+            address: string;
+            neighborhood?: string;
+            coordinates: [number, number];
+            status: 'available' | 'pending' | 'sold' | 'unknown';
+            zoning?: string;
+          }>;
+        };
+        return (
+          <VacantLotsListCard
+            lots={data.lots}
+            onLotSelect={handleVacantLotSelect}
+            status="complete"
+          />
+        );
+      }
+
+      case 'vacant-lot': {
+        const data = card.data as {
+          lotId: string;
+          address: string;
+          neighborhood?: string;
+          taxKey?: string;
+          zoning?: string;
+          propertyType?: string;
+          lotSizeSqFt?: number;
+          dispositionStatus?: string;
+          dispositionStrategy?: string;
+          acquisitionDate?: string;
+          currentOwner?: string;
+          coordinates?: [number, number];
+          status: 'available' | 'pending' | 'sold' | 'unknown';
+        };
+        return (
+          <VacantLotCard
+            lotId={data.lotId}
+            address={data.address}
+            neighborhood={data.neighborhood}
+            taxKey={data.taxKey}
+            zoning={data.zoning}
+            propertyType={data.propertyType}
+            lotSizeSqFt={data.lotSizeSqFt}
+            dispositionStatus={data.dispositionStatus}
+            dispositionStrategy={data.dispositionStrategy}
+            acquisitionDate={data.acquisitionDate}
+            currentOwner={data.currentOwner}
+            coordinates={data.coordinates}
+            cardStatus="complete"
+            status={data.status}
+            onFlyTo={handleVacantLotFlyTo}
+            onOpenStreetView={openStreetView}
+          />
+        );
+      }
+
       default:
         return null;
     }
-  }, [openPdfViewer, openStreetView, handleHomeFlyTo, handleHomeSelect, handleCommercialPropertySelect, handleCommercialFlyTo, handleDevelopmentSiteSelect, handleDevelopmentSiteFlyTo])
+  }, [openPdfViewer, openStreetView, handleHomeFlyTo, handleHomeSelect, handleCommercialPropertySelect, handleCommercialFlyTo, handleDevelopmentSiteSelect, handleDevelopmentSiteFlyTo, handleVacantLotSelect, handleVacantLotFlyTo])
 
   // Show loading skeleton while auth state is being determined
   // This prevents hydration mismatch between server and client
@@ -1145,6 +1249,7 @@ export default function HomeContent() {
               onParcelClear={handleParcelClear}
               onParcelAsk={handleParcelAsk}
               onParcelVisualize={handleParcelVisualize}
+              onVacantLotAnalyze={handleVacantLotAnalyze}
               showLayerPanel={false}
             />
           }

@@ -1762,4 +1762,128 @@ e4d6686 fix(map): Fix parcel highlight for PMTiles layer manager
 
 ---
 
+## 2026-01-20 - City-Owned Vacant Lots Layer
+
+### Completed
+- [x] Task Group 1: Convex Schema & Data Sync
+- [x] Task Group 2: Layer Manager & Map Integration
+- [x] Task Group 3: Popup & UI Components
+- [x] Task Group 4: CopilotKit Card & Actions
+- [x] Task Group 5: Voice & Agent Tools
+- [x] Task Group 6: LayerPanel & Integration Testing
+
+### Implementation Summary
+
+**Data Layer (Task Group 1)**
+- Added `vacantLots` table to Convex schema with fields from ESRI MapServer
+- Fields: taxKey, address, coordinates, zoning, neighborhood, propertyType, dispositionStatus, dispositionStrategy, aldermanicDistrict, lotSizeSqFt, acquisitionDate, currentOwner, status
+- Status enum: `"available" | "pending" | "sold" | "unknown"`
+- Indexes: by_taxKey, by_status, by_neighborhood, by_dispositionStatus, by_esriObjectId
+- CRUD queries: listAvailable, searchLots, getByTaxKey, getById, getForMap, getNeighborhoods, getStats
+- ESRI sync from Strong Neighborhoods MapServer/1 with WGS84 coordinates (outSR=4326)
+- Batch upsert mutations with status-based deduplication
+
+**Map Layer (Task Group 2)**
+- `VacantLotsLayerManager` class following homes-layer-manager pattern
+- Source ID: "vacant-lots-source", Layer ID: "vacant-lots-circles"
+- Status-based circle colors: available=#22c55e (green), pending=#f97316 (orange)
+- Highlight color: #f59e0b (amber)
+- `useVacantLotsLayer` hook with Convex subscription to getForMap
+- `VacantLotsLayerLoader` component for MapContainer integration
+
+**UI Components (Task Group 3)**
+- `VacantLotPopup.tsx` with neobrutalist styling (2px borders, 4px shadows)
+- Green LandPlot header icon
+- Displays: address, tax key, neighborhood, zoning, property type, disposition status, lot size
+- Action buttons: Analyze Lot (sky-500), Open Street View (amber-500), Capture & Visualize (purple gradient)
+- MapContainer integration with popup state management
+
+**CopilotKit Cards (Task Group 4)**
+- `VacantLotCard.tsx` with Google Static Street View image at top
+- Property details grid: zoning, property type, lot size, tax key
+- Additional info section: disposition strategy, acquisition date, current owner
+- Action buttons: Street View, Visualize, Fly to Location
+- `VacantLotsListCard.tsx` for search results with address, neighborhood, zoning, status badge
+- Registered useCopilotAction hooks for search_vacant_lots and get_vacant_lot_details
+- Added "vacant-lot" and "vacant-lots-list" card types to messages schema
+
+**Agent Tools (Task Group 5)**
+- `search_vacant_lots` tool declaration with filters: neighborhood, status, zoning, minLotSize, limit
+- `get_vacant_lot_details` tool declaration with lotId parameter
+- Tool implementations in `tools.ts`: searchVacantLots(), getVacantLotDetails()
+- Updated zoning agent SYSTEM_INSTRUCTION with vacant lots usage guidelines
+- Added switch cases in zoning.ts for tool execution
+
+**Layer Panel (Task Group 6)**
+- Added `VacantLotsLayerConfig` interface with color, availableColor, pendingColor, highlightColor
+- `VACANT_LOTS_LAYER_CONFIG` constant with legend items: Available, Pending, Selected
+- Updated LayerType union to include 'vacantLots'
+- Added to ALL_LAYERS array in LayerPanel.tsx
+
+### Key Files Created
+
+| File | Purpose |
+|------|---------|
+| `convex/vacantLots.ts` | CRUD queries for vacant lots |
+| `convex/ingestion/vacantLotsSync.ts` | ESRI sync action |
+| `convex/ingestion/vacantLotsSyncMutations.ts` | Batch upsert mutations |
+| `components/map/layers/vacant-lots-layer-manager.ts` | Mapbox layer manager |
+| `components/map/layers/useVacantLotsLayer.ts` | React hook |
+| `components/map/layers/VacantLotsLayerLoader.tsx` | Layer loader component |
+| `components/map/VacantLotPopup.tsx` | Map popup component |
+| `components/copilot/VacantLotCard.tsx` | CopilotKit card |
+| `components/copilot/VacantLotsListCard.tsx` | List card for search results |
+
+### Key Files Modified
+
+| File | Changes |
+|------|---------|
+| `convex/schema.ts` | Added vacantLots table, card types |
+| `convex/agents/tools.ts` | Added tool declarations and implementations |
+| `convex/agents/zoning.ts` | Added tool handlers and SYSTEM_INSTRUCTION |
+| `components/copilot/CopilotActions.tsx` | Registered vacant lots actions |
+| `components/copilot/index.ts` | Exported new components |
+| `components/map/MapContainer.tsx` | Integrated popup and layer loader |
+| `components/map/layers/layer-config.ts` | Added VacantLotsLayerConfig |
+| `components/map/layers/index.ts` | Exported new layer types |
+| `components/map/LayerPanel.tsx` | Added vacant lots toggle |
+
+### Data Source
+
+**ESRI MapServer:** `https://milwaukeemaps.milwaukee.gov/arcgis/rest/services/StrongNeighborhood/StrongNeighborhood/MapServer/1`
+
+**Field Mapping:**
+- TAXKEY → taxKey
+- ADDRESS → address
+- NEIGHBORHOOD → neighborhood
+- ZONING → zoning
+- PROPERTYTYPE → propertyType
+- DISPOSITIONSTATUS → dispositionStatus (maps to status enum)
+- ALDERMANICDISTRICT → aldermanicDistrict
+- ACREAGE → lotSizeSqFt (converted from acres)
+- ACQUISITIONDATE → acquisitionDate
+- CURRENTOWNER → currentOwner
+
+### Git Commit
+
+```
+d2ecfa3 feat(esri): Add city-owned vacant lots layer with full feature parity
+```
+
+28 files changed, 4,282 insertions(+), 50 deletions(-)
+
+### Technical Notes
+
+1. **WGS84 Coordinates** - Uses `outSR=4326` in ESRI query (no proj4 conversion needed)
+2. **Status Mapping** - DISPOSITIONSTATUS "Available" → "available", "Pending" → "pending", others → "unknown"
+3. **Full Feature Parity** - Matches homes layer pattern exactly for consistency
+4. **TypeScript Verified** - All compilation passes with no errors
+
+### Next Up
+- [ ] Garbage/Recycling Layer implementation (spec ready)
+- [ ] Trigger manual sync: `npx convex run vacantLots:triggerSync`
+- [ ] Test voice queries: "Show me vacant lots in Harambee"
+
+---
+
 *Log entries below will be added as development progresses*

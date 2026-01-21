@@ -80,7 +80,6 @@ interface VacantLotData {
   coordinates: number[];
   zoning?: string;
   propertyType?: string;
-  aldermanicDistrict?: number;
   lotSizeSqFt?: number;
   dispositionStatus?: string;
   dispositionStrategy?: string;
@@ -221,18 +220,19 @@ function transformFeature(
     "DISPOSITIONSTRATEGY",
     "DispositionStrategy"
   );
-  const aldermanicDistrict = getAttr<number>(
-    attrs,
-    "ALDERMANICDISTRICT",
-    "AldermanicDistrict"
-  );
   const acquisitionDateRaw = getAttr<number>(
     attrs,
     "ACQUISITIONDATE",
     "AcquisitionDate"
   );
   const currentOwner = getAttr<string>(attrs, "CURRENTOWNER", "CurrentOwner");
-  const lotSize = getAttr<number>(attrs, "LOTSIZE", "LotSize");
+  // LotSize may come as string or number from ESRI
+  const lotSizeRaw = getAttr<number | string>(attrs, "LOTSIZE", "LotSize");
+  const lotSize = lotSizeRaw !== null && lotSizeRaw !== undefined
+    ? typeof lotSizeRaw === 'string'
+      ? parseFloat(lotSizeRaw)
+      : lotSizeRaw
+    : null;
 
   return {
     esriObjectId: String(attrs.OBJECTID),
@@ -242,8 +242,7 @@ function transformFeature(
     coordinates: [lng, lat],
     zoning: zoning || undefined,
     propertyType: propertyType || undefined,
-    aldermanicDistrict: aldermanicDistrict || undefined,
-    lotSizeSqFt: lotSize || undefined,
+    lotSizeSqFt: lotSize && !isNaN(lotSize) ? lotSize : undefined,
     dispositionStatus: dispositionStatus || undefined,
     dispositionStrategy: dispositionStrategy || undefined,
     acquisitionDate: formatAcquisitionDate(acquisitionDateRaw),
@@ -347,10 +346,13 @@ async function fetchAllFeatures(): Promise<ESRIFeature[]> {
 export const syncFromESRI = internalAction({
   args: {},
   handler: async (ctx): Promise<SyncResult> => {
+    console.log("[SYNC] Handler started");
     const startTime = Date.now();
     console.log("Starting Vacant Lots sync from ESRI MapServer...");
 
     try {
+      console.log("[SYNC] Fetching features...");
+
       // Fetch all features
       const features = await fetchAllFeatures();
       const syncTimestamp = Date.now();

@@ -29,6 +29,8 @@ export type GenerativeCardType =
   | 'commercial-properties-list'
   | 'development-site'
   | 'development-sites-list'
+  | 'vacant-lot'
+  | 'vacant-lots-list'
 
 /**
  * Generative card type for rendering UI components within messages.
