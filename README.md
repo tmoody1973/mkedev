@@ -51,10 +51,11 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 | Tiles | PMTiles on Cloudflare R2 |
 | AI/LLM | Google Gemini 3 (Flash + Pro) |
 | Voice | Gemini Live API (bidirectional audio + text) |
-| Vision | Gemini 3 Pro Image (architectural visualization) |
+| Vision | Gemini 3 Pro Image + 2.5 Flash (with fallback) |
 | Agents | Google ADK |
 | Generative UI | CopilotKit |
 | Reports | Hybiscus PDF API |
+| Monitoring | Sentry (error + performance) |
 
 ---
 
@@ -281,8 +282,12 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 - **Map Screenshot Capture** - Purple camera button captures current map view
 - **Street View Integration** - Capture and visualize from Street View modal
 - **Mask Painting** - Brush/eraser tools to mark areas for AI modification
+- **Zoom & Pan** - Scroll to zoom (0.5x-5x), space+drag to pan for precise masking
+- **Screenshot Gallery** - Persistent gallery of captured images (survives page refresh)
 - **Zoning-Aware Prompts** - Generation considers Milwaukee zoning constraints
-- **Before/After Comparison** - Side-by-side original vs generated view
+- **Scale-Accurate Design** - Uses lot dimensions for realistic proportions
+- **Before/After Comparison** - Side-by-side view with synced zoom
+- **Model Fallback** - Automatic fallback to Gemini 2.5 Flash Image if primary fails
 
 ### Example Prompts
 
@@ -290,6 +295,7 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 "Add a 4-story mixed-use building with retail on ground floor"
 "Transform this into a community park with walking paths"
 "Replace this parking lot with townhomes"
+"Design a modern bungalow with nice landscaping"
 ```
 
 ---
@@ -346,6 +352,11 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 - [x] Lot size enrichment from parcels layer
 - [x] Context caching for deep zoning analysis
 - [x] Parcel highlight improvements
+- [x] Visualizer zoom/pan for precise masking
+- [x] Screenshot gallery with localStorage persistence
+- [x] Gemini model fallback (Pro → 2.5 Flash)
+- [x] On-demand area plans fetching in ParcelCard
+- [x] Sentry error and performance monitoring
 
 ### Week 4: Polish & Submit
 - [ ] Accessibility testing
