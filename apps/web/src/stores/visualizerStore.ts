@@ -85,6 +85,10 @@ export interface VisualizerState {
   brushSize: number;
   isDrawing: boolean;
 
+  // Zoom/pan state for canvas
+  zoomLevel: number;
+  panOffset: { x: number; y: number };
+
   // Generation state
   prompt: string;
   isGenerating: boolean;
@@ -130,6 +134,13 @@ export interface VisualizerState {
   setIsDrawing: (drawing: boolean) => void;
   clearMask: () => void;
 
+  // Zoom/pan actions
+  setZoomLevel: (zoom: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  setPanOffset: (offset: { x: number; y: number }) => void;
+
   // Generation actions
   setPrompt: (prompt: string) => void;
   setIsGenerating: (generating: boolean) => void;
@@ -173,6 +184,8 @@ const initialState = {
   activeTool: 'brush' as ToolType,
   brushSize: 20,
   isDrawing: false,
+  zoomLevel: 1,
+  panOffset: { x: 0, y: 0 },
   prompt: '',
   isGenerating: false,
   generationProgress: 0,
@@ -229,6 +242,13 @@ export const useVisualizerStore = create<VisualizerState>()(
       setBrushSize: (size) => set({ brushSize: Math.max(5, Math.min(50, size)) }),
       setIsDrawing: (drawing) => set({ isDrawing: drawing }),
       clearMask: () => set({ maskImage: null }),
+
+      // Zoom/pan actions
+      setZoomLevel: (zoom) => set({ zoomLevel: Math.max(0.5, Math.min(5, zoom)) }),
+      zoomIn: () => set((state) => ({ zoomLevel: Math.min(5, state.zoomLevel * 1.25) })),
+      zoomOut: () => set((state) => ({ zoomLevel: Math.max(0.5, state.zoomLevel / 1.25) })),
+      resetZoom: () => set({ zoomLevel: 1, panOffset: { x: 0, y: 0 } }),
+      setPanOffset: (offset) => set({ panOffset: offset }),
 
       // Generation actions
       setPrompt: (prompt) => set({ prompt }),
@@ -387,10 +407,13 @@ export const useVisualizerStore = create<VisualizerState>()(
       name: 'mkedev-visualizer',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        // Only persist non-transient state
+        // Persist tool preferences
         brushSize: state.brushSize,
         activeTool: state.activeTool,
-        // Don't persist images or history in localStorage (too large)
+        // Persist screenshots gallery (limit to 10 most recent to manage size)
+        screenshots: state.screenshots.slice(0, 10),
+        // Persist visualizations gallery (limit to 20 most recent)
+        visualizations: state.visualizations.slice(0, 20),
       }),
     }
   )

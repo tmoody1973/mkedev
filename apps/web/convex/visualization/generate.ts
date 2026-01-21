@@ -6,8 +6,10 @@ import { Id } from "../_generated/dataModel";
 // Site Visualization Generation - Gemini 3 Pro Image
 // =============================================================================
 
-// Gemini 3 Pro Image model for hackathon
-const GEMINI_IMAGE_MODEL = "gemini-3-pro-image-preview";
+// Gemini image models - primary and fallback
+const GEMINI_IMAGE_MODEL_PRIMARY = "gemini-3-pro-image-preview";
+const GEMINI_IMAGE_MODEL_FALLBACK = "gemini-2.5-flash-image-preview"; // Nano Banana fallback
+const RETRIES_PER_MODEL = 3;
 
 // Zoning context type
 const zoningContextValidator = v.optional(
@@ -323,122 +325,139 @@ export const generate = action({
       },
     };
 
-    // Retry logic with exponential backoff for overloaded API
-    const MAX_RETRIES = 5;
+    // Retry logic with model fallback - try primary model first, then fallback
     const BASE_DELAY_MS = 3000;
+    const models = [GEMINI_IMAGE_MODEL_PRIMARY, GEMINI_IMAGE_MODEL_FALLBACK];
     let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      if (attempt > 0) {
-        const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 1000;
-        console.log(`[visualization/generate] Retry attempt ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+    for (const currentModel of models) {
+      const isPrimary = currentModel === GEMINI_IMAGE_MODEL_PRIMARY;
+      console.log(`[visualization/generate] Trying model: ${currentModel} (${isPrimary ? 'primary' : 'fallback'})`);
 
-      try {
-        // Call Gemini 3 Pro Image API
-        console.log("[visualization/generate] Calling API:", `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent`);
-        console.log("[visualization/generate] Image count:", imageParts.length);
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestBody),
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("[visualization/generate] API error:", response.status, errorText);
-
-          // Handle rate limiting and overload - retry
-          if (response.status === 429 || response.status === 503) {
-            lastError = new Error(response.status === 429
-              ? "Rate limited - API is busy"
-              : "Model overloaded - API is at capacity");
-            continue; // Retry
-          }
-
-          throw new Error(`Gemini API error: ${response.status}`);
+      for (let attempt = 0; attempt < RETRIES_PER_MODEL; attempt++) {
+        if (attempt > 0) {
+          const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1) + Math.random() * 1000;
+          console.log(`[visualization/generate] Retry ${attempt + 1}/${RETRIES_PER_MODEL} for ${currentModel} after ${Math.round(delay)}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
 
-        const data = await response.json();
-        console.log("[visualization/generate] Response received, structure:", JSON.stringify({
-          hasCandidate: !!data.candidates?.[0],
-          hasContent: !!data.candidates?.[0]?.content,
-          partsCount: data.candidates?.[0]?.content?.parts?.length,
-          partTypes: data.candidates?.[0]?.content?.parts?.map((p: { inlineData?: unknown; text?: unknown }) =>
-            p.inlineData ? 'image' : p.text ? 'text' : 'unknown'
-          ),
-          promptFeedback: data.promptFeedback,
-        }));
+        try {
+          // Call Gemini Image API
+          console.log("[visualization/generate] Calling API:", `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent`);
+          console.log("[visualization/generate] Image count:", imageParts.length);
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(requestBody),
+            }
+          );
 
-        // Extract generated image from response
-        let generatedImageBase64: string | null = null;
-        let responseText = "";
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[visualization/generate] API error:", response.status, errorText);
 
-        if (data.candidates && data.candidates.length > 0) {
-          const candidate = data.candidates[0];
-          if (candidate.content && candidate.content.parts) {
-            for (const part of candidate.content.parts) {
-              if (part.inlineData) {
-                // This is an image part
-                generatedImageBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-              } else if (part.text) {
-                responseText = part.text;
+            // Handle rate limiting and overload - retry
+            if (response.status === 429 || response.status === 503) {
+              lastError = new Error(response.status === 429
+                ? `${currentModel}: Rate limited - API is busy`
+                : `${currentModel}: Model overloaded - API is at capacity`);
+              continue; // Retry same model
+            }
+
+            // Model not found or unavailable - try fallback
+            if (response.status === 404 || response.status === 400) {
+              console.log(`[visualization/generate] Model ${currentModel} unavailable, trying next model...`);
+              lastError = new Error(`${currentModel}: Model unavailable`);
+              break; // Move to next model
+            }
+
+            throw new Error(`Gemini API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log("[visualization/generate] Response received, structure:", JSON.stringify({
+            model: currentModel,
+            hasCandidate: !!data.candidates?.[0],
+            hasContent: !!data.candidates?.[0]?.content,
+            partsCount: data.candidates?.[0]?.content?.parts?.length,
+            partTypes: data.candidates?.[0]?.content?.parts?.map((p: { inlineData?: unknown; text?: unknown }) =>
+              p.inlineData ? 'image' : p.text ? 'text' : 'unknown'
+            ),
+            promptFeedback: data.promptFeedback,
+          }));
+
+          // Extract generated image from response
+          let generatedImageBase64: string | null = null;
+          let responseText = "";
+
+          if (data.candidates && data.candidates.length > 0) {
+            const candidate = data.candidates[0];
+            if (candidate.content && candidate.content.parts) {
+              for (const part of candidate.content.parts) {
+                if (part.inlineData) {
+                  // This is an image part
+                  generatedImageBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                } else if (part.text) {
+                  responseText = part.text;
+                }
               }
             }
           }
+
+          const generationTimeMs = Date.now() - startTime;
+          console.log(`[visualization/generate] Generation completed in ${generationTimeMs}ms using ${currentModel}`);
+
+          // If no image was generated, the model might have returned text describing why
+          if (!generatedImageBase64) {
+            console.error("[visualization/generate] No image generated. Full response data:", JSON.stringify(data, null, 2));
+            console.error("[visualization/generate] Response text:", responseText);
+
+            // Check for specific error conditions
+            if (data.promptFeedback?.blockReason) {
+              lastError = new Error(`Content blocked: ${data.promptFeedback.blockReason}. Try a different prompt.`);
+              continue; // Retry same model
+            }
+            if (data.candidates?.[0]?.finishReason === "SAFETY") {
+              throw new Error("Generation blocked by safety filters. Try rephrasing your request.");
+            }
+            if (data.candidates?.[0]?.finishReason === "RECITATION") {
+              throw new Error("Generation blocked due to content policy. Try a different prompt.");
+            }
+
+            // Model returned text instead of image - retry
+            lastError = new Error(`${currentModel}: ${responseText || "Model returned text instead of image"}`);
+            continue;
+          }
+
+          // Success - return the result
+          return {
+            success: true,
+            generatedImageBase64,
+            enhancedPrompt,
+            responseText,
+            generationTimeMs,
+            modelUsed: currentModel,
+          };
+        } catch (error) {
+          console.error(`[visualization/generate] ${currentModel} attempt ${attempt + 1} error:`, error);
+          lastError = error instanceof Error ? error : new Error(String(error));
+          // Continue to next retry
         }
-
-        const generationTimeMs = Date.now() - startTime;
-        console.log(`[visualization/generate] Generation completed in ${generationTimeMs}ms`);
-
-        // If no image was generated, the model might have returned text describing why
-        if (!generatedImageBase64) {
-          console.error("[visualization/generate] No image generated. Full response data:", JSON.stringify(data, null, 2));
-          console.error("[visualization/generate] Response text:", responseText);
-
-          // Check for specific error conditions
-          if (data.promptFeedback?.blockReason) {
-            lastError = new Error(`Content blocked: ${data.promptFeedback.blockReason}. Try a different prompt.`);
-            continue; // Retry
-          }
-          if (data.candidates?.[0]?.finishReason === "SAFETY") {
-            throw new Error("Generation blocked by safety filters. Try rephrasing your request.");
-          }
-          if (data.candidates?.[0]?.finishReason === "RECITATION") {
-            throw new Error("Generation blocked due to content policy. Try a different prompt.");
-          }
-
-          // Model returned text instead of image - retry
-          lastError = new Error(responseText || "Model returned text instead of image");
-          continue;
-        }
-
-        // Success - return the result
-        return {
-          success: true,
-          generatedImageBase64,
-          enhancedPrompt,
-          responseText,
-          generationTimeMs,
-        };
-      } catch (error) {
-        console.error(`[visualization/generate] Attempt ${attempt + 1} error:`, error);
-        lastError = error instanceof Error ? error : new Error(String(error));
-        // Continue to next retry
       }
+
+      // All retries for this model exhausted, try next model
+      console.log(`[visualization/generate] Exhausted ${RETRIES_PER_MODEL} retries for ${currentModel}, ${isPrimary ? 'trying fallback model...' : 'no more models to try'}`);
     }
 
-    // All retries exhausted
-    console.error("[visualization/generate] All retries exhausted. Last error:", lastError);
+    // All models and retries exhausted
+    console.error("[visualization/generate] All models and retries exhausted. Last error:", lastError);
     throw new Error(
       lastError?.message ||
-      "Failed to generate image after multiple attempts. The Gemini 3 Pro Image API may be overloaded - please try again in a few moments."
+      "Failed to generate image after multiple attempts with both Gemini 3 Pro Image and Gemini 2.5 Flash Image. Please try again later."
     );
   },
 });

@@ -1,10 +1,10 @@
 'use client';
 
-import { Paintbrush, Eraser, Trash2 } from 'lucide-react';
+import { Paintbrush, Eraser, Trash2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
 
 /**
- * MaskToolbar - Brush, eraser, and size controls for mask painting
+ * MaskToolbar - Brush, eraser, size controls, and zoom for mask painting
  */
 export function MaskToolbar() {
   const {
@@ -13,6 +13,10 @@ export function MaskToolbar() {
     setActiveTool,
     setBrushSize,
     clearMask,
+    zoomLevel,
+    zoomIn,
+    zoomOut,
+    resetZoom,
   } = useVisualizerStore();
 
   return (
@@ -113,9 +117,65 @@ export function MaskToolbar() {
         <span className="text-sm font-medium">Clear</span>
       </button>
 
+      {/* Divider */}
+      <div className="w-px h-8 bg-stone-300 dark:bg-stone-600" />
+
+      {/* Zoom Controls */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={zoomOut}
+          className="flex items-center justify-center w-8 h-8 rounded-lg border-2 border-black
+            bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-300
+            shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+            hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+            active:translate-y-1 active:shadow-none
+            transition-all duration-100
+            disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Zoom out"
+          title="Zoom out (scroll down)"
+          disabled={zoomLevel <= 0.5}
+        >
+          <ZoomOut className="w-4 h-4" />
+        </button>
+
+        <span className="text-sm font-mono w-12 text-center text-stone-600 dark:text-stone-400">
+          {Math.round(zoomLevel * 100)}%
+        </span>
+
+        <button
+          onClick={zoomIn}
+          className="flex items-center justify-center w-8 h-8 rounded-lg border-2 border-black
+            bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-300
+            shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+            hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+            active:translate-y-1 active:shadow-none
+            transition-all duration-100
+            disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Zoom in"
+          title="Zoom in (scroll up)"
+          disabled={zoomLevel >= 5}
+        >
+          <ZoomIn className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={resetZoom}
+          className="flex items-center justify-center w-8 h-8 rounded-lg border-2 border-black
+            bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-300
+            shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+            hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+            active:translate-y-1 active:shadow-none
+            transition-all duration-100"
+          aria-label="Reset zoom"
+          title="Reset to fit (100%)"
+        >
+          <Maximize2 className="w-4 h-4" />
+        </button>
+      </div>
+
       {/* Instructions */}
-      <p className="text-sm text-stone-500 dark:text-stone-400 ml-auto hidden md:block">
-        Paint over areas you want to modify
+      <p className="text-sm text-stone-500 dark:text-stone-400 ml-auto hidden lg:block">
+        Scroll to zoom • Space+drag to pan
       </p>
     </div>
   );

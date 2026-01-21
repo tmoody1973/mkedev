@@ -779,6 +779,27 @@ export const testQuery = action({
 });
 
 /**
+ * Query area plans for a specific address or neighborhood.
+ * Used by ParcelCard to fetch area plan context on demand.
+ */
+export const queryAreaPlans = action({
+  args: {
+    address: v.optional(v.string()),
+    neighborhood: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<RAGResult> => {
+    // Build a targeted question for the area
+    const location = args.neighborhood || args.address || "Milwaukee";
+    const question = `What are the development goals, housing strategies, and community vision for the ${location} area? Include any relevant neighborhood plans, future land use recommendations, and development priorities.`;
+
+    return await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+      question,
+      category: "area-plans",
+    });
+  },
+});
+
+/**
  * Debug action to inspect raw Gemini response structure.
  * Use this to see what grounding data Gemini actually returns.
  */

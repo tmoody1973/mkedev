@@ -12,6 +12,7 @@ import type * as agents_contextCache from "../agents/contextCache.js";
 import type * as agents_status from "../agents/status.js";
 import type * as agents_tools from "../agents/tools.js";
 import type * as agents_zoning from "../agents/zoning.js";
+import type * as cache from "../cache.js";
 import type * as commercialProperties from "../commercialProperties.js";
 import type * as conversations from "../conversations.js";
 import type * as crons from "../crons.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   "agents/status": typeof agents_status;
   "agents/tools": typeof agents_tools;
   "agents/zoning": typeof agents_zoning;
+  cache: typeof cache;
   commercialProperties: typeof commercialProperties;
   conversations: typeof conversations;
   crons: typeof crons;

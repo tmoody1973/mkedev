@@ -599,6 +599,32 @@ export default defineSchema({
     .index("by_esriObjectId", ["esriObjectId"]),
 
   // ---------------------------------------------------------------------------
+  // Query Cache - Cached results for geocode, zoning, and RAG queries
+  // ---------------------------------------------------------------------------
+  queryCache: defineTable({
+    // Cache key (hash of query type + parameters)
+    cacheKey: v.string(),
+
+    // Query type for TTL management
+    queryType: v.union(
+      v.literal("geocode"), // Address → coordinates (TTL: 30 days)
+      v.literal("zoning"), // Coordinates → zoning district (TTL: 7 days)
+      v.literal("rag") // Question → answer (TTL: 24 hours)
+    ),
+
+    // Cached result (JSON serialized)
+    result: v.string(),
+
+    // Cache metadata
+    hitCount: v.number(), // Number of times this cache entry was used
+    createdAt: v.number(),
+    expiresAt: v.number(), // TTL expiration timestamp
+  })
+    .index("by_cacheKey", ["cacheKey"])
+    .index("by_queryType", ["queryType"])
+    .index("by_expiresAt", ["expiresAt"]),
+
+  // ---------------------------------------------------------------------------
   // Visualizations - AI-generated site visualizations using Gemini 3 Pro Image
   // ---------------------------------------------------------------------------
   visualizations: defineTable({

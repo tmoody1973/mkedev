@@ -11,12 +11,14 @@
  * Tabs:
  * - Overview: Address, coordinates, neighborhood
  * - Zoning: District, category, overlays, what's allowed
- * - Area Plans: Neighborhood development context
+ * - Area Plans: Neighborhood development context (fetched on demand)
  * - Development: Height, setbacks, parking requirements
  */
 
-import { useState } from "react";
-import { MapPin, Navigation, Copy, ExternalLink, ChevronLeft, ChevronRight, Building2, FileText, Compass, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAction } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import { MapPin, Navigation, Copy, ExternalLink, ChevronLeft, ChevronRight, Building2, FileText, Compass, Eye, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Google Street View Static API
@@ -64,8 +66,8 @@ export function ParcelCard({
   zoningType,
   zoningDescription,
   overlayZones = [],
-  areaPlanName,
-  areaPlanContext,
+  areaPlanName: initialAreaPlanName,
+  areaPlanContext: initialAreaPlanContext,
   developmentGoals = [],
   maxHeight,
   minSetbacks,
@@ -77,7 +79,61 @@ export function ParcelCard({
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [streetViewHeading, setStreetViewHeading] = useState(0);
 
+  // Area plan state - can be populated from props OR fetched on demand
+  const [areaPlanName, setAreaPlanName] = useState<string | undefined>(initialAreaPlanName);
+  const [areaPlanContext, setAreaPlanContext] = useState<string | undefined>(initialAreaPlanContext);
+  const [areaPlanLoading, setAreaPlanLoading] = useState(false);
+  const [areaPlanFetched, setAreaPlanFetched] = useState(false);
+  const [areaPlanError, setAreaPlanError] = useState<string | null>(null);
+
+  // Convex action to fetch area plans
+  const queryAreaPlans = useAction(api.ingestion.ragV2.queryAreaPlans);
+
   const isLoading = status === "inProgress" || status === "executing";
+
+  // Fetch area plans when tab is activated and data isn't already available
+  useEffect(() => {
+    // Only fetch if:
+    // 1. We're on the area-plans tab
+    // 2. We don't have area plan data from props
+    // 3. We haven't already fetched
+    // 4. We're not currently loading
+    if (
+      activeTab === "area-plans" &&
+      !initialAreaPlanName &&
+      !areaPlanFetched &&
+      !areaPlanLoading
+    ) {
+      const fetchAreaPlans = async () => {
+        setAreaPlanLoading(true);
+        setAreaPlanError(null);
+
+        try {
+          const result = await queryAreaPlans({
+            address,
+            neighborhood,
+          });
+
+          if (result.success && result.response) {
+            // Extract plan name from citations if available
+            const planName = result.response.citations?.[0]?.sourceName || "Neighborhood Development Plan";
+            setAreaPlanName(planName);
+            setAreaPlanContext(result.response.answer);
+          } else if (result.error) {
+            setAreaPlanError(result.error.message || "Failed to fetch area plans");
+          }
+        } catch (err) {
+          console.error("[ParcelCard] Failed to fetch area plans:", err);
+          setAreaPlanError("Unable to load area plan data");
+        } finally {
+          setAreaPlanLoading(false);
+          setAreaPlanFetched(true);
+        }
+      };
+
+      fetchAreaPlans();
+    }
+  }, [activeTab, initialAreaPlanName, areaPlanFetched, areaPlanLoading, address, neighborhood, queryAreaPlans]);
 
   // Get Google Maps API key
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -307,7 +363,20 @@ export function ParcelCard({
 
         {activeTab === "area-plans" && (
           <div className="max-h-48 overflow-y-auto space-y-3">
-            {areaPlanName ? (
+            {areaPlanLoading ? (
+              <div className="flex flex-col items-center justify-center py-6 gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                <span className="text-sm text-stone-500 dark:text-stone-400">
+                  Searching neighborhood plans...
+                </span>
+              </div>
+            ) : areaPlanError ? (
+              <div className="text-sm text-red-500 dark:text-red-400 py-4 text-center">
+                {areaPlanError}
+                <br />
+                <span className="text-xs text-stone-500">Try asking about neighborhood development goals in the chat.</span>
+              </div>
+            ) : areaPlanName ? (
               <>
                 <div className="font-medium text-stone-900 dark:text-stone-100 sticky top-0 bg-white dark:bg-stone-900 pb-1">
                   {areaPlanName}

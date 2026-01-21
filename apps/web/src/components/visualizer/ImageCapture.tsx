@@ -9,7 +9,7 @@ import { useVisualizerStore } from '@/stores';
  */
 export function ImageCapture() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { setSourceImage, screenshots, selectScreenshot, removeScreenshot } = useVisualizerStore();
+  const { setSourceImage, addScreenshot, screenshots, selectScreenshot, removeScreenshot } = useVisualizerStore();
 
   // Handle file upload
   const handleFileUpload = useCallback(
@@ -53,6 +53,9 @@ export function ImageCapture() {
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
             const resizedDataUrl = canvas.toDataURL('image/png');
+            // Save to screenshot gallery for later use
+            addScreenshot(resizedDataUrl, { sourceType: 'upload' });
+            // Set as current source image
             setSourceImage(resizedDataUrl);
           }
         };
@@ -63,7 +66,7 @@ export function ImageCapture() {
       // Reset input
       e.target.value = '';
     },
-    [setSourceImage]
+    [setSourceImage, addScreenshot]
   );
 
   // Trigger file input click

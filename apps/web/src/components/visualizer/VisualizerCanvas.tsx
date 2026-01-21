@@ -7,6 +7,7 @@ import { useVisualizerStore } from '@/stores';
 
 /**
  * VisualizerCanvas - Konva.js canvas for image display and mask painting
+ * Supports zoom (mouse wheel) and pan (middle-click or space+drag)
  */
 export function VisualizerCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -19,6 +20,9 @@ export function VisualizerCanvas() {
     strokeWidth: number;
   }>>([]);
   const isDrawingRef = useRef(false);
+  const isPanningRef = useRef(false);
+  const lastPanPosRef = useRef({ x: 0, y: 0 });
+  const [spacePressed, setSpacePressed] = useState(false);
 
   const {
     sourceImage,
@@ -28,6 +32,10 @@ export function VisualizerCanvas() {
     setIsDrawing,
     setMaskImage,
     addToHistory,
+    zoomLevel,
+    panOffset,
+    setZoomLevel,
+    setPanOffset,
   } = useVisualizerStore();
 
   // Load source image
@@ -42,10 +50,10 @@ export function VisualizerCanvas() {
     img.src = sourceImage;
   }, [sourceImage]);
 
-  // Calculate image scale and position to fit canvas (derived state)
-  const { imageScale, imageOffset } = useMemo(() => {
+  // Calculate base image scale to fit canvas
+  const baseImageScale = useMemo(() => {
     if (!image || !stageSize.width || !stageSize.height) {
-      return { imageScale: 1, imageOffset: { x: 0, y: 0 } };
+      return 1;
     }
 
     const padding = 40;
@@ -54,16 +62,23 @@ export function VisualizerCanvas() {
 
     const scaleX = availableWidth / image.width;
     const scaleY = availableHeight / image.height;
-    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up
+    return Math.min(scaleX, scaleY, 1); // Don't scale up
+  }, [image, stageSize]);
+
+  // Apply zoom to the base scale
+  const imageScale = baseImageScale * zoomLevel;
+
+  // Calculate image offset with pan
+  const imageOffset = useMemo(() => {
+    if (!image || !stageSize.width || !stageSize.height) {
+      return { x: 0, y: 0 };
+    }
 
     return {
-      imageScale: scale,
-      imageOffset: {
-        x: (stageSize.width - image.width * scale) / 2,
-        y: (stageSize.height - image.height * scale) / 2,
-      },
+      x: (stageSize.width - image.width * imageScale) / 2 + panOffset.x,
+      y: (stageSize.height - image.height * imageScale) / 2 + panOffset.y,
     };
-  }, [image, stageSize]);
+  }, [image, stageSize, imageScale, panOffset]);
 
   // Handle container resize
   useEffect(() => {
@@ -84,6 +99,68 @@ export function VisualizerCanvas() {
 
     return () => resizeObserver.disconnect();
   }, []);
+
+  // Keyboard listeners for space (pan mode)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        setSpacePressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setSpacePressed(false);
+        isPanningRef.current = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  // Mouse wheel zoom handler
+  const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const scaleBy = 1.1;
+    const oldZoom = zoomLevel;
+
+    // Zoom in or out based on wheel direction
+    const newZoom = e.evt.deltaY < 0
+      ? Math.min(5, oldZoom * scaleBy)
+      : Math.max(0.5, oldZoom / scaleBy);
+
+    // Get pointer position
+    const pointer = stage.getPointerPosition();
+    if (!pointer) {
+      setZoomLevel(newZoom);
+      return;
+    }
+
+    // Calculate new pan offset to zoom toward cursor
+    const mousePointTo = {
+      x: (pointer.x - imageOffset.x) / imageScale,
+      y: (pointer.y - imageOffset.y) / imageScale,
+    };
+
+    const newScale = baseImageScale * newZoom;
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale - (stageSize.width - (image?.width || 0) * newScale) / 2,
+      y: pointer.y - mousePointTo.y * newScale - (stageSize.height - (image?.height || 0) * newScale) / 2,
+    };
+
+    setZoomLevel(newZoom);
+    setPanOffset(newPos);
+  }, [zoomLevel, imageScale, imageOffset, baseImageScale, stageSize, image, setZoomLevel, setPanOffset]);
 
   // Get pointer position relative to image
   const getRelativePointerPosition = useCallback(() => {
@@ -106,7 +183,22 @@ export function VisualizerCanvas() {
   }, [image, imageScale, imageOffset]);
 
   // Handle mouse/touch down
-  const handleMouseDown = useCallback(() => {
+  const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Check if we should pan (space pressed or middle mouse button)
+    const isMiddleButton = 'button' in e.evt && e.evt.button === 1;
+    if (spacePressed || isMiddleButton) {
+      isPanningRef.current = true;
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        lastPanPosRef.current = { x: pos.x, y: pos.y };
+      }
+      return;
+    }
+
+    // Normal drawing
     const pos = getRelativePointerPosition();
     if (!pos) return;
 
@@ -121,10 +213,29 @@ export function VisualizerCanvas() {
         strokeWidth: brushSize,
       },
     ]);
-  }, [activeTool, brushSize, getRelativePointerPosition, setIsDrawing]);
+  }, [activeTool, brushSize, getRelativePointerPosition, setIsDrawing, spacePressed]);
 
   // Handle mouse/touch move
   const handleMouseMove = useCallback(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Handle panning
+    if (isPanningRef.current) {
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        const dx = pos.x - lastPanPosRef.current.x;
+        const dy = pos.y - lastPanPosRef.current.y;
+        setPanOffset({
+          x: panOffset.x + dx,
+          y: panOffset.y + dy,
+        });
+        lastPanPosRef.current = { x: pos.x, y: pos.y };
+      }
+      return;
+    }
+
+    // Normal drawing
     if (!isDrawingRef.current) return;
 
     const pos = getRelativePointerPosition();
@@ -138,7 +249,7 @@ export function VisualizerCanvas() {
       }
       return newLines;
     });
-  }, [getRelativePointerPosition]);
+  }, [getRelativePointerPosition, panOffset, setPanOffset]);
 
   // Export mask as PNG (must be defined before handleMouseUp)
   const exportMask = useCallback(() => {
@@ -197,6 +308,12 @@ export function VisualizerCanvas() {
 
   // Handle mouse/touch up
   const handleMouseUp = useCallback(() => {
+    // Stop panning
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      return;
+    }
+
     if (!isDrawingRef.current) return;
 
     isDrawingRef.current = false;
@@ -226,11 +343,18 @@ export function VisualizerCanvas() {
     );
   }
 
+  // Determine cursor style
+  const getCursor = () => {
+    if (spacePressed || isPanningRef.current) return 'grab';
+    if (activeTool === 'brush') return 'crosshair';
+    return 'cell';
+  };
+
   return (
     <div
       ref={containerRef}
       className="h-full w-full bg-stone-200 dark:bg-stone-800 relative"
-      style={{ cursor: activeTool === 'brush' ? 'crosshair' : 'cell' }}
+      style={{ cursor: getCursor() }}
     >
       <Stage
         ref={stageRef}
@@ -243,6 +367,7 @@ export function VisualizerCanvas() {
         onTouchStart={handleMouseDown}
         onTouchMove={handleMouseMove}
         onTouchEnd={handleMouseUp}
+        onWheel={handleWheel}
       >
         {/* Image Layer */}
         <Layer>

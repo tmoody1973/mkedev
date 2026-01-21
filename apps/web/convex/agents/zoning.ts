@@ -26,6 +26,7 @@ import {
   getVacantLotDetails,
 } from "./tools";
 import { createTraceManager } from "../lib/opik";
+import { generateCacheKey } from "../cache";
 
 // =============================================================================
 // Configuration
@@ -620,15 +621,65 @@ export const chat = action({
 
           try {
             switch (name) {
-              case "geocode_address":
-                toolResult = await geocodeAddress(fnArgs as Parameters<typeof geocodeAddress>[0]);
-                toolSuccess = !!(toolResult as { coordinates?: unknown }).coordinates;
-                break;
+              case "geocode_address": {
+                const geocodeArgs = fnArgs as Parameters<typeof geocodeAddress>[0];
+                const cacheKey = generateCacheKey("geocode", geocodeArgs);
 
-              case "query_zoning_at_point":
-                toolResult = await queryZoningAtPoint(fnArgs as Parameters<typeof queryZoningAtPoint>[0]);
-                toolSuccess = !!(toolResult as { zoningDistrict?: unknown }).zoningDistrict;
+                // Check cache first
+                const cached = await ctx.runQuery(api.cache.get, { cacheKey });
+                if (cached) {
+                  console.log(`[CACHE HIT] geocode: ${geocodeArgs.address}`);
+                  toolResult = cached.result as Record<string, unknown>;
+                  toolSuccess = !!(toolResult as { coordinates?: unknown }).coordinates;
+                  // Increment hit count in background (don't await)
+                  ctx.runMutation(api.cache.incrementHitCount, { cacheKey });
+                } else {
+                  console.log(`[CACHE MISS] geocode: ${geocodeArgs.address}`);
+                  toolResult = await geocodeAddress(geocodeArgs);
+                  toolSuccess = !!(toolResult as { coordinates?: unknown }).coordinates;
+                  // Cache successful results
+                  if (toolSuccess) {
+                    await ctx.runMutation(api.cache.set, {
+                      cacheKey,
+                      queryType: "geocode",
+                      result: JSON.stringify(toolResult),
+                    });
+                  }
+                }
                 break;
+              }
+
+              case "query_zoning_at_point": {
+                const zoningArgs = fnArgs as Parameters<typeof queryZoningAtPoint>[0];
+                // Round coordinates to 6 decimal places for cache key consistency
+                const normalizedArgs = {
+                  longitude: Math.round(zoningArgs.longitude * 1000000) / 1000000,
+                  latitude: Math.round(zoningArgs.latitude * 1000000) / 1000000,
+                };
+                const cacheKey = generateCacheKey("zoning", normalizedArgs);
+
+                // Check cache first
+                const cached = await ctx.runQuery(api.cache.get, { cacheKey });
+                if (cached) {
+                  console.log(`[CACHE HIT] zoning: ${normalizedArgs.latitude},${normalizedArgs.longitude}`);
+                  toolResult = cached.result as Record<string, unknown>;
+                  toolSuccess = !!(toolResult as { zoningDistrict?: unknown }).zoningDistrict;
+                  ctx.runMutation(api.cache.incrementHitCount, { cacheKey });
+                } else {
+                  console.log(`[CACHE MISS] zoning: ${normalizedArgs.latitude},${normalizedArgs.longitude}`);
+                  toolResult = await queryZoningAtPoint(zoningArgs);
+                  toolSuccess = !!(toolResult as { zoningDistrict?: unknown }).zoningDistrict;
+                  // Cache successful results
+                  if (toolSuccess) {
+                    await ctx.runMutation(api.cache.set, {
+                      cacheKey,
+                      queryType: "zoning",
+                      result: JSON.stringify(toolResult),
+                    });
+                  }
+                }
+                break;
+              }
 
               case "calculate_parking":
                 toolResult = calculateParking(fnArgs as Parameters<typeof calculateParking>[0]);
@@ -636,32 +687,51 @@ export const chat = action({
                 break;
 
               case "query_zoning_code": {
-                // Use RAG V2 (File Search Stores with fallback to legacy)
-                const ragResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
-                  question: (fnArgs as { question: string }).question,
-                  category: "zoning-codes",
-                }) as RAGResult;
+                const ragArgs = fnArgs as { question: string; zoningDistrict?: string };
+                const cacheKey = generateCacheKey("rag", { category: "zoning-codes", question: ragArgs.question });
 
-                if (ragResult.success && ragResult.response) {
-                  // Format citations for Gemini to use
-                  const citations = ragResult.response.citations || [];
-                  const citationGuide = citations.length > 0
-                    ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
-                        `[${i + 1}] ${c.sourceName}`
-                      ).join('\n')}`
-                    : '';
-
-                  toolResult = {
-                    success: true,
-                    answer: ragResult.response.answer + citationGuide,
-                    confidence: ragResult.response.confidence,
-                    citations,
-                    citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
-                  };
-                  toolSuccess = true;
+                // Check cache first
+                const cachedRag = await ctx.runQuery(api.cache.get, { cacheKey });
+                if (cachedRag) {
+                  console.log(`[CACHE HIT] rag/zoning-codes: ${ragArgs.question.substring(0, 50)}...`);
+                  toolResult = cachedRag.result as Record<string, unknown>;
+                  toolSuccess = !!(toolResult as { success?: boolean }).success;
+                  ctx.runMutation(api.cache.incrementHitCount, { cacheKey });
                 } else {
-                  toolResult = { success: false, error: ragResult.error?.message || "RAG query failed" };
-                  toolSuccess = false;
+                  console.log(`[CACHE MISS] rag/zoning-codes: ${ragArgs.question.substring(0, 50)}...`);
+                  // Use RAG V2 (File Search Stores with fallback to legacy)
+                  const ragResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+                    question: ragArgs.question,
+                    category: "zoning-codes",
+                  }) as RAGResult;
+
+                  if (ragResult.success && ragResult.response) {
+                    // Format citations for Gemini to use
+                    const citations = ragResult.response.citations || [];
+                    const citationGuide = citations.length > 0
+                      ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
+                          `[${i + 1}] ${c.sourceName}`
+                        ).join('\n')}`
+                      : '';
+
+                    toolResult = {
+                      success: true,
+                      answer: ragResult.response.answer + citationGuide,
+                      confidence: ragResult.response.confidence,
+                      citations,
+                      citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
+                    };
+                    toolSuccess = true;
+                    // Cache successful RAG results (24-hour TTL)
+                    await ctx.runMutation(api.cache.set, {
+                      cacheKey,
+                      queryType: "rag",
+                      result: JSON.stringify(toolResult),
+                    });
+                  } else {
+                    toolResult = { success: false, error: ragResult.error?.message || "RAG query failed" };
+                    toolSuccess = false;
+                  }
                 }
                 break;
               }
@@ -672,32 +742,49 @@ export const chat = action({
                 const enhancedQuestion = areaArgs.neighborhood
                   ? `Regarding the ${areaArgs.neighborhood} neighborhood: ${areaArgs.question}`
                   : areaArgs.question;
+                const cacheKey = generateCacheKey("rag", { category: "area-plans", question: enhancedQuestion });
 
-                const areaPlanResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
-                  question: enhancedQuestion,
-                  category: "area-plans",
-                }) as RAGResult;
-
-                if (areaPlanResult.success && areaPlanResult.response) {
-                  // Format citations for Gemini to use
-                  const citations = areaPlanResult.response.citations || [];
-                  const citationGuide = citations.length > 0
-                    ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
-                        `[${i + 1}] ${c.sourceName}`
-                      ).join('\n')}`
-                    : '';
-
-                  toolResult = {
-                    success: true,
-                    answer: areaPlanResult.response.answer + citationGuide,
-                    confidence: areaPlanResult.response.confidence,
-                    citations,
-                    citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
-                  };
-                  toolSuccess = true;
+                // Check cache first
+                const cachedAreaPlan = await ctx.runQuery(api.cache.get, { cacheKey });
+                if (cachedAreaPlan) {
+                  console.log(`[CACHE HIT] rag/area-plans: ${areaArgs.question.substring(0, 50)}...`);
+                  toolResult = cachedAreaPlan.result as Record<string, unknown>;
+                  toolSuccess = !!(toolResult as { success?: boolean }).success;
+                  ctx.runMutation(api.cache.incrementHitCount, { cacheKey });
                 } else {
-                  toolResult = { success: false, error: areaPlanResult.error?.message || "Area plans query failed" };
-                  toolSuccess = false;
+                  console.log(`[CACHE MISS] rag/area-plans: ${areaArgs.question.substring(0, 50)}...`);
+                  const areaPlanResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+                    question: enhancedQuestion,
+                    category: "area-plans",
+                  }) as RAGResult;
+
+                  if (areaPlanResult.success && areaPlanResult.response) {
+                    // Format citations for Gemini to use
+                    const citations = areaPlanResult.response.citations || [];
+                    const citationGuide = citations.length > 0
+                      ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
+                          `[${i + 1}] ${c.sourceName}`
+                        ).join('\n')}`
+                      : '';
+
+                    toolResult = {
+                      success: true,
+                      answer: areaPlanResult.response.answer + citationGuide,
+                      confidence: areaPlanResult.response.confidence,
+                      citations,
+                      citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
+                    };
+                    toolSuccess = true;
+                    // Cache successful RAG results
+                    await ctx.runMutation(api.cache.set, {
+                      cacheKey,
+                      queryType: "rag",
+                      result: JSON.stringify(toolResult),
+                    });
+                  } else {
+                    toolResult = { success: false, error: areaPlanResult.error?.message || "Area plans query failed" };
+                    toolSuccess = false;
+                  }
                 }
                 break;
               }
@@ -708,32 +795,49 @@ export const chat = action({
                 const enhancedQuestion = incentiveArgs.programType && incentiveArgs.programType !== "all"
                   ? `Regarding ${incentiveArgs.programType} programs: ${incentiveArgs.question}`
                   : incentiveArgs.question;
+                const cacheKey = generateCacheKey("rag", { category: "incentives", question: enhancedQuestion });
 
-                const incentiveResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
-                  question: enhancedQuestion,
-                  category: "incentives",
-                }) as RAGResult;
-
-                if (incentiveResult.success && incentiveResult.response) {
-                  // Format citations for Gemini to use
-                  const citations = incentiveResult.response.citations || [];
-                  const citationGuide = citations.length > 0
-                    ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
-                        `[${i + 1}] ${c.sourceName}`
-                      ).join('\n')}`
-                    : '';
-
-                  toolResult = {
-                    success: true,
-                    answer: incentiveResult.response.answer + citationGuide,
-                    confidence: incentiveResult.response.confidence,
-                    citations,
-                    citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
-                  };
-                  toolSuccess = true;
+                // Check cache first
+                const cachedIncentive = await ctx.runQuery(api.cache.get, { cacheKey });
+                if (cachedIncentive) {
+                  console.log(`[CACHE HIT] rag/incentives: ${incentiveArgs.question.substring(0, 50)}...`);
+                  toolResult = cachedIncentive.result as Record<string, unknown>;
+                  toolSuccess = !!(toolResult as { success?: boolean }).success;
+                  ctx.runMutation(api.cache.incrementHitCount, { cacheKey });
                 } else {
-                  toolResult = { success: false, error: incentiveResult.error?.message || "Incentives query failed" };
-                  toolSuccess = false;
+                  console.log(`[CACHE MISS] rag/incentives: ${incentiveArgs.question.substring(0, 50)}...`);
+                  const incentiveResult = await ctx.runAction(api.ingestion.ragV2.queryDocuments, {
+                    question: enhancedQuestion,
+                    category: "incentives",
+                  }) as RAGResult;
+
+                  if (incentiveResult.success && incentiveResult.response) {
+                    // Format citations for Gemini to use
+                    const citations = incentiveResult.response.citations || [];
+                    const citationGuide = citations.length > 0
+                      ? `\n\nAvailable sources (use [N] markers in your response):\n${citations.map((c, i) =>
+                          `[${i + 1}] ${c.sourceName}`
+                        ).join('\n')}`
+                      : '';
+
+                    toolResult = {
+                      success: true,
+                      answer: incentiveResult.response.answer + citationGuide,
+                      confidence: incentiveResult.response.confidence,
+                      citations,
+                      citationInstructions: "Use [1], [2], etc. to cite sources when referencing information from the answer above.",
+                    };
+                    toolSuccess = true;
+                    // Cache successful RAG results
+                    await ctx.runMutation(api.cache.set, {
+                      cacheKey,
+                      queryType: "rag",
+                      result: JSON.stringify(toolResult),
+                    });
+                  } else {
+                    toolResult = { success: false, error: incentiveResult.error?.message || "Incentives query failed" };
+                    toolSuccess = false;
+                  }
                 }
                 break;
               }
