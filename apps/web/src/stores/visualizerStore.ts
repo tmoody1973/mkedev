@@ -22,6 +22,12 @@ export interface ZoningContext {
   overlayZones?: string[];
   historicDistrict?: boolean;
   neighborhood?: string;
+  // Lot dimensions for scale accuracy
+  lotSizeSqFt?: number;
+  lotDimensions?: {
+    width: number;  // feet
+    depth: number;  // feet
+  };
 }
 
 export interface HistoryEntry {

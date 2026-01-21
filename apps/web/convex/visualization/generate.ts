@@ -27,12 +27,56 @@ const zoningContextValidator = v.optional(
     overlayZones: v.optional(v.array(v.string())),
     historicDistrict: v.optional(v.boolean()),
     neighborhood: v.optional(v.string()),
+    // Lot dimensions for scale accuracy
+    lotSizeSqFt: v.optional(v.number()),
+    lotDimensions: v.optional(
+      v.object({
+        width: v.number(),  // feet
+        depth: v.number(),  // feet
+      })
+    ),
   })
 );
 
+// Milwaukee standard dimensions for scale reference
+const MILWAUKEE_SCALE_REFERENCES = {
+  // Standard Milwaukee residential lot (varies by neighborhood)
+  typicalResidentialLotWidth: 40, // feet (30-50ft typical)
+  typicalResidentialLotDepth: 120, // feet (100-150ft typical)
+  // Street widths
+  residentialStreetWidth: 66, // feet (standard right-of-way)
+  arterialStreetWidth: 80, // feet
+  alleywayWidth: 16, // feet
+  // Building references
+  typicalStoryHeight: 10, // feet per story (residential)
+  commercialStoryHeight: 12, // feet per story (commercial)
+  singleFamilyHomeWidth: 25, // feet (typical narrow lot home)
+  // Infrastructure
+  sidewalkWidth: 5, // feet
+  parkingSpaceWidth: 9, // feet
+  parkingSpaceLength: 18, // feet
+};
+
+/**
+ * Estimate lot dimensions from square footage.
+ * Uses common Milwaukee lot aspect ratios (typically 1:3 for residential).
+ */
+function estimateLotDimensions(sqFt: number): { width: number; depth: number } {
+  // Milwaukee residential lots typically have 1:3 width-to-depth ratio
+  // For a 4800 sq ft lot, that's about 40ft x 120ft
+  const aspectRatio = 3; // depth = 3x width
+  const width = Math.sqrt(sqFt / aspectRatio);
+  const depth = width * aspectRatio;
+  return {
+    width: Math.round(width),
+    depth: Math.round(depth),
+  };
+}
+
 /**
  * Build zoning-aware prompt for image generation.
- * Injects zoning constraints to ensure compliant visualizations.
+ * Injects zoning constraints and real-world scale references to ensure
+ * accurate, proportional visualizations.
  */
 function buildEnhancedPrompt(
   userPrompt: string,
@@ -46,12 +90,20 @@ function buildEnhancedPrompt(
     overlayZones?: string[];
     historicDistrict?: boolean;
     neighborhood?: string;
+    lotSizeSqFt?: number;
+    lotDimensions?: { width: number; depth: number };
   },
   address?: string,
   maskDescription?: string,
   viewType?: 'aerial' | 'street' | 'unknown'
 ): string {
   const parts: string[] = [];
+
+  // Calculate or use provided lot dimensions
+  let lotDims = zoningContext?.lotDimensions;
+  if (!lotDims && zoningContext?.lotSizeSqFt) {
+    lotDims = estimateLotDimensions(zoningContext.lotSizeSqFt);
+  }
 
   // View/Scale context - CRITICAL for proper generation
   parts.push("IMAGE CONTEXT:");
@@ -64,6 +116,23 @@ function buildEnhancedPrompt(
   } else {
     parts.push("- View Type: Map screenshot - treat as aerial/birds-eye view");
     parts.push("- Scale: Match the scale of existing buildings visible in the image");
+  }
+
+  // REAL-WORLD SCALE REFERENCES - CRITICAL for accurate proportions
+  parts.push("\nSCALE REFERENCE (use these measurements for accurate proportions):");
+
+  if (lotDims) {
+    parts.push(`- LOT SIZE: ${lotDims.width}ft wide x ${lotDims.depth}ft deep (${zoningContext?.lotSizeSqFt ? `${zoningContext.lotSizeSqFt.toLocaleString()} sq ft` : `~${lotDims.width * lotDims.depth} sq ft`})`);
+  }
+
+  // Standard Milwaukee measurements
+  parts.push(`- STREET WIDTH: ${MILWAUKEE_SCALE_REFERENCES.residentialStreetWidth}ft (standard Milwaukee residential street)`);
+  parts.push(`- SIDEWALK: ${MILWAUKEE_SCALE_REFERENCES.sidewalkWidth}ft wide`);
+  parts.push(`- STORY HEIGHT: ${MILWAUKEE_SCALE_REFERENCES.typicalStoryHeight}-${MILWAUKEE_SCALE_REFERENCES.commercialStoryHeight}ft per floor`);
+
+  if (zoningContext?.maxHeight) {
+    const estimatedStories = Math.floor(zoningContext.maxHeight / MILWAUKEE_SCALE_REFERENCES.typicalStoryHeight);
+    parts.push(`- MAX BUILDING: ${zoningContext.maxHeight}ft tall (~${estimatedStories} stories)`);
   }
 
   // Site context
@@ -104,10 +173,21 @@ function buildEnhancedPrompt(
 
     if (zoningContext.setbacks) {
       parts.push(`- Setbacks: Front ${zoningContext.setbacks.front}ft, Side ${zoningContext.setbacks.side}ft, Rear ${zoningContext.setbacks.rear}ft`);
+      // Calculate buildable area
+      if (lotDims) {
+        const buildableWidth = lotDims.width - (zoningContext.setbacks.side * 2);
+        const buildableDepth = lotDims.depth - zoningContext.setbacks.front - zoningContext.setbacks.rear;
+        parts.push(`- Buildable Footprint: ~${buildableWidth}ft x ${buildableDepth}ft (${Math.round(buildableWidth * buildableDepth).toLocaleString()} sq ft)`);
+      }
     }
 
     if (zoningContext.maxFAR) {
       parts.push(`- Floor Area Ratio (FAR): ${zoningContext.maxFAR}`);
+      // Calculate max building area
+      if (zoningContext.lotSizeSqFt) {
+        const maxBuildingArea = Math.round(zoningContext.lotSizeSqFt * zoningContext.maxFAR);
+        parts.push(`- Max Total Floor Area: ${maxBuildingArea.toLocaleString()} sq ft`);
+      }
     }
 
     if (zoningContext.overlayZones && zoningContext.overlayZones.length > 0) {
@@ -119,25 +199,30 @@ function buildEnhancedPrompt(
     }
   }
 
-  // Architectural context
+  // Architectural context with scale instructions
   parts.push("\nARCHITECTURAL CONTEXT:");
   parts.push("- Milwaukee urban context");
+  parts.push("- CRITICAL: Use the SCALE REFERENCE measurements above for accurate proportions");
+  parts.push("- A typical Milwaukee house is 25-30ft wide on a 40ft lot");
+  parts.push("- Streets in the image are approximately 66ft wide (curb to curb)");
+  parts.push("- Use parked cars as scale reference (approximately 15ft long, 6ft wide)");
   parts.push("- Match the EXACT scale of surrounding buildings in the image");
-  parts.push("- Ensure new structures are proportional to existing ones");
 
   // User request
   parts.push("\nUSER REQUEST:");
   parts.push(userPrompt);
 
-  // Generation instructions
+  // Generation instructions with scale emphasis
   parts.push("\nGENERATION INSTRUCTIONS:");
   parts.push("Generate a photorealistic architectural visualization that:");
   parts.push("1. ONLY modifies the specified edit region (masked area)");
   parts.push("2. Preserves ALL existing buildings, streets, and features outside the mask");
   parts.push("3. Matches the EXACT perspective and lighting of the source image");
-  parts.push("4. Uses the SAME scale as existing buildings visible in the image");
-  parts.push("5. Blends seamlessly with the surrounding context");
-  parts.push("6. Complies with all zoning constraints listed above");
+  parts.push("4. Uses ACCURATE PROPORTIONS based on the scale references provided");
+  parts.push("5. Ensures buildings match real-world dimensions (not oversized or undersized)");
+  parts.push("6. Blends seamlessly with the surrounding context");
+  parts.push("7. Complies with all zoning constraints listed above");
+  parts.push("8. If showing a building, ensure it fits within the lot dimensions specified");
 
   return parts.join("\n");
 }
@@ -239,8 +324,8 @@ export const generate = action({
     };
 
     // Retry logic with exponential backoff for overloaded API
-    const MAX_RETRIES = 3;
-    const BASE_DELAY_MS = 2000;
+    const MAX_RETRIES = 5;
+    const BASE_DELAY_MS = 3000;
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
