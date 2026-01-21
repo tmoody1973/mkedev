@@ -18,12 +18,14 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 ### Key Features
 
 - **Voice-First Interface** - Real-time voice conversations via Gemini Live API with full chat integration
-- **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG (12 tools)
+- **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG (14 tools)
+- **AI Site Visualizer** - Transform photos into architectural renderings with Gemini 3 Pro Image
 - **Generative UI Cards** - Rich interactive cards for homes, parcels, zoning info, and properties
-- **Interactive 3D Map** - Mapbox GL JS with 2D/3D toggle and 7 Milwaukee ESRI data layers
-- **File Search RAG** - 12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores
+- **Interactive 3D Map** - Mapbox GL JS with 2D/3D toggle and 8 Milwaukee ESRI data layers
+- **File Search RAG** - 42 documents across 5 stores (zoning codes, area plans, policies, incentives)
 - **Conversation History** - Persistent chat with search, starring, and PDF report generation
 - **Homes MKE Integration** - Search city-owned homes for sale with detailed property cards
+- **Vacant Lots Layer** - Browse city-owned vacant lots from Strong Neighborhoods program
 - **High-Performance Tiles** - PMTiles (313,000+ features) for instant map rendering
 
 ### Target Users
@@ -47,10 +49,12 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 | Auth | Clerk (Google OAuth + email) |
 | Maps | Mapbox GL JS + Milwaukee ESRI ArcGIS |
 | Tiles | PMTiles on Cloudflare R2 |
-| AI/LLM | Google Gemini 3 |
+| AI/LLM | Google Gemini 3 (Flash + Pro) |
 | Voice | Gemini Live API (bidirectional audio + text) |
+| Vision | Gemini 3 Pro Image (architectural visualization) |
 | Agents | Google ADK |
 | Generative UI | CopilotKit |
+| Reports | Hybiscus PDF API |
 
 ---
 
@@ -175,7 +179,7 @@ MKE.dev features a voice-first interface powered by Gemini Live API:
 
 ## Map Layers
 
-MKE.dev integrates 7 Milwaukee GIS data layers:
+MKE.dev integrates 8 Milwaukee GIS data layers:
 
 | Layer | Source | Description |
 |-------|--------|-------------|
@@ -186,6 +190,7 @@ MKE.dev integrates 7 Milwaukee GIS data layers:
 | Historic Districts | ESRI Layer 17 | Historic preservation areas |
 | ARB Areas | ESRI Layer 1 | Architectural Review Board districts |
 | City-Owned | ESRI MapServer | Municipal properties |
+| Vacant Lots | Strong Neighborhoods | City-owned vacant lots with disposition status |
 
 Layers are served via PMTiles for optimal performance (313,000+ features).
 
@@ -195,7 +200,7 @@ Layers are served via PMTiles for optimal performance (313,000+ features).
 
 The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning requirements through natural conversation.
 
-### Agent Tools (12 Total)
+### Agent Tools (14 Total)
 
 | Tool | Description |
 |------|-------------|
@@ -211,6 +216,8 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 | `get_commercial_property_details` | Get commercial property details |
 | `search_development_sites` | Find development opportunities |
 | `get_development_site_details` | Get development site details |
+| `search_vacant_lots` | Find city-owned vacant lots with filters |
+| `get_vacant_lot_details` | Get vacant lot info with parcel enrichment |
 
 ### Example Queries
 
@@ -226,13 +233,22 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 
 "What are the setback requirements for RS6 residential?"
 → Front: Average, Side: 3-6 ft, Rear: 20 ft (with code citations)
+
+"Show me vacant lots in Harambee"
+→ Returns VacantLotsListCard with available properties
 ```
 
 ### RAG Document Corpus
 
-12 Milwaukee Zoning Code PDFs indexed in Gemini File Search Stores:
-- CH295 Subchapters 1-11 (General, Residential, Commercial, Downtown, Industrial, Special, Overlay, Site Development, Parking, Signs, Administration)
-- CH295 Use Tables
+42 documents indexed across 5 Gemini File Search Stores:
+
+| Store | Documents | Content |
+|-------|-----------|---------|
+| mkedev-zoning-codes | 12 PDFs | CH295 Subchapters 1-11 + Use Tables |
+| mkedev-area-plans | 13 PDFs | Neighborhood development plans |
+| mkedev-policies | 2 PDFs | City policies and guidelines |
+| Milwaukee Planning Documents | 7 docs | Comprehensive planning docs |
+| mkedev-incentives | 8 docs | Housing assistance programs (STRONG, ARCH, etc.) |
 
 ---
 
@@ -251,6 +267,30 @@ Rich interactive cards render in chat for structured data:
 | `CommercialPropertiesListCard` | List of commercial properties |
 | `DevelopmentSiteCard` | Development opportunity details |
 | `DevelopmentSitesListCard` | List of development sites |
+| `VacantLotCard` | Vacant lot details with Street View and visualize |
+| `VacantLotsListCard` | List of vacant lots with status badges |
+
+---
+
+## AI Site Visualizer
+
+Transform photos into architectural renderings with Gemini 3 Pro Image:
+
+### Features
+
+- **Map Screenshot Capture** - Purple camera button captures current map view
+- **Street View Integration** - Capture and visualize from Street View modal
+- **Mask Painting** - Brush/eraser tools to mark areas for AI modification
+- **Zoning-Aware Prompts** - Generation considers Milwaukee zoning constraints
+- **Before/After Comparison** - Side-by-side original vs generated view
+
+### Example Prompts
+
+```
+"Add a 4-story mixed-use building with retail on ground floor"
+"Transform this into a community park with walking paths"
+"Replace this parking lot with townhomes"
+```
 
 ---
 
@@ -265,11 +305,13 @@ Rich interactive cards render in chat for structured data:
 | `NEXT_PUBLIC_CONVEX_URL` | Convex cloud URL | No* |
 | `NEXT_PUBLIC_PMTILES_URL` | PMTiles R2 URL | No** |
 | `GEMINI_API_KEY` | Google Gemini API key | Yes*** |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API key (Street View) | No |
+| `HYBISCUS_API_KEY` | Hybiscus PDF API key | No |
 | `FIRECRAWL_API_KEY` | Firecrawl API key | No |
 
 \* Required for database features
 \** Falls back to ESRI REST API if not set
-\*** Required for AI and voice features
+\*** Required for AI, voice, and visualizer features
 
 ---
 
@@ -285,21 +327,25 @@ Rich interactive cards render in chat for structured data:
 - [x] PMTiles pipeline
 
 ### Week 2: Voice & AI (Complete)
-- [x] **Zoning Interpreter Agent** - Gemini function calling with 12 tools
-- [x] **File Search RAG** - 12 zoning PDFs in persistent stores
+- [x] **Zoning Interpreter Agent** - Gemini function calling with 14 tools
+- [x] **File Search RAG** - 42 docs across 5 persistent stores
 - [x] **ESRI Integration** - Geocoding + zoning lookup
 - [x] **3D Map Visualization** - Zoning extrusions with category colors
 - [x] **Gemini Live API** - Voice conversations with text transcription
 - [x] **Voice-to-Chat** - Voice messages render in chat with cards
-- [x] **Generative UI Cards** - 9 card types for structured data
+- [x] **Generative UI Cards** - 11 card types for structured data
 - [x] **Conversation History** - Persistence, search, starring
 - [x] **Homes MKE Integration** - City-owned homes search
+- [x] **AI Site Visualizer** - Gemini 3 Pro Image architectural rendering
+- [x] **PDF Report Generation** - Export conversations via Hybiscus API
+- [x] **Incentives RAG** - Housing assistance programs (STRONG, ARCH, etc.)
 
-### Week 3: Advanced Features (In Progress)
-- [ ] Area Plan Advisor enhancements
-- [ ] Incentives Navigator improvements
-- [ ] Nano Banana architectural preview
-- [ ] Feasibility Analyst meta-agent
+### Week 3: Advanced Features (Complete)
+- [x] City-owned vacant lots layer and tools
+- [x] Street View modal integration across all popups
+- [x] Lot size enrichment from parcels layer
+- [x] Context caching for deep zoning analysis
+- [x] Parcel highlight improvements
 
 ### Week 4: Polish & Submit
 - [ ] Accessibility testing
@@ -323,7 +369,11 @@ npx convex run agents/zoning:chat '{"message": "..."}'  # Test agent
 
 # RAG Setup (one-time)
 npx tsx scripts/setup-file-search-stores.ts  # Upload PDFs to Gemini
+npx tsx scripts/upload-incentives.ts          # Upload incentives docs
 npx convex run ingestion/fileSearchStores:syncStoresFromGemini  # Register stores
+
+# Data Sync
+npx convex run vacantLots:quickSync           # Sync vacant lots from ESRI
 
 # Tile Building (requires tippecanoe)
 pnpm --filter tile-builder export    # Export ESRI → GeoJSON

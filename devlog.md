@@ -1886,4 +1886,94 @@ d2ecfa3 feat(esri): Add city-owned vacant lots layer with full feature parity
 
 ---
 
+## 2026-01-20 - Vacant Lots Bug Fixes & Enhancements
+
+### Completed
+- [x] Fix VacantLotPopup Street View to open in modal with capture/visualize buttons
+- [x] Add lot size enrichment from parcels layer via tax key cross-reference
+- [x] Verify VacantLotCard CopilotKit integration
+
+### Street View Modal Fix
+
+**Problem:** The "Open Street View" button in VacantLotPopup opened a new browser tab instead of the modal with capture and visualize functionality.
+
+**Root Cause:** VacantLotPopup was calling `window.open()` directly instead of using the callback pattern like other popups.
+
+**Solution:**
+1. Added `onVacantLotStreetView` prop to MapContainerProps
+2. Created `handleVacantLotStreetView` callback in MapContainer
+3. Passed `onOpenStreetView` prop to VacantLotPopup
+4. Created `handleVacantLotStreetView` handler in HomeContent that calls `openStreetView()`
+5. Connected handler to MapContainer
+
+**Files Modified:**
+- `apps/web/src/components/map/MapContainer.tsx` - Added prop and handler
+- `apps/web/src/components/map/VacantLotPopup.tsx` - Already had callback support
+- `apps/web/src/app/HomeContent.tsx` - Added handler and passed to MapContainer
+
+### Lot Size Enrichment
+
+**Problem:** Some vacant lots from ESRI don't have lot size (LOTSIZE field empty).
+
+**Solution:** Created enriched queries that cross-reference the parcels table using tax key:
+
+```typescript
+// vacantLots.ts
+export const getByIdEnriched = query({
+  args: { id: v.id("vacantLots") },
+  handler: async (ctx, args) => {
+    const lot = await ctx.db.get(args.id);
+    if (!lot || lot.lotSizeSqFt) return lot;
+
+    // Try to get lot size from parcels table by tax key
+    const parcel = await ctx.db
+      .query("parcels")
+      .withIndex("by_taxKey", (q) => q.eq("taxKey", lot.taxKey))
+      .first();
+
+    if (parcel?.lotSize) {
+      return {
+        ...lot,
+        lotSizeSqFt: parcel.lotSize,
+        lotSizeSource: "parcels" as const,
+      };
+    }
+    return lot;
+  },
+});
+```
+
+**Queries Added:**
+- `getByIdEnriched` - Get lot by ID with parcel enrichment
+- `getByTaxKeyEnriched` - Get lot by tax key with parcel enrichment
+
+**Tool Updated:**
+- `getVacantLotDetails` now uses `getByIdEnriched` for automatic lot size enrichment
+
+**Files Modified:**
+- `apps/web/convex/vacantLots.ts` - Added enriched queries
+- `apps/web/convex/agents/tools.ts` - Updated to use enriched query
+
+### Git Commit
+
+```
+6fb399c fix(vacant-lots): Add Street View modal and lot size enrichment from parcels
+```
+
+5 files changed, 112 insertions(+), 6 deletions(-)
+
+### Technical Notes
+
+1. **Tax Key Cross-Reference** - Uses existing parcels table index (`by_taxKey`) for efficient lookup
+2. **Enrichment Pattern** - Only queries parcels if lot doesn't already have lotSizeSqFt
+3. **Source Tracking** - Adds `lotSizeSource: "parcels"` when data comes from cross-reference
+4. **Backward Compatible** - VacantLotPopup falls back to new tab if no callback provided
+
+### Next Up
+- [ ] Garbage/Recycling Layer implementation
+- [ ] Test lot size enrichment with live data
+- [ ] Voice interface improvements
+
+---
+
 *Log entries below will be added as development progresses*
