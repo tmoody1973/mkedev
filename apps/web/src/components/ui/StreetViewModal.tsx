@@ -31,6 +31,16 @@ interface StreetViewPanoramaInstance {
   addListener: (event: string, callback: () => void) => void;
 }
 
+// Geocoder result interface
+interface GeocoderResult {
+  geometry: {
+    location: {
+      lat: () => number;
+      lng: () => number;
+    };
+  };
+}
+
 // Declare google types
 declare global {
   interface Window {
@@ -50,11 +60,33 @@ declare global {
         ) => StreetViewPanoramaInstance;
         StreetViewService: new () => {
           getPanorama: (
-            request: { location: { lat: number; lng: number }; radius: number },
+            request: {
+              location: { lat: number; lng: number };
+              radius: number;
+              source?: string;
+              preference?: string;
+            },
             callback: (data: unknown, status: string) => void
           ) => void;
         };
         StreetViewStatus: {
+          OK: string;
+        };
+        StreetViewPreference: {
+          NEAREST: string;
+          BEST: string;
+        };
+        StreetViewSource: {
+          OUTDOOR: string;
+          DEFAULT: string;
+        };
+        Geocoder: new () => {
+          geocode: (
+            request: { address: string },
+            callback: (results: GeocoderResult[] | null, status: string) => void
+          ) => void;
+        };
+        GeocoderStatus: {
           OK: string;
         };
       };
@@ -99,25 +131,27 @@ export function StreetViewModal({
     const initStreetView = () => {
       if (!streetViewRef.current || !window.google) return;
 
-      const latLng = getLatLng();
-      if (!latLng) {
-        setError("No coordinates available");
+      const fallbackLatLng = getLatLng();
+
+      const google = window.google;
+      if (!google) {
+        setError("Google Maps not loaded");
         setIsLoading(false);
         return;
       }
 
-      try {
-        const google = window.google;
-        if (!google) {
-          setError("Google Maps not loaded");
-          setIsLoading(false);
-          return;
-        }
-
-        // Check if Street View is available at this location
+      // Helper to initialize panorama at a given location
+      const initPanoramaAtLocation = (latLng: { lat: number; lng: number }) => {
         const streetViewService = new google.maps.StreetViewService();
+
+        // Request Street View with preference for outdoor/street imagery
         streetViewService.getPanorama(
-          { location: latLng, radius: 50 },
+          {
+            location: latLng,
+            radius: 100, // Increased from 50 to find street view even if coords are off
+            source: google.maps.StreetViewSource?.OUTDOOR || "outdoor",
+            preference: google.maps.StreetViewPreference?.NEAREST || "nearest",
+          },
           (_data, status) => {
             if (status === google.maps.StreetViewStatus.OK) {
               const panorama = new google.maps.StreetViewPanorama(
@@ -134,13 +168,56 @@ export function StreetViewModal({
               );
               panoramaRef.current = panorama;
               setIsLoading(false);
+            } else if (fallbackLatLng && latLng !== fallbackLatLng) {
+              // Try with fallback coordinates if geocoded location failed
+              console.log("[StreetView] Geocoded location failed, trying fallback coordinates");
+              initPanoramaAtLocation(fallbackLatLng);
             } else {
               setError("Street View not available at this location");
               setIsLoading(false);
             }
           }
         );
+      };
+
+      try {
+        // First, try to geocode the address for accurate street-facing coordinates
+        // Google Geocoder places the marker on the street side of the property
+        if (address) {
+          const geocoder = new google.maps.Geocoder();
+          const fullAddress = address.includes("Milwaukee")
+            ? address
+            : `${address}, Milwaukee, WI`;
+
+          console.log("[StreetView] Geocoding address:", fullAddress);
+
+          geocoder.geocode({ address: fullAddress }, (results, status) => {
+            if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+              const location = results[0].geometry.location;
+              const geocodedLatLng = {
+                lat: location.lat(),
+                lng: location.lng(),
+              };
+              console.log("[StreetView] Geocoded coordinates:", geocodedLatLng);
+              initPanoramaAtLocation(geocodedLatLng);
+            } else if (fallbackLatLng) {
+              // Geocoding failed, use fallback coordinates
+              console.log("[StreetView] Geocoding failed, using fallback coordinates");
+              initPanoramaAtLocation(fallbackLatLng);
+            } else {
+              setError("Could not locate address");
+              setIsLoading(false);
+            }
+          });
+        } else if (fallbackLatLng) {
+          // No address provided, use coordinates directly
+          initPanoramaAtLocation(fallbackLatLng);
+        } else {
+          setError("No address or coordinates available");
+          setIsLoading(false);
+        }
       } catch (err) {
+        console.error("[StreetView] Error:", err);
         setError("Failed to initialize Street View");
         setIsLoading(false);
       }
