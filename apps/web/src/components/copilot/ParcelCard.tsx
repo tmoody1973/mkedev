@@ -119,8 +119,8 @@ export function ParcelCard({
             const planName = result.response.citations?.[0]?.sourceName || "Neighborhood Development Plan";
             setAreaPlanName(planName);
             setAreaPlanContext(result.response.answer);
-          } else if (result.error) {
-            setAreaPlanError(result.error.message || "Failed to fetch area plans");
+          } else if (!result.success) {
+            setAreaPlanError(result.error?.message || "Failed to fetch area plans");
           }
         } catch (err) {
           console.error("[ParcelCard] Failed to fetch area plans:", err);
