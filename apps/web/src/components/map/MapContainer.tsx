@@ -84,6 +84,8 @@ export interface MapContainerProps {
   onVacantLotAnalyze?: (lot: VacantLot) => void
   /** Callback when user wants to visualize a vacant lot */
   onVacantLotVisualize?: (lot: VacantLot) => void
+  /** Callback when user wants to view street view for a vacant lot */
+  onVacantLotStreetView?: (lot: VacantLot) => void
 }
 
 // =============================================================================
@@ -115,6 +117,7 @@ export function MapContainer({
   onVacantLotClick,
   onVacantLotAnalyze,
   onVacantLotVisualize,
+  onVacantLotStreetView,
 }: MapContainerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
@@ -270,6 +273,15 @@ export function MapContainer({
       setSelectedVacantLot(null)
     },
     [onVacantLotVisualize]
+  )
+
+  // Handle street view for vacant lot
+  const handleVacantLotStreetView = useCallback(
+    (lot: VacantLot) => {
+      onVacantLotStreetView?.(lot)
+      // Don't close popup - let the modal overlay it
+    },
+    [onVacantLotStreetView]
   )
 
   // Initial map setup
@@ -569,6 +581,7 @@ export function MapContainer({
               onClose={handleVacantLotPopupClose}
               onAnalyze={onVacantLotAnalyze ? handleAnalyzeVacantLot : undefined}
               onVisualize={onVacantLotVisualize ? handleVisualizeVacantLot : undefined}
+              onOpenStreetView={onVacantLotStreetView ? handleVacantLotStreetView : undefined}
             />
           )}
         </>

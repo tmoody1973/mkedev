@@ -64,13 +64,15 @@ export function VacantLotPopup({
   }, [onAnalyze, lot, onClose])
 
   const handleOpenStreetView = useCallback(() => {
-    // Open Google Street View at coordinates
-    if (lot.coordinates) {
+    if (onOpenStreetView) {
+      // Use the modal callback if provided
+      onOpenStreetView(lot)
+    } else if (lot.coordinates) {
+      // Fallback: Open Google Street View in new tab
       const [lng, lat] = lot.coordinates
       const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`
       window.open(url, '_blank', 'noopener,noreferrer')
     }
-    onOpenStreetView?.(lot)
   }, [lot, onOpenStreetView])
 
   const handleVisualize = useCallback(() => {

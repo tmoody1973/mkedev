@@ -1216,7 +1216,7 @@ export async function searchVacantLots(
 
 /**
  * Get detailed information about a specific vacant lot.
- * Calls the Convex vacantLots.getById query.
+ * Calls the Convex vacantLots.getByIdEnriched query for lot size enrichment from parcels.
  */
 export async function getVacantLotDetails(
   ctx: ActionCtx,
@@ -1229,8 +1229,8 @@ export async function getVacantLotDetails(
   error?: string;
 }> {
   try {
-    // Query lot from Convex
-    const lot = await ctx.runQuery(api.vacantLots.getById, {
+    // Query lot from Convex with lot size enrichment from parcels layer
+    const lot = await ctx.runQuery(api.vacantLots.getByIdEnriched, {
       id: params.lotId as Id<"vacantLots">,
     });
 

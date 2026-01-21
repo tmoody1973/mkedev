@@ -165,6 +165,88 @@ export const getById = query({
 });
 
 // =============================================================================
+// Query: Get By ID with Enrichment
+// =============================================================================
+
+/**
+ * Get a vacant lot by ID with lot size enrichment from parcels.
+ * If the lot doesn't have lotSizeSqFt, attempt to look it up from parcels by tax key.
+ */
+export const getByIdEnriched = query({
+  args: {
+    id: v.id("vacantLots"),
+  },
+  handler: async (ctx, args) => {
+    const lot = await ctx.db.get(args.id);
+    if (!lot) return null;
+
+    // If lot already has lot size, return as-is
+    if (lot.lotSizeSqFt) {
+      return lot;
+    }
+
+    // Try to get lot size from parcels table by tax key
+    const parcel = await ctx.db
+      .query("parcels")
+      .withIndex("by_taxKey", (q) => q.eq("taxKey", lot.taxKey))
+      .first();
+
+    if (parcel?.lotSize) {
+      return {
+        ...lot,
+        lotSizeSqFt: parcel.lotSize,
+        lotSizeSource: "parcels" as const, // Indicate where the data came from
+      };
+    }
+
+    return lot;
+  },
+});
+
+// =============================================================================
+// Query: Get By Tax Key with Enrichment
+// =============================================================================
+
+/**
+ * Get a vacant lot by tax key with lot size enrichment from parcels.
+ * If the lot doesn't have lotSizeSqFt, attempt to look it up from parcels.
+ */
+export const getByTaxKeyEnriched = query({
+  args: {
+    taxKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const lot = await ctx.db
+      .query("vacantLots")
+      .withIndex("by_taxKey", (q) => q.eq("taxKey", args.taxKey))
+      .first();
+
+    if (!lot) return null;
+
+    // If lot already has lot size, return as-is
+    if (lot.lotSizeSqFt) {
+      return lot;
+    }
+
+    // Try to get lot size from parcels table
+    const parcel = await ctx.db
+      .query("parcels")
+      .withIndex("by_taxKey", (q) => q.eq("taxKey", lot.taxKey))
+      .first();
+
+    if (parcel?.lotSize) {
+      return {
+        ...lot,
+        lotSizeSqFt: parcel.lotSize,
+        lotSizeSource: "parcels" as const,
+      };
+    }
+
+    return lot;
+  },
+});
+
+// =============================================================================
 // Query: Get For Map
 // =============================================================================
 

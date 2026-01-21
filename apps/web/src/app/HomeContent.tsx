@@ -743,6 +743,14 @@ export default function HomeContent() {
   }, [sendMessage])
 
   /**
+   * Handle "Open Street View" from vacant lot map popup.
+   * Opens the Street View modal with capture/visualize buttons.
+   */
+  const handleVacantLotStreetView = useCallback((lot: { address: string; coordinates: [number, number] }) => {
+    openStreetView(lot.coordinates, lot.address)
+  }, [openStreetView])
+
+  /**
    * Render generative UI cards based on tool results.
    */
   const renderCard = useCallback((card: GenerativeCard): ReactNode => {
@@ -1250,6 +1258,7 @@ export default function HomeContent() {
               onParcelAsk={handleParcelAsk}
               onParcelVisualize={handleParcelVisualize}
               onVacantLotAnalyze={handleVacantLotAnalyze}
+              onVacantLotStreetView={handleVacantLotStreetView}
               showLayerPanel={false}
             />
           }
