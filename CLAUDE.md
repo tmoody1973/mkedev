@@ -24,7 +24,7 @@
 | Vision | Gemini 2.5 Flash Image (Nano Banana) |
 | Agents | Google ADK |
 | Generative UI | CopilotKit (AG-UI protocol) |
-| Observability | Comet/Opik |
+| Observability | Comet/Opik, Sentry |
 | Package Manager | pnpm |
 
 ---
@@ -458,6 +458,9 @@ FIRECRAWL_API_KEY=...
 OPIK_API_KEY=...
 OPIK_WORKSPACE=...
 OPIK_PROJECT_NAME=mkedev-civic-ai
+
+# Sentry (configured in next.config.ts, DSN hardcoded in config files)
+SENTRY_AUTH_TOKEN=...  # For source map uploads in CI
 ```
 
 ---
@@ -621,6 +624,102 @@ tracer.addScore("relevance", 0.95, "Directly answers user question");
 
 ---
 
+## Sentry (Error & Performance Monitoring)
+
+### Overview
+Sentry is configured for error tracking, performance monitoring, and logging across the Next.js application.
+
+### Configuration Files
+- `instrumentation-client.ts` - Client-side initialization (browser)
+- `sentry.server.config.ts` - Server-side initialization (Node.js)
+- `sentry.edge.config.ts` - Edge runtime initialization
+- `next.config.ts` - Wrapped with `withSentryConfig`
+
+### Exception Catching
+Use `Sentry.captureException(error)` to capture exceptions in try-catch blocks:
+```typescript
+import * as Sentry from "@sentry/nextjs";
+
+try {
+  await riskyOperation();
+} catch (error) {
+  Sentry.captureException(error);
+  // Handle error...
+}
+```
+
+### Custom Span Instrumentation
+
+#### Component Actions (UI Events)
+Create spans for meaningful user interactions:
+```typescript
+import * as Sentry from "@sentry/nextjs";
+
+function ParcelCard() {
+  const handleClick = () => {
+    Sentry.startSpan(
+      {
+        op: "ui.click",
+        name: "Parcel Card Click",
+      },
+      (span) => {
+        span.setAttribute("taxKey", parcel.taxKey);
+        span.setAttribute("zoning", parcel.zoning);
+
+        selectParcel(parcel);
+      },
+    );
+  };
+
+  return <Card onClick={handleClick}>...</Card>;
+}
+```
+
+#### API Calls
+Wrap fetch calls with spans:
+```typescript
+async function fetchParcelData(taxKey: string) {
+  return Sentry.startSpan(
+    {
+      op: "http.client",
+      name: `GET /api/parcels/${taxKey}`,
+    },
+    async () => {
+      const response = await fetch(`/api/parcels/${taxKey}`);
+      const data = await response.json();
+      return data;
+    },
+  );
+}
+```
+
+### Logging
+Use the Sentry logger for structured logs that appear in Sentry:
+```typescript
+import * as Sentry from "@sentry/nextjs";
+
+const { logger } = Sentry;
+
+// Different severity levels
+logger.trace("Starting map initialization", { center: MILWAUKEE_CENTER });
+logger.debug(logger.fmt`Cache miss for parcel: ${taxKey}`);
+logger.info("User selected parcel", { taxKey, address });
+logger.warn("Rate limit approaching", { endpoint: "/api/chat", remaining: 5 });
+logger.error("Failed to load ESRI layer", { layerId, errorCode: 500 });
+logger.fatal("Database connection lost", { service: "convex" });
+```
+
+**Note:** Use `logger.fmt` template literals to bring variables into structured logs.
+
+### Best Practices
+- Create spans for meaningful actions (button clicks, API calls, critical functions)
+- Use descriptive `name` and `op` properties
+- Attach relevant attributes to spans for debugging context
+- Lower `tracesSampleRate` in production (currently set to 1.0 for dev)
+- Don't spam logs - use appropriate severity levels
+
+---
+
 ## MCP Servers
 
 ### CopilotKit MCP (REQUIRED for CopilotKit work)
@@ -692,3 +791,4 @@ pnpm convex dev    # Auto-generates types on schema change
 - Clerk + Convex: https://docs.convex.dev/auth/clerk
 - Mapbox GL JS: https://docs.mapbox.com/mapbox-gl-js
 - Milwaukee GIS: https://gis.milwaukee.gov/arcgis/rest/services
+- Sentry Next.js: https://docs.sentry.io/platforms/javascript/guides/nextjs/
