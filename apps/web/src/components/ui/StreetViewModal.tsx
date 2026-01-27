@@ -200,7 +200,6 @@ export function StreetViewModal({
                 lng: location.lng(),
               };
               console.log("[StreetView] Geocoded coordinates:", geocodedLatLng);
-              console.log("[StreetView] Google returned address:", results[0].formatted_address);
               initPanoramaAtLocation(geocodedLatLng);
             } else {
               // Geocoding failed - show error, don't use potentially wrong fallback coordinates
