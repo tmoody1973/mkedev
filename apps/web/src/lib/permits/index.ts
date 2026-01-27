@@ -5,8 +5,8 @@
  * with search, filtering, and recommendation capabilities.
  */
 
-import permitFormsData from "../../../data/scraped-docs/enriched/permit-forms.json";
-import designGuidelinesData from "../../../data/scraped-docs/enriched/design-guidelines.json";
+import permitFormsData from "../../../convex/data/permit-forms.json";
+import designGuidelinesData from "../../../convex/data/design-guidelines.json";
 import type {
   EnrichedPermitForm,
   EnrichedDesignGuideline,
