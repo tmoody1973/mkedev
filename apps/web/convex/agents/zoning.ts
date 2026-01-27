@@ -602,8 +602,39 @@ export const chat = action({
           },
         });
 
+        // Detect permit-related queries and restrict tools accordingly
+        const userMessage = args.message.toLowerCase();
+        const isPermitQuery =
+          userMessage.includes("permit") ||
+          userMessage.includes("what do i need") ||
+          userMessage.includes("forms") ||
+          userMessage.includes("application") ||
+          userMessage.includes("paperwork") ||
+          (userMessage.includes("need") && (
+            userMessage.includes("renovation") ||
+            userMessage.includes("remodel") ||
+            userMessage.includes("build") ||
+            userMessage.includes("deck") ||
+            userMessage.includes("adu") ||
+            userMessage.includes("addition")
+          ));
+
+        // Build tool config - restrict to permit tools for permit queries
+        const toolConfig = isPermitQuery ? {
+          functionCallingConfig: {
+            mode: "ANY",
+            allowedFunctionNames: [
+              "recommend_permits_for_project",
+              "search_permit_forms",
+              "get_permit_form_details",
+              "search_design_guidelines",
+              "get_guideline_details"
+            ]
+          }
+        } : undefined;
+
         // Call Gemini API with retry and fallback
-        const requestBody = {
+        const requestBody: Record<string, unknown> = {
           systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
           contents,
           tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
@@ -612,6 +643,12 @@ export const chat = action({
             maxOutputTokens: 2048,
           },
         };
+
+        // Add tool config if this is a permit query
+        if (toolConfig) {
+          requestBody.toolConfig = toolConfig;
+          console.log("[ZoningAgent] Permit query detected, restricting to permit tools");
+        }
 
         let result: GeminiResponse;
         let modelUsed: string;
