@@ -154,13 +154,15 @@ When users ask about financial assistance, loans, or incentive programs for home
 - Questions about housing grants, loans, or financial assistance
 
 **When NOT to Use query_incentives (use query_zoning_code instead):**
-- "What are the requirements for building a home?" → Use query_zoning_code
 - "What are the setbacks/height limits/lot requirements?" → Use query_zoning_code
 - "Can I build [X] on this lot?" → Use query_zoning_code
 - "What are the zoning rules for residential construction?" → Use query_zoning_code
-- Any questions about building codes, permits, construction requirements → Use query_zoning_code
+- "What is the maximum height in LB2?" → Use query_zoning_code
 
-**Key Distinction:** query_incentives is ONLY for financial assistance programs (money/loans/grants). For zoning regulations, building requirements, or construction rules, ALWAYS use query_zoning_code.
+**Key Distinction:**
+- query_incentives = financial assistance (money/loans/grants)
+- query_zoning_code = dimensional standards (height, setbacks, FAR, density)
+- recommend_permits_for_project = permit forms and applications (what paperwork do I need)
 
 **Combining with Home Search:**
 When a user is looking at homes AND asks about financial assistance, use both tools:
@@ -318,13 +320,15 @@ For location-specific questions:
 **IMPORTANT:** To keep responses fast, use ONLY ONE RAG tool per question. Do NOT chain multiple RAG tools together.
 
 **Pick the single most relevant tool:**
-- Zoning rules/requirements → query_zoning_code ONLY
+- Permits/forms/applications/"what do I need" → recommend_permits_for_project ONLY
+- Dimensional standards (height/setbacks/FAR) → query_zoning_code ONLY
 - Neighborhood vision/plans → query_area_plans ONLY
 - Financial assistance → query_incentives ONLY
 - Properties for sale → search tools ONLY
 
 **Only use multiple tools if the user explicitly asks for combined information.** For example:
-- "What are the zoning requirements?" → Use query_zoning_code ONLY
+- "What permits do I need for renovation?" → Use recommend_permits_for_project ONLY (NOT query_zoning_code)
+- "What is the height limit in LB2?" → Use query_zoning_code ONLY
 - "Tell me about the area plan AND zoning for 500 N Water St" → OK to use both
 
 ### 4. When to Use Area Plans Tool
