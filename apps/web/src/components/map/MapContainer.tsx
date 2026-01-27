@@ -138,7 +138,11 @@ export function MapContainer({
     is3DMode,
     animateTo3DView,
     animateTo2DView,
+    marker,
   } = useMap()
+
+  // Ref to track the Mapbox marker instance
+  const markerInstanceRef = useRef<mapboxgl.Marker | null>(null)
 
   // Determine the style URL based on 3D mode (prop overrides if provided)
   const effectiveStyle = mapStyle ?? (is3DMode ? MAP_STYLE_3D : MAP_STYLE_2D)
@@ -402,6 +406,84 @@ export function MapContainer({
 
   // Track previous 3D mode to detect changes
   const prev3DModeRef = useRef(is3DMode)
+
+  // Handle marker from chat/context - renders a pin at the specified location
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map || isLoading) return
+
+    // Remove existing marker if any
+    if (markerInstanceRef.current) {
+      markerInstanceRef.current.remove()
+      markerInstanceRef.current = null
+    }
+
+    // Add new marker if coordinates are provided
+    if (marker?.coordinates && Array.isArray(marker.coordinates) && marker.coordinates.length >= 2) {
+      const [lng, lat] = marker.coordinates
+
+      // Validate coordinates
+      if (
+        typeof lng === 'number' &&
+        typeof lat === 'number' &&
+        !isNaN(lng) &&
+        !isNaN(lat)
+      ) {
+        // Create marker element with custom styling
+        const el = document.createElement('div')
+        el.className = 'chat-marker'
+        el.innerHTML = `
+          <div style="
+            width: 32px;
+            height: 32px;
+            background: #0ea5e9;
+            border: 3px solid white;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <div style="
+              width: 8px;
+              height: 8px;
+              background: white;
+              border-radius: 50%;
+              transform: rotate(45deg);
+            "></div>
+          </div>
+        `
+
+        // Create and add the marker
+        const newMarker = new mapboxgl.Marker({
+          element: el,
+          anchor: 'bottom',
+        })
+          .setLngLat([lng, lat])
+          .addTo(map)
+
+        // Add popup with label if provided
+        if (marker.label) {
+          const popup = new mapboxgl.Popup({
+            offset: 25,
+            closeButton: false,
+            closeOnClick: false,
+          }).setHTML(`
+            <div style="
+              font-family: system-ui, -apple-system, sans-serif;
+              font-size: 14px;
+              font-weight: 600;
+              padding: 4px 8px;
+            ">${marker.label}</div>
+          `)
+          newMarker.setPopup(popup).togglePopup()
+        }
+
+        markerInstanceRef.current = newMarker
+      }
+    }
+  }, [marker, isLoading])
 
   // Handle 3D mode style switching and camera animation
   useEffect(() => {

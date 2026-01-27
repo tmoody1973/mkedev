@@ -97,8 +97,8 @@ export default function HomeContent() {
   // Track if persistence is currently in progress to prevent concurrent calls
   const isPersistingRef = useRef(false)
 
-  // Map context for flying to locations and capturing screenshots
-  const { flyTo, captureMapScreenshot } = useMap()
+  // Map context for flying to locations, capturing screenshots, and markers
+  const { flyTo, captureMapScreenshot, setMarker } = useMap()
 
   // Voice session with chat integration
   const handleVoiceChatMessage = useCallback((message: VoiceChatMessage) => {
@@ -312,7 +312,10 @@ export default function HomeContent() {
     // Look for parcel-info card with coordinates
     const parcelCard = lastMsg.cards?.find((card) => card.type === 'parcel-info')
     if (parcelCard) {
-      const data = parcelCard.data as { coordinates?: { latitude: number; longitude: number } }
+      const data = parcelCard.data as {
+        coordinates?: { latitude: number; longitude: number }
+        formattedAddress?: string
+      }
       // Validate coordinates are valid numbers before flying
       if (
         data.coordinates &&
@@ -324,8 +327,11 @@ export default function HomeContent() {
         data.coordinates.latitude !== 0
       ) {
         lastProcessedMessageRef.current = lastMsg.id
+        const coords: [number, number] = [data.coordinates.longitude, data.coordinates.latitude]
+        // Set marker at the location with address label
+        setMarker(coords, data.formattedAddress)
         // Fly to the location with a nice zoom level
-        flyTo([data.coordinates.longitude, data.coordinates.latitude], 17, {
+        flyTo(coords, 17, {
           pitch: 45,
           duration: 2000,
         })
@@ -361,7 +367,7 @@ export default function HomeContent() {
         })
       }
     }
-  }, [agentMessages, flyTo])
+  }, [agentMessages, flyTo, setMarker])
 
   /**
    * Handle address selected from autocomplete dropdown.
@@ -385,6 +391,8 @@ export default function HomeContent() {
         return
       }
 
+      // Set marker at the location with address label
+      setMarker([lng, lat], address)
       // Fly to the location - use simple flyTo without pitch to avoid Mapbox projection errors
       console.log('[handleAddressSelect] Flying to:', lng, lat)
       flyTo([lng, lat], 17)
@@ -392,7 +400,7 @@ export default function HomeContent() {
       // Send to chat for zoning info
       sendMessage(`Tell me about the property at ${address}`)
     },
-    [flyTo, sendMessage]
+    [flyTo, sendMessage, setMarker]
   )
 
   const handleVoiceToggle = useCallback(async () => {
@@ -567,15 +575,18 @@ export default function HomeContent() {
 
         if (data.features && data.features.length > 0) {
           const [lng, lat] = data.features[0].center
+          const placeName = data.features[0].place_name
+          // Set marker at the location with address label
+          setMarker([lng, lat], placeName)
           // Fly immediately with smooth animation
           flyTo([lng, lat], 17, { pitch: 45, duration: 1500 })
-          console.log('Geocoded and flying to:', data.features[0].place_name)
+          console.log('Geocoded and flying to:', placeName)
         }
       } catch (error) {
         console.error('Quick geocode failed:', error)
       }
     },
-    [flyTo, extractAddress]
+    [flyTo, extractAddress, setMarker]
   )
 
   const handleSendMessage = useCallback((content: string) => {

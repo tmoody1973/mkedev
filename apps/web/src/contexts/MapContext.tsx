@@ -23,6 +23,12 @@ export interface LayerOpacity {
   [layerId: string]: number
 }
 
+export interface MapMarker {
+  coordinates: [number, number]
+  label?: string
+  color?: string
+}
+
 export interface MapContextValue {
   /** Reference to the Mapbox map instance */
   map: MapboxMap | null
@@ -32,6 +38,12 @@ export interface MapContextValue {
   selectedParcelId: string | null
   /** Set the selected parcel ID */
   setSelectedParcelId: (id: string | null) => void
+  /** Current marker (for address highlights from chat) */
+  marker: MapMarker | null
+  /** Set a marker at coordinates (with optional label) */
+  setMarker: (coordinates: [number, number], label?: string) => void
+  /** Clear the current marker */
+  clearMarker: () => void
   /** Layer visibility states */
   layerVisibility: LayerVisibility
   /** Toggle a layer's visibility */
@@ -174,6 +186,7 @@ export function MapProvider({
 }: MapProviderProps) {
   const mapRef = useRef<MapboxMap | null>(null)
   const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null)
+  const [marker, setMarkerState] = useState<MapMarker | null>(null)
   const [layerVisibility, setLayerVisibilityState] =
     useState<LayerVisibility>(initialLayerVisibility)
   const [layerOpacity, setLayerOpacityState] =
@@ -358,6 +371,15 @@ export function MapProvider({
     clearParcelSelectionRef.current = fn
   }, [])
 
+  // Marker functions for highlighting addresses from chat
+  const setMarker = useCallback((coordinates: [number, number], label?: string) => {
+    setMarkerState({ coordinates, label })
+  }, [])
+
+  const clearMarker = useCallback(() => {
+    setMarkerState(null)
+  }, [])
+
   // Persist 3D mode to localStorage on change
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -374,6 +396,9 @@ export function MapProvider({
     setMap,
     selectedParcelId,
     setSelectedParcelId,
+    marker,
+    setMarker,
+    clearMarker,
     layerVisibility,
     toggleLayerVisibility,
     setLayerVisibility,

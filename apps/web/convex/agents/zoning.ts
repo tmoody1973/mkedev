@@ -619,19 +619,26 @@ export const chat = action({
             userMessage.includes("addition")
           ));
 
-        // Build tool config - restrict to permit tools for permit queries
-        const toolConfig = isPermitQuery ? {
-          functionCallingConfig: {
-            mode: "ANY",
-            allowedFunctionNames: [
-              "recommend_permits_for_project",
-              "search_permit_forms",
-              "get_permit_form_details",
-              "search_design_guidelines",
-              "get_guideline_details"
-            ]
-          }
-        } : undefined;
+        // Build tool config for permit queries:
+        // - First iteration ONLY: mode "any" forces a permit tool call
+        // - Subsequent iterations: no restriction, model can respond with text
+        let toolConfig: { functionCallingConfig: { mode: string; allowedFunctionNames: string[] } } | undefined;
+
+        if (isPermitQuery && iteration === 1) {
+          // Force a permit tool call on first iteration only
+          toolConfig = {
+            functionCallingConfig: {
+              mode: "any",
+              allowedFunctionNames: [
+                "recommend_permits_for_project",
+                "search_permit_forms",
+                "get_permit_form_details",
+                "search_design_guidelines",
+                "get_guideline_details"
+              ]
+            }
+          };
+        }
 
         // Call Gemini API with retry and fallback
         const requestBody: Record<string, unknown> = {
@@ -645,9 +652,14 @@ export const chat = action({
         };
 
         // Add tool config if this is a permit query
+        console.log("[ZoningAgent] Iteration", iteration, "- Query analysis:", {
+          userMessage: userMessage.substring(0, 50),
+          isPermitQuery,
+          mode: toolConfig?.functionCallingConfig?.mode
+        });
+
         if (toolConfig) {
           requestBody.toolConfig = toolConfig;
-          console.log("[ZoningAgent] Permit query detected, restricting to permit tools");
         }
 
         let result: GeminiResponse;

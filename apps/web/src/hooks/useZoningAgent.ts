@@ -450,14 +450,29 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
           optional?: Array<{ id: string; name: string; purpose: string; url: string }>;
         };
         if (r.success) {
-          cards.push({
-            type: 'permit-recommendations',
-            data: {
-              required: r.required || [],
-              recommended: r.recommended || [],
-              optional: r.optional || [],
-            },
-          });
+          // Combine all permit arrays into a single recommendations array
+          // Map name to officialName for UI compatibility
+          const allPermits = [
+            ...(r.required || []),
+            ...(r.recommended || []),
+            ...(r.optional || []),
+          ].map((p) => ({
+            id: p.id,
+            officialName: p.name,
+            purpose: p.purpose,
+            category: '',
+            subcategory: '',
+            url: p.url,
+          }));
+
+          if (allPermits.length > 0) {
+            cards.push({
+              type: 'permit-recommendations',
+              data: {
+                recommendations: allPermits,
+              },
+            });
+          }
         }
         break;
       }

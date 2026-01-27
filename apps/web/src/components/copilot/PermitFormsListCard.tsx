@@ -32,12 +32,15 @@ export interface PermitFormsListCardProps {
 }
 
 export function PermitFormsListCard({
-  forms,
+  forms = [],
   query,
   onFormSelect,
   status,
 }: PermitFormsListCardProps) {
   const isLoading = status === "loading";
+
+  // Ensure forms is always an array
+  const safeForms = Array.isArray(forms) ? forms : [];
 
   // Loading state skeleton UI
   if (isLoading) {
@@ -73,7 +76,7 @@ export function PermitFormsListCard({
   }
 
   // Empty state
-  if (forms.length === 0) {
+  if (safeForms.length === 0) {
     return (
       <div className="border-2 border-black dark:border-white rounded-lg bg-white dark:bg-stone-900 shadow-[4px_4px_0_0_black] dark:shadow-[4px_4px_0_0_white] overflow-hidden">
         <div className="p-6 text-center">
@@ -99,7 +102,7 @@ export function PermitFormsListCard({
           </div>
           <div>
             <h3 className="font-bold text-stone-900 dark:text-stone-100">
-              Found {forms.length} permit form{forms.length !== 1 ? "s" : ""}
+              Found {safeForms.length} permit form{safeForms.length !== 1 ? "s" : ""}
             </h3>
             {query && (
               <p className="text-sm text-stone-500 dark:text-stone-400">
@@ -112,7 +115,7 @@ export function PermitFormsListCard({
 
       {/* Forms list */}
       <div className="divide-y-2 divide-stone-200 dark:divide-stone-700">
-        {forms.map((form) => (
+        {safeForms.map((form) => (
           <div
             key={form.id}
             className="p-3 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors group"

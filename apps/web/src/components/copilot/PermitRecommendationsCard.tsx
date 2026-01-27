@@ -33,13 +33,16 @@ export interface PermitRecommendationsCardProps {
 }
 
 export function PermitRecommendationsCard({
-  recommendations,
+  recommendations = [],
   projectDescription,
   projectType,
   onFormSelect,
   status,
 }: PermitRecommendationsCardProps) {
   const isLoading = status === "loading";
+
+  // Ensure recommendations is always an array
+  const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
 
   // Format project type for display
   const formatProjectType = (type?: string): string => {
@@ -81,7 +84,7 @@ export function PermitRecommendationsCard({
   }
 
   // Empty state
-  if (recommendations.length === 0) {
+  if (safeRecommendations.length === 0) {
     return (
       <div className="border-2 border-black dark:border-white rounded-lg bg-white dark:bg-stone-900 shadow-[4px_4px_0_0_black] dark:shadow-[4px_4px_0_0_white] overflow-hidden">
         <div className="p-6 text-center">
@@ -107,7 +110,7 @@ export function PermitRecommendationsCard({
           </div>
           <div>
             <h3 className="font-bold text-stone-900 dark:text-stone-100">
-              Recommended Permits ({recommendations.length})
+              Recommended Permits ({safeRecommendations.length})
             </h3>
             {(projectType || projectDescription) && (
               <p className="text-sm text-stone-600 dark:text-stone-400 mt-0.5">
@@ -126,7 +129,7 @@ export function PermitRecommendationsCard({
 
       {/* Recommendations list */}
       <div className="divide-y-2 divide-stone-200 dark:divide-stone-700">
-        {recommendations.map((form, index) => (
+        {safeRecommendations.map((form, index) => (
           <div
             key={form.id}
             className="p-3 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors group"
