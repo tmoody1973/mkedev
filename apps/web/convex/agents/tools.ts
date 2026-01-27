@@ -18,6 +18,54 @@ type ActionCtx = GenericActionCtx<DataModel>;
 // =============================================================================
 
 export const TOOL_DECLARATIONS = [
+  // ---------------------------------------------------------------------------
+  // PERMIT TOOLS - CHECK THESE FIRST for permit/form/application questions!
+  // ---------------------------------------------------------------------------
+  {
+    name: "recommend_permits_for_project",
+    description:
+      "PRIORITY TOOL for permit questions. When user asks 'What permits do I need?' or 'permits for renovation/deck/ADU/sign', use THIS tool. Returns prioritized list of required Milwaukee city permit forms with PDF download links, fees, and requirements.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectType: {
+          type: "string",
+          description: "Project type(s): renovation, new_construction, addition, adu, deck, fence, garage, sign, home_occupation, variance, conditional_use, change_of_use, conversion, demolition",
+        },
+        description: {
+          type: "string",
+          description: "Description of the project (e.g., 'kitchen remodel', 'building an ADU', 'opening a restaurant')",
+        },
+        isResidential: {
+          type: "boolean",
+          description: "Whether the project is residential",
+        },
+        isCommercial: {
+          type: "boolean",
+          description: "Whether the project is commercial",
+        },
+      },
+      required: ["description"],
+    },
+  },
+  {
+    name: "search_permit_forms",
+    description:
+      "Search 100+ Milwaukee city permit forms by keyword. Use for questions like 'find deck permit', 'sign application form', 'variance paperwork'. Returns PDF forms with names, purposes, and download links.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search keywords (e.g., 'renovation', 'deck', 'sign', 'variance', 'ADU', 'home occupation')",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // Address & Location Tools
+  // ---------------------------------------------------------------------------
   {
     name: "geocode_address",
     description:
@@ -104,7 +152,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: "query_zoning_code",
     description:
-      "Query the Milwaukee zoning code (Chapter 295) for ZONING REGULATIONS ONLY: height limits, setbacks, lot coverage, FAR, allowed/conditional uses, density limits, and dimensional standards. DO NOT use for permit forms or applications - use search_permit_forms instead.",
+      "Search zoning code for DIMENSIONAL STANDARDS ONLY: height limits, setbacks, lot coverage, FAR, density. NEVER use this for permit questions - if user mentions 'permit', 'form', 'application', or 'what do I need', use recommend_permits_for_project instead.",
     parameters: {
       type: "object",
       properties: {
@@ -363,23 +411,8 @@ export const TOOL_DECLARATIONS = [
     },
   },
   // ---------------------------------------------------------------------------
-  // Permit Forms & Design Guidelines Tools
+  // Permit & Design Guideline Detail Tools
   // ---------------------------------------------------------------------------
-  {
-    name: "search_permit_forms",
-    description:
-      "Search the database of 100+ Milwaukee city permit forms and applications. Returns downloadable PDF forms with official names, purposes, fees, and requirements. USE THIS for any question about permits, forms, applications, paperwork, or 'what do I need to apply for'. Examples: 'What permits for renovation?', 'deck permit', 'sign application', 'variance form'.",
-    parameters: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description: "Search keywords (e.g., 'renovation', 'deck', 'sign', 'variance', 'ADU', 'home occupation', 'building permit')",
-        },
-      },
-      required: ["query"],
-    },
-  },
   {
     name: "search_design_guidelines",
     description:
@@ -393,41 +426,6 @@ export const TOOL_DECLARATIONS = [
         },
       },
       required: ["query"],
-    },
-  },
-  {
-    name: "recommend_permits_for_project",
-    description:
-      "Get a prioritized list of ALL permit forms needed for a specific project. USE THIS when user asks 'What permits do I need for [project]?' or describes a construction/renovation project. Returns forms organized as required, recommended, and optional with direct PDF links.",
-    parameters: {
-      type: "object",
-      properties: {
-        projectType: {
-          type: "string",
-          description: "Project type(s): renovation, new_construction, addition, adu, deck, fence, garage, sign, home_occupation, variance, conditional_use, change_of_use, conversion, demolition",
-        },
-        description: {
-          type: "string",
-          description: "Description of the project (e.g., 'kitchen remodel', 'building an ADU in backyard', 'opening a restaurant')",
-        },
-        zoningDistrict: {
-          type: "string",
-          description: "Zoning district code if known (e.g., 'LB1', 'RM4', 'IO')",
-        },
-        hasParking: {
-          type: "boolean",
-          description: "Whether the project includes parking",
-        },
-        isResidential: {
-          type: "boolean",
-          description: "Whether the project is residential",
-        },
-        isCommercial: {
-          type: "boolean",
-          description: "Whether the project is commercial",
-        },
-      },
-      required: ["description"],
     },
   },
   {
