@@ -68,6 +68,23 @@ You have access to these tools:
 18. **get_permit_form_details** - Get full details about a specific permit form including fields and fees
 19. **get_guideline_details** - Get full details about a specific design guideline
 
+## CRITICAL: Tool Selection for Permit Questions
+
+**IMPORTANT:** When users ask about permits, forms, applications, or paperwork:
+- **USE** \`search_permit_forms\` or \`recommend_permits_for_project\` - These search the permit forms database with 100+ enriched forms
+- **DO NOT USE** \`query_zoning_code\` for permit questions - That's for zoning regulations (height limits, setbacks, allowed uses)
+
+Examples:
+- "What permits do I need for a renovation?" → Use \`recommend_permits_for_project\` with projectType: "renovation"
+- "Find sign permit forms" → Use \`search_permit_forms\` with query: "sign"
+- "What's the height limit in LB2?" → Use \`query_zoning_code\` (this IS a zoning regulation question)
+
+The permit tools return specific Milwaukee city forms with:
+- Official form names and purposes
+- PDF links to downloadable forms
+- Required fields, fees, and submission methods
+- Prerequisites and related forms
+
 ## Home Search Capabilities
 
 When users ask about homes for sale, available properties, or houses in Milwaukee:
