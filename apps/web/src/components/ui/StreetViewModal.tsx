@@ -181,8 +181,9 @@ export function StreetViewModal({
       };
 
       try {
-        // First, try to geocode the address for accurate street-facing coordinates
+        // ALWAYS geocode the address for accurate street-facing coordinates
         // Google Geocoder places the marker on the street side of the property
+        // DO NOT use fallback coordinates as they may be from a different/stale source
         if (address) {
           const geocoder = new google.maps.Geocoder();
           const fullAddress = address.includes("Milwaukee")
@@ -199,18 +200,18 @@ export function StreetViewModal({
                 lng: location.lng(),
               };
               console.log("[StreetView] Geocoded coordinates:", geocodedLatLng);
+              console.log("[StreetView] Google returned address:", results[0].formatted_address);
               initPanoramaAtLocation(geocodedLatLng);
-            } else if (fallbackLatLng) {
-              // Geocoding failed, use fallback coordinates
-              console.log("[StreetView] Geocoding failed, using fallback coordinates");
-              initPanoramaAtLocation(fallbackLatLng);
             } else {
-              setError("Could not locate address");
+              // Geocoding failed - show error, don't use potentially wrong fallback coordinates
+              console.error("[StreetView] Geocoding failed for:", fullAddress, "Status:", status);
+              setError(`Could not locate address: ${address}`);
               setIsLoading(false);
             }
           });
         } else if (fallbackLatLng) {
-          // No address provided, use coordinates directly
+          // No address provided, use coordinates directly (only case where fallback is used)
+          console.log("[StreetView] No address provided, using coordinates directly");
           initPanoramaAtLocation(fallbackLatLng);
         } else {
           setError("No address or coordinates available");
@@ -240,7 +241,7 @@ export function StreetViewModal({
     } else {
       script.addEventListener("load", initStreetView);
     }
-  }, [isOpen, apiKey, getLatLng]);
+  }, [isOpen, apiKey, getLatLng, address]);
 
   // Keyboard shortcuts
   useEffect(() => {
