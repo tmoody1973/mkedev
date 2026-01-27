@@ -38,6 +38,11 @@ export interface GenerativeCard {
     | 'development-site'
     | 'vacant-lots-list'
     | 'vacant-lot'
+    | 'permit-forms-list'
+    | 'permit-recommendations'
+    | 'permit-form-details'
+    | 'design-guidelines-list'
+    | 'design-guideline-details'
   data: unknown
 }
 

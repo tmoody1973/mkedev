@@ -24,6 +24,12 @@ import {
   getDevelopmentSiteDetails,
   searchVacantLots,
   getVacantLotDetails,
+  // Permit tools
+  searchPermitForms,
+  searchDesignGuidelines,
+  recommendPermitsForProject,
+  getPermitFormDetails,
+  getGuidelineDetails,
 } from "./tools";
 import { createTraceManager } from "../lib/opik";
 import { generateCacheKey } from "../cache";
@@ -56,6 +62,11 @@ You have access to these tools:
 12. **get_development_site_details** - Get detailed information about a specific development site
 13. **search_vacant_lots** - Search for city-owned vacant lots available through the Strong Neighborhoods program
 14. **get_vacant_lot_details** - Get detailed information about a specific vacant lot including disposition status
+15. **search_permit_forms** - Search Milwaukee permit forms and applications by keyword
+16. **search_design_guidelines** - Search Milwaukee design guidelines for building standards
+17. **recommend_permits_for_project** - Get recommended permit forms based on project details
+18. **get_permit_form_details** - Get full details about a specific permit form including fields and fees
+19. **get_guideline_details** - Get full details about a specific design guideline
 
 ## Home Search Capabilities
 
@@ -225,6 +236,46 @@ When users want details about a specific vacant lot:
 3. **Combining with Zoning and Incentives:**
    - When a user finds a vacant lot, offer to explain zoning requirements and any available incentives
    - Example: "This lot is zoned RS6 - would you like to know what you can build here and what programs might help?"
+
+## Permit Forms & Design Guidelines
+
+When users ask about permits, applications, forms, or paperwork needed for projects:
+- Use **search_permit_forms** to find relevant permit forms by keyword
+- Use **recommend_permits_for_project** when you understand their project type to get a comprehensive list
+- Use **get_permit_form_details** to show fields, fees, and submission requirements
+
+When users ask about design requirements, building standards, or urban design rules:
+- Use **search_design_guidelines** to find relevant guidelines
+- Use **get_guideline_details** to show specific requirements and best practices
+
+### Permit Search Guidelines
+
+1. **When to Search Permits:**
+   - "What permits do I need for a deck?"
+   - "Do I need a variance?"
+   - "What forms for a home occupation?"
+   - "Building permit requirements"
+   - "How do I apply for a sign permit?"
+
+2. **When to Recommend Permits:**
+   - When the user describes a specific project (e.g., "I want to build an ADU")
+   - When you know the project type (renovation, new construction, sign, etc.)
+   - Example: "I'm converting a warehouse to apartments" → recommend_permits_for_project with projectType: "conversion, change_of_use"
+
+3. **Combining with Zoning:**
+   - After explaining zoning requirements, proactively mention relevant permit forms
+   - Example: "For your restaurant in the LB2 district, you'll need to check facade guidelines and may need a sign permit. Want me to show you the required forms?"
+
+### Design Guidelines Topics
+
+Available design guideline topics:
+- **Site Layout** - Building placement, parking location
+- **Parking** - Surface parking design, structured parking
+- **Facades** - Building exteriors, materials, glazing
+- **Signage** - Sign types, placement, dimensions
+- **Landscaping** - Site landscaping, parking lot landscaping
+- **Pedestrian/Vehicle Access** - Entrances, driveways, walkways
+- **Residential Design** - Traditional house design standards
 
 ## Interaction Guidelines
 
@@ -936,6 +987,51 @@ export const chat = action({
                 const vacantLotDetailsArgs = fnArgs as { lotId: string };
 
                 toolResult = await getVacantLotDetails(ctx, vacantLotDetailsArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              // ---------------------------------------------------------------
+              // Permit Forms & Design Guidelines Tools
+              // ---------------------------------------------------------------
+              case "search_permit_forms": {
+                const permitSearchArgs = fnArgs as { query: string };
+                toolResult = await searchPermitForms(ctx, permitSearchArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              case "search_design_guidelines": {
+                const guidelineSearchArgs = fnArgs as { query: string };
+                toolResult = await searchDesignGuidelines(ctx, guidelineSearchArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              case "recommend_permits_for_project": {
+                const recommendArgs = fnArgs as {
+                  projectType?: string;
+                  description: string;
+                  zoningDistrict?: string;
+                  hasParking?: boolean;
+                  isResidential?: boolean;
+                  isCommercial?: boolean;
+                };
+                toolResult = await recommendPermitsForProject(ctx, recommendArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              case "get_permit_form_details": {
+                const formDetailsArgs = fnArgs as { formId: string };
+                toolResult = await getPermitFormDetails(ctx, formDetailsArgs);
+                toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              case "get_guideline_details": {
+                const guidelineDetailsArgs = fnArgs as { guidelineId: string };
+                toolResult = await getGuidelineDetails(ctx, guidelineDetailsArgs);
                 toolSuccess = !!(toolResult as { success?: boolean }).success;
                 break;
               }

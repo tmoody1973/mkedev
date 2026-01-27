@@ -16,6 +16,11 @@ export { DevelopmentSiteCard } from "./DevelopmentSiteCard";
 export { DevelopmentSitesListCard } from "./DevelopmentSitesListCard";
 export { VacantLotCard } from "./VacantLotCard";
 export { VacantLotsListCard } from "./VacantLotsListCard";
+export { PermitFormsListCard } from "./PermitFormsListCard";
+export { PermitRecommendationsCard } from "./PermitRecommendationsCard";
+export { PermitFormDetailsCard } from "./PermitFormDetailsCard";
+export { DesignGuidelinesListCard } from "./DesignGuidelinesListCard";
+export { DesignGuidelineDetailsCard } from "./DesignGuidelineDetailsCard";
 
 // Export props interfaces for type safety
 export type { HomeCardProps } from "./HomeCard";

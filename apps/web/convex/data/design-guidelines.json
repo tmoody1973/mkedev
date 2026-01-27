@@ -1,0 +1,2168 @@
+[
+  {
+    "id": "structuredparkingdesignguidelines",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Urban-Design-Resouces/StructuredParkingDesignGuidelines.pdf",
+    "filename": "StructuredParkingDesignGuidelines.pdf",
+    "category": "design_guidelines",
+    "subcategory": "structured_parking",
+    "title": "DESIGN GUIDELINES - Structured Parking",
+    "topic": "structured_parking",
+    "summary": "This guideline focuses on the design of structured parking facilities to minimize their impact on the urban environment. It emphasizes concealing parking within buildings, pedestrian activation at the ground level, and appropriate facade design to integrate parking structures into the urban context.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [
+      "Conceal above-ground structured parking with active uses lining the perimeter of the parking deck.",
+      "Prioritize pedestrian activation on the first floor through uses such as restaurants, retail, or active lobby areas.",
+      "Visually break down parking structure facades into clear vertical bays, spaced no more than 20' or 30' apart.",
+      "Avoid expressing sloping floors on the exterior facade; conceal them internally.",
+      "Maintain a balance between solid and void areas on building facades."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "facades",
+      "pedestrian_access",
+      "streetscape"
+    ],
+    "triggers": [
+      "structured parking",
+      "parking garage",
+      "concealed parking",
+      "parking facade",
+      "urban design",
+      "pedestrian activation",
+      "verticality",
+      "solid and void"
+    ],
+    "enrichedAt": "2026-01-27T16:29:53.013Z"
+  },
+  {
+    "id": "traditionalhousedesignstandard",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/realestate/pdfs/TraditionalHouseDesignStandard.pdf",
+    "filename": "TraditionalHouseDesignStandard.pdf",
+    "category": "design_guidelines",
+    "subcategory": "residential_design",
+    "title": "Traditional House Design Standards",
+    "topic": "residential_design",
+    "summary": "This document provides design standards for new houses in Milwaukee's older neighborhoods, focusing on compatibility with existing neighborhood character. It addresses site issues like house and garage placement, and house standards including size, floor plan, windows, doors, exterior materials, porches, and landscaping.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Houses must face the street, generally toward the narrow end of the lot.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "House setbacks must conform to the City Zoning Code. Typically the front setback is the average setback of adjoining properties.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Parking is required behind the house at the rear yard.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "House width and height must conform to the City Zoning Code's minimum and maximum requirements for the selected lot size and zoning district.",
+        "isRequired": true,
+        "codeReference": "Table 295-505-2-1"
+      },
+      {
+        "rule": "Floor to ceiling heights shall be 8 to 10 feet on the first floor and 8 to 9 feet on the second floor and basement.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Street facing elevations should have well-placed, recessed windows and doors that align vertically and horizontally.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Broad expanses of wall are prohibited on street facades. The horizontal separation between windows/doors should be no more than eight to nine feet.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Sites must be landscaped with a minimum of grass and plantings along all street elevations.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Detached garages are preferred.",
+      "Porous paving is strongly encouraged for driveways.",
+      "Double hung windows are the preferred window type.",
+      "Roofs shall be steeply pitched with a preferred 12/12 pitch.",
+      "Downspouts that feed into lawns or rain gardens are encouraged for storm water management."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "site_layout",
+      "landscaping",
+      "facades",
+      "materials"
+    ],
+    "triggers": [
+      "new construction",
+      "residential development",
+      "house design",
+      "neighborhood compatibility",
+      "setbacks",
+      "garages",
+      "windows",
+      "porches"
+    ],
+    "enrichedAt": "2026-01-27T16:30:01.528Z"
+  },
+  {
+    "id": "milwaukee-housing-tif-guidelines-04222025",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/Milwaukee-Housing-TIF-Guidelines-04222025.pdf",
+    "filename": "Milwaukee-Housing-TIF-Guidelines-04222025.pdf",
+    "category": "design_guidelines",
+    "subcategory": "incentives",
+    "enrichedAt": "2026-01-27T16:30:11.357Z",
+    "title": "Tax Incremental Financing for Housing Development Guidelines",
+    "topic": "residential_design",
+    "summary": "These guidelines outline the criteria for Tax Incremental Financing (TIF) for housing development projects in Milwaukee. The document specifies priorities, project considerations, and requirements for both general housing projects and affordable housing projects, including commercial conversions to housing, plus workforce housing.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Selected projects must follow Wisconsin Statutes and Milwaukee Code of Ordinances requirements, including approval by the Milwaukee Common Council.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Projects must comply with Milwaukee Code of Ordinances Chapter 355 in regard to Small Business Enterprise participation and Resident Preference Program requirements.",
+        "isRequired": true,
+        "codeReference": "Chapter 355"
+      },
+      {
+        "rule": "At least 20% of the units in the project must be affordable to households with income less than or equal to 60% of AMI, with a minimum of 20 affordable units. At least 25% of the affordable units in the project must be affordable to households with incomes less than or equal to 50% of AMI. Units must be affordable for a minimum period of 15 years from the date of initial occupancy, or the term of the TID, whichever is longer.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Rents should be restricted via a Land Use Restriction Agreement (LURA) or related document to an average of 60%-100% AMI for a minimum of 20 years or the life of the TID, whichever is longer.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Projects including mentor/protégé relationships, interns, emerging developer partnerships and related components are encouraged.",
+      "Developers must demonstrate that the project would not be economically viable without the City's assistance.",
+      "Developers must demonstrate they have leveraged other financing sources to help fill any apparent project financing gap.",
+      "Projects should be developer-financed, i.e., “pay as you go,\" with TIF provided through the creation of a new TID."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "site_layout",
+      "landscaping"
+    ],
+    "triggers": [
+      "tax incremental financing",
+      "TIF",
+      "affordable housing",
+      "workforce housing",
+      "housing development",
+      "commercial conversions to housing",
+      "residential project"
+    ]
+  },
+  {
+    "1": {
+      "title": "Landscape Design Guide for Parking Lots",
+      "topic": "parking_lot_landscaping",
+      "summary": "This guide provides recommendations for parking lot landscaping that meet the minimum requirements of the City of Milwaukee Zoning Code. It offers options for property owners, businesses, designers, and contractors, recognizing the unique circumstances of each site.",
+      "applicableZoningDistricts": [
+        "all"
+      ],
+      "requirements": [
+        {
+          "rule": "Comply with all applicable landscape standards",
+          "isRequired": true,
+          "codeReference": "Section 295-405"
+        }
+      ],
+      "bestPractices": [
+        "Select a variety of landscaping options to provide flexibility",
+        "Refer to the zoning code for all applicable landscape standards",
+        "Utilize landscaping to screen parking areas and improve aesthetics",
+        "Incorporate water absorption areas within the parking lot design",
+        "Consider using landscaping to reduce the urban heat island effect."
+      ],
+      "illustrations": [
+        "Illustrations of different parking lot landscaping options that meet zoning code requirements."
+      ],
+      "relatedTopics": [
+        "landscaping",
+        "parking"
+      ],
+      "triggers": [
+        "parking lot",
+        "surface parking",
+        "landscape buffer",
+        "parking lot landscaping",
+        "zoning code",
+        "landscape design"
+      ]
+    },
+    "2": {
+      "title": "Signage Regulations",
+      "topic": "signage",
+      "summary": "This guideline provides regulations for signage to ensure that it fits into the context of the site and does not distract from the overall building design. It covers allowable signage, approval processes, and best practices.",
+      "applicableZoningDistricts": [
+        "all"
+      ],
+      "requirements": [],
+      "bestPractices": [
+        "Design signage that complements the building's architecture.",
+        "Ensure signage is appropriately sized and scaled to the building and surroundings.",
+        "Consider the visibility of signage from various viewpoints.",
+        "Utilize high-quality materials and construction for signage.",
+        "Follow approval processes and best practices"
+      ],
+      "illustrations": [],
+      "relatedTopics": [
+        "wall_signs"
+      ],
+      "triggers": [
+        "signage",
+        "building signage",
+        "wall signs",
+        "sign regulations",
+        "sign approval",
+        "sign permits"
+      ]
+    },
+    "3": {
+      "title": "Facades",
+      "topic": "facades",
+      "summary": "This guideline focuses on the design of building facades, specifically the design of entrances.",
+      "applicableZoningDistricts": [
+        "all"
+      ],
+      "requirements": [],
+      "bestPractices": [],
+      "illustrations": [],
+      "relatedTopics": [
+        "entrances"
+      ],
+      "triggers": [
+        "building facade",
+        "facades",
+        "building design",
+        "urban design"
+      ]
+    },
+    "id": "urbandesigncomponents",
+    "url": "https://city.milwaukee.gov/Designguidelines/UrbanDesignComponents.htm",
+    "filename": "UrbanDesignComponents.md",
+    "category": "urban_design",
+    "subcategory": "web_content",
+    "enrichedAt": "2026-01-27T16:30:22.142Z",
+    "title": "Urban Design Components",
+    "topic": "site_layout",
+    "summary": "This guideline focuses on site layout, covering the placement of buildings and parking, as well as vehicular and pedestrian access. It aims to ensure that sites are designed to promote walkability, accessibility, and efficient use of space while considering the surrounding urban context.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [
+      "Consider pedestrian and bicycle connectivity within the site and to adjacent areas.",
+      "Incorporate landscaping to define street edges and screen utility functions.",
+      "Provide adequate water absorption areas from impervious surfaces.",
+      "Reduce cooling requirements by providing shade via landscaping.",
+      "Design sites that move toward current planning goals."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "parking",
+      "vehicle_access",
+      "pedestrian_access",
+      "bicycle_facilities",
+      "transit",
+      "landscaping"
+    ],
+    "triggers": [
+      "site design",
+      "building placement",
+      "parking placement",
+      "vehicular access",
+      "pedestrian access",
+      "bicycle facilities",
+      "transit facilities",
+      "urban design"
+    ]
+  },
+  {
+    "id": "ch295-sub2",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/ccClerk/Ordinances/Volume-2/CH295-sub2.pdf",
+    "filename": "CH295-sub2.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:30:40.793Z",
+    "title": "City of Milwaukee Zoning Code",
+    "topic": "all",
+    "summary": "This document provides definitions for various zoning related terms and establishes rules of measurement for the City of Milwaukee. It covers a wide range of topics from land use types to design standards, and sets the foundation for interpreting and applying zoning regulations.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [],
+    "illustrations": [],
+    "relatedTopics": [],
+    "triggers": [
+      "zoning",
+      "land use",
+      "definitions",
+      "measurement",
+      "development",
+      "building",
+      "site"
+    ]
+  },
+  {
+    "id": "ch295-sub4",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/ccClerk/Ordinances/Volume-2/CH295-sub4.pdf",
+    "filename": "CH295-sub4.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:30:55.901Z",
+    "title": "City of Milwaukee Zoning Code",
+    "topic": "parking",
+    "summary": "This document contains the City of Milwaukee's zoning code sections related to motor vehicle parking, bicycle parking, and landscaping. It outlines the required number of parking spaces, standards for design, and landscaping/screening requirements for parking lots.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Parking lots and off-street parking spaces shall comply with the requirements of this section.",
+        "isRequired": true,
+        "codeReference": "295-403"
+      },
+      {
+        "rule": "The number of off-street motor vehicle parking spaces required for a particular use shall be as specified in table 295-403-2-a.",
+        "isRequired": true,
+        "codeReference": "295-403"
+      },
+      {
+        "rule": "Outside of the C9A district, no off-street motor vehicle parking spaces shall be required for uses located in downtown zoning districts",
+        "isRequired": true,
+        "codeReference": "295-403"
+      },
+      {
+        "rule": "No off-street motor vehicle parking spaces shall be required for uses located in a RED redevelopment district.",
+        "isRequired": true,
+        "codeReference": "295-403"
+      },
+      {
+        "rule": "Documentation that the required off-street motor vehicle parking spaces exist shall be provided to the commissioner of neighborhood services, prior to issuance of any occupancy or construction permit.",
+        "isRequired": true,
+        "codeReference": "295-403"
+      },
+      {
+        "rule": "A planned development shall comply with the minimum parking standards set forth by this code unless otherwise specified in the planned development documents.",
+        "isRequired": true,
+        "codeReference": "295-403"
+      },
+      {
+        "rule": "All uses shall comply with the applicable bicycle parking requirements of s. 295-404.",
+        "isRequired": true,
+        "codeReference": "295-403"
+      },
+      {
+        "rule": "Number of bicycle parking spaces required for a particular use shall be as specified in table 295-404-1.",
+        "isRequired": true,
+        "codeReference": "295-404"
+      },
+      {
+        "rule": "Bicycle parking spaces shall be required in all zoning districts, including RED redevelopment districts.",
+        "isRequired": true,
+        "codeReference": "295-404"
+      },
+      {
+        "rule": "Comply with the landscaping and screening requirements outlined in Section 295-405",
+        "isRequired": true,
+        "codeReference": "295-405"
+      }
+    ],
+    "bestPractices": [
+      "Use permeable paving for parking spaces above the minimum number required.",
+      "Provide outdoor enhanced facilities for long-term bicycle parking spaces, including protection from rain and snow.",
+      "Incorporate green infrastructure features, such as permeable paving, rain gardens, and bioswales, into parking lot landscaping."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "site_layout",
+      "landscaping",
+      "bicycle_facilities",
+      "pedestrian_access"
+    ],
+    "triggers": [
+      "parking lot",
+      "off-street parking",
+      "motor vehicle parking",
+      "bicycle parking",
+      "landscaping",
+      "site development",
+      "new construction"
+    ]
+  },
+  {
+    "id": "ch295-sub6",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/ccClerk/Ordinances/Volume-2/CH295-sub6.pdf",
+    "filename": "CH295-sub6.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:31:12.423Z",
+    "title": "City of Milwaukee Zoning Code - Commercial Districts Design Guidelines",
+    "topic": "facades",
+    "summary": "This document outlines design guidelines for commercial districts in Milwaukee, focusing on building facades, entrances, glazing requirements, and overall compatibility with the surrounding neighborhood context. It also dictates specific restrictions related to building materials.",
+    "applicableZoningDistricts": [
+      "NS1",
+      "NS2",
+      "LB1",
+      "LB2",
+      "LB3",
+      "RB1",
+      "RB2",
+      "CS"
+    ],
+    "requirements": [
+      {
+        "rule": "At the street level of the primary street, accessory parking, storage facilities or mechanical equipment shall occupy not more than 40% of the interior street frontage zone of the street level area.",
+        "isRequired": true,
+        "codeReference": "295-603-2 a-1"
+      },
+      {
+        "rule": "No dwelling unit shall be permitted in the street-level area on a principal arterial, minor arterial or collector street.",
+        "isRequired": true,
+        "codeReference": "295-603-2 a-2"
+      },
+      {
+        "rule": "New buildings shall have a primary entrance door on the front façade.",
+        "isRequired": true,
+        "codeReference": "295-605-2 i-2-a"
+      },
+      {
+        "rule": "Buildings shall have transparent glass windows on both the primary and secondary street frontages according to the percentages listed in table 295-605-2.",
+        "isRequired": true,
+        "codeReference": "295-605-2 i-3-a"
+      },
+      {
+        "rule": "Interior spaces behind glazing that is required to meet the minimum linear street frontage glazing shall be occupied by street-activating use areas to a minimum depth of 12 feet.",
+        "isRequired": true,
+        "codeReference": "295-605-2 i-3-d"
+      },
+      {
+        "rule": "Utility-grade concrete masonry units are permitted along a building's street-facing frontage provided that their use is limited to the base of the façade to a height not exceeding 3 feet 4 inches.",
+        "isRequired": true,
+        "codeReference": "295-605-2 i-6-b"
+      },
+      {
+        "rule": "Minimum and maximum Front Setback is dictated by which zoning district you are in and is described in (see s. 295-505-2-b).",
+        "isRequired": true,
+        "codeReference": "295-605-2 c"
+      }
+    ],
+    "bestPractices": [
+      "Façades should be constructed of durable materials that resist denting, splitting, cracking, fading, peeling and other damage.",
+      "Façade components should be finished-quality materials appropriate for street-facing character, with finished and refined edges, rather than utility-grade materials that are rough and disorderly.",
+      "Façades should consist of context-appropriate materials that fit the character of urban locations throughout the city.",
+      "Encourage pedestrian-oriented commercial development",
+      "Design so it is compatible with the neighborhood context"
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "site_layout",
+      "pedestrian_access",
+      "signage",
+      "streetscape",
+      "materials"
+    ],
+    "triggers": [
+      "commercial building",
+      "new construction",
+      "facade renovation",
+      "street frontage",
+      "glazing",
+      "storefront",
+      "building materials",
+      "mixed-use building"
+    ]
+  },
+  {
+    "id": "ch295-sub7",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/ccClerk/Ordinances/Volume-2/CH295-sub7.pdf",
+    "filename": "CH295-sub7.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:31:24.908Z",
+    "title": "City of Milwaukee Downtown Zoning District Design Guidelines",
+    "topic": "site_layout",
+    "summary": "These guidelines cover zoning regulations for downtown Milwaukee, focusing on site layout, building height, floor area ratios, setbacks, and permitted uses within various C9 zoning districts. They aim to ensure compatibility within the neighborhood context, allow flexibility in development, and promote the usage of sustainable materials.",
+    "applicableZoningDistricts": [
+      "C9A",
+      "C9B",
+      "C9C",
+      "C9D",
+      "C9E",
+      "C9F",
+      "C9G",
+      "C9H"
+    ],
+    "requirements": [
+      {
+        "rule": "Adherence to permitted uses specified for each downtown district.",
+        "isRequired": true,
+        "codeReference": "Table 295-703-1"
+      },
+      {
+        "rule": "Meet minimum and maximum building height requirements based on the specific zoning district.",
+        "isRequired": true,
+        "codeReference": "Table 295-705-1"
+      },
+      {
+        "rule": "Comply with setback requirements as defined by district.",
+        "isRequired": true,
+        "codeReference": "Table 295-705-1"
+      },
+      {
+        "rule": "At least 70% of the front, side street, or rear street façade of any newly constructed principal building shall meet the setback requirements of table 295-705-1.",
+        "isRequired": true,
+        "codeReference": "295-705-2"
+      },
+      {
+        "rule": "If flower, plants or Wisconsin-grown farm products constitute at least 75% of the merchandise offered for sale, the activity shall be limited to not more than 180 days in one calendar year.",
+        "isRequired": true,
+        "codeReference": "295-703-2"
+      }
+    ],
+    "bestPractices": [
+      "Promote pedestrian-friendly environments.",
+      "Allow varying degrees of land use diversity within each zoning district.",
+      "Promote environments which support transportation diversity.",
+      "Use durable materials that resist denting, splitting, cracking, fading, peeling and other damage."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "facades",
+      "landscaping",
+      "signage"
+    ],
+    "triggers": [
+      "downtown development",
+      "new construction",
+      "building alteration",
+      "commercial development",
+      "residential development",
+      "mixed-use development",
+      "redevelopment",
+      "change of use"
+    ]
+  },
+  {
+    "id": "ch295-sub8",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/ccClerk/Ordinances/Volume-2/CH295-sub8.pdf",
+    "filename": "CH295-sub8.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:31:39.785Z",
+    "title": "Zoning Code - Industrial Districts Design Standards",
+    "topic": "site_layout",
+    "summary": "These design standards aim to mitigate adverse effects from industrial activities, particularly on adjacent residential and business areas. They cover setbacks, screening, buffering, height transitions, and noise limitations to promote harmonious integration within the community.",
+    "applicableZoningDistricts": [
+      "IO1",
+      "IO2",
+      "IL1",
+      "IL2",
+      "IC",
+      "IM",
+      "IH"
+    ],
+    "requirements": [
+      {
+        "rule": "Accessory industrial buildings: Front setback shall not be less than the front setback of the principal building.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Accessory industrial buildings: Side street setback shall not be less than the side street setback of the principal building.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Accessory industrial buildings: Rear setback shall not be less than the rear setback of the principal building.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "If accessing a garage from an alley, provide a minimum setback of 4 feet. Otherwise, no setback requirement.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "A transition buffer is required when a site in the IO1, IO2, IL1, IL2 or IH district is used for a storage, recycling or wholesale trade use, a transportation use or an industrial use, either principal or accessory, and is adjacent to or across a street or alley from a residential, institutional, parks or non-industrial planned development district.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Where a residential buffer is required, setbacks and tree-planting requirements outlined in Table 295-805-4-d shall be met.",
+        "isRequired": true,
+        "codeReference": "Table 295-805-4-d"
+      },
+      {
+        "rule": "Outdoor storage areas visible from a public street or non-industrial district must be screened in accordance with S. 295-405-5.",
+        "isRequired": true,
+        "codeReference": "S. 295-405-5"
+      },
+      {
+        "rule": " Dumpsters or common waste storage visible from a public street or a non-industrially-zoned district shall be screened in accordance with s. 295-405-6-a.",
+        "isRequired": true,
+        "codeReference": "295-405-6-a"
+      },
+      {
+        "rule": "Where loading for more than 2 truck bays is in a yard facing and visible from a public street or a non-industrial district, the loading docks shall be screened in accordance with s. 295-405-6-b.",
+        "isRequired": true,
+        "codeReference": "295-405-6-b"
+      },
+      {
+        "rule": "Fences along streets shall not exceed a height of 6 feet (with listed exceptions).",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Barbed wire must be 6 feet above grade, not within a residential buffer or 15 feet of street line.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Comply with lighting regulations applicable to industrial zoning districts.",
+        "isRequired": true,
+        "codeReference": "s. 295-409"
+      },
+      {
+        "rule": "Comply with noise regulations applicable to industrial zoning districts.",
+        "isRequired": true,
+        "codeReference": "ss. 80-60 through 80-75"
+      }
+    ],
+    "bestPractices": [],
+    "illustrations": [],
+    "relatedTopics": [
+      "landscaping",
+      "facades",
+      "signage",
+      "screening"
+    ],
+    "triggers": [
+      "industrial zoning districts",
+      "buffer zone",
+      "setbacks",
+      "screening",
+      "outdoor storage",
+      "loading docks",
+      "fences",
+      "site adjacent to residential"
+    ]
+  },
+  {
+    "id": "ch295-sub9",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/ccClerk/Ordinances/Volume-2/CH295-sub9.pdf",
+    "filename": "CH295-sub9.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:31:52.433Z",
+    "title": "City of Milwaukee Zoning Code - Special Districts, Parks District (PK), Institutional District (TL), Planned Development District (PD/DPD), Redevelopment District (RED)",
+    "topic": "site_layout",
+    "summary": "This document details zoning regulations for special districts in Milwaukee, including Parks (PK), Institutional (TL), Planned Development (PD/DPD), and Redevelopment (RED) districts. It covers permitted uses, design standards like setbacks and screening, and specific requirements for signs, landscaping, parking, and other site features within each district.",
+    "applicableZoningDistricts": [
+      "PK",
+      "TL",
+      "PD/DPD",
+      "RED"
+    ],
+    "requirements": [
+      {
+        "rule": "In PK district, uses must adhere to the Parks District Use Table (Table 295-903-2-a).",
+        "isRequired": true,
+        "codeReference": "Table 295-903-2-a"
+      },
+      {
+        "rule": "In PK district, principal buildings must have setbacks of at least 25 feet from all property lines, except along the front lot line, where the average setback applies.",
+        "isRequired": true,
+        "codeReference": "295-903-3-b"
+      },
+      {
+        "rule": "In PK district, dumpsters visible from a public street or non-industrial property must be screened with Type \"G\" landscaping.",
+        "isRequired": true,
+        "codeReference": "295-903-3-d-2"
+      },
+      {
+        "rule": "In TL district, uses must adhere to the Institutional District Use Table (Table 295-905-2-a).",
+        "isRequired": true,
+        "codeReference": "Table 295-905-2-a"
+      },
+      {
+        "rule": "PD/DPD districts shall have uses, standards and restrictions as specified in the detailed plan.",
+        "isRequired": true,
+        "codeReference": "295-907-3-a"
+      },
+      {
+        "rule": "Residential uses shall be screened from existing or proposed business or industrial uses on or adjacent to the site, in PD/DPD districts.",
+        "isRequired": true,
+        "codeReference": "295-909-f"
+      },
+      {
+        "rule": "RED districts shall have uses, standards, and restrictions as indicated in the redevelopment plan.",
+        "isRequired": true,
+        "codeReference": "295-909-2"
+      }
+    ],
+    "bestPractices": [
+      "Design elements and standards shall be provided in the PD/DPD general plan.",
+      "Specific design elements and standards shall be specified in the PD/DPD detailed plan.",
+      "Site and building design should be compatible with the character of the surrounding neighborhood.",
+      "Create pedestrian-friendly environments.",
+      "Promote environments which support transportation diversity consistent with neighborhood context."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "landscaping",
+      "signage",
+      "parking",
+      "screening",
+      "zoning"
+    ],
+    "triggers": [
+      "parks district",
+      "institutional district",
+      "planned development district",
+      "redevelopment district",
+      "special zoning",
+      "mixed-use development",
+      "building setback",
+      "screening requirements"
+    ]
+  },
+  {
+    "id": "ch244",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/ccClerk/Ordinances/Volume-2/CH244.pdf",
+    "filename": "CH244.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:32:02.551Z",
+    "title": "Signs and Outdoor Advertising, Chapter 244",
+    "topic": "signage",
+    "summary": "This chapter governs the design, construction, and maintenance of outdoor signs and advertising structures in Milwaukee. It covers permits, location, materials, and various sign types, aiming to ensure public safety and visual harmony while regulating advertising.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "All signs and billboards, including those exempt from permit requirements, must be maintained in good structural condition at all times.",
+        "isRequired": true,
+        "codeReference": "244-3-1"
+      },
+      {
+        "rule": "A permit is required to erect, construct, enlarge, move, relocate, or maintain any sign or billboard regulated in this chapter or ch. 295 without first obtaining a permit.",
+        "isRequired": true,
+        "codeReference": "244-2-1-a"
+      },
+      {
+        "rule": "Signs projecting into public right-of-way must be constructed of noncombustible materials with limited exceptions for certain smaller signs and letters.",
+        "isRequired": true,
+        "codeReference": "244-10-1-a"
+      },
+      {
+        "rule": "Illuminated signs must conform to the regulations in ch. 222 and s. 295-409.",
+        "isRequired": true,
+        "codeReference": "244-15-1"
+      },
+      {
+        "rule": "All signs projecting into public right-of-way must project at a minimum of 10 feet above the established grade immediately below",
+        "isRequired": true,
+        "codeReference": "244-11"
+      }
+    ],
+    "bestPractices": [
+      "Use of Underwriter's Laboratories, Inc. labeled illuminated signs.",
+      "Ensure dead and wind loads are appropriately supported by the sign structure.",
+      "Use corrosion-resistant coatings on all ferrous parts of signs subject to corrosion.",
+      "Ensure the proposed sign is sufficiently described in the permit application to the satisfaction of the city development commissioner.",
+      "Ensure all signs are anchored or supported in a manner approved by the commissioner."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "streetscape",
+      "facades",
+      "materials"
+    ],
+    "triggers": [
+      "signage",
+      "outdoor advertising",
+      "billboard",
+      "wall sign",
+      "projecting sign",
+      "illuminated sign",
+      "marquee sign",
+      "canopy sign"
+    ]
+  },
+  {
+    "id": "signpermitsatdnsdevelopmentcenter",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/pdfs/SignPermitsatDNSDevelopmentCenter.pdf",
+    "filename": "SignPermitsatDNSDevelopmentCenter.pdf",
+    "category": "urban_design",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:32:11.528Z",
+    "title": "Sign permits",
+    "topic": "signage",
+    "summary": "This document outlines the requirements and process for obtaining sign permits in Milwaukee. It covers aspects such as sign size, height, location, and necessary documentation for permit applications, including site plans, drawings, and details about sign supports.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Submit a site plan showing the location of the sign(s), footprint of significant buildings, and dimensions from the sign base to the property line.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Provide a dimensioned drawing of the sign, including all copy and graphics, noting materials, color, mounting, and illumination.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Provide details of the sign supports, including footing or anchoring specifications. Engineering information may be required for roof signs and unusual signs.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "If a sign is to be affixed to a building, provide a diagram showing the sign in its correct dimensions on the building facade, including height above grade and proximity to other features.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Provide accurate estimates of the cost of each sign for which a permit is requested.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Pay a plan examination fee of 0.7% of the cost of the signage (minimum fee is $60 per address).",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Pay a permit fee of 1% of the cost of the signage (minimum fee is $50) plus a 1.6% IT and Training Surcharge and $6 processing fee.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Provide photos of the building façade to show the context for the sign.",
+      "Note if a corporate logo or one of several standard versions of a corporate logo is being depicted in the sign design.",
+      "Show the full elevation with dimensions for ground signs to indicate overall height and where the sign box is placed.",
+      "Include information about footing or anchoring specifications for sign supports.",
+      "For signs on buildings, include their height above grade and proximity to other features such as windows, doors, and the building parapet."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "facades",
+      "streetscape"
+    ],
+    "triggers": [
+      "sign permit",
+      "wall sign",
+      "ground sign",
+      "signage",
+      "sign installation",
+      "sign erection",
+      "sign dimensions",
+      "sign supports"
+    ]
+  },
+  {
+    "id": "signage-regulations",
+    "url": "https://city.milwaukee.gov/Designguidelines/UrbanDesignComponents/Signage-Regulations",
+    "filename": "Signage-Regulations.md",
+    "category": "urban_design",
+    "subcategory": "web_content",
+    "enrichedAt": "2026-01-27T16:32:18.144Z",
+    "title": "Signage Regulations",
+    "topic": "signage",
+    "summary": "This webpage provides information for property owners and sign contractors on allowable signage and approval processes in the City of Milwaukee. It covers sign types, zoning requirements, and how to submit a sign package for permits.",
+    "applicableZoningDistricts": [
+      "NS1",
+      "NS2",
+      "LB1",
+      "LB2",
+      "LB3",
+      "RB1",
+      "RB2",
+      "CS",
+      "C9A",
+      "C9B",
+      "C9C",
+      "C9D",
+      "C9E",
+      "C9F",
+      "C9G",
+      "C9H",
+      "IO1",
+      "IO2",
+      "IL1",
+      "IL2",
+      "IM",
+      "IH",
+      "PK",
+      "TL",
+      "PD",
+      "DPD",
+      "RED"
+    ],
+    "requirements": [
+      {
+        "rule": "Signage must comply with the City of Milwaukee Zoning Code.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Sign permits are required as discussed in Chapter 244: Signs and Outdoor Advertising, s.244-2.",
+        "isRequired": true,
+        "codeReference": "Chapter 244: Signs and Outdoor Advertising"
+      }
+    ],
+    "bestPractices": [
+      "Proposed signage should complement the building or site.",
+      "Sign size and location should fit the setting and local context.",
+      "Improving signage characteristics can allow for larger sign sizes.",
+      "High-quality signs, such as individual letter signs, are preferred.",
+      "Staff approval can be quickly gained from special districts and incentive programs with improvements to signage characteristics."
+    ],
+    "illustrations": [
+      "Illustrations of Freestanding Signs",
+      "Illustrations of Projecting Signs",
+      "Illustrations of Wall Signs",
+      "Illustrations of Awning Signs"
+    ],
+    "relatedTopics": [
+      "facades",
+      "materials",
+      "streetscape"
+    ],
+    "triggers": [
+      "signage",
+      "sign permit",
+      "wall sign",
+      "freestanding sign",
+      "awning sign",
+      "projecting sign",
+      "zoning code",
+      "sign regulations"
+    ]
+  },
+  {
+    "id": "vehicle-and-pedestrian-access",
+    "url": "https://city.milwaukee.gov/Designguidelines/UrbanDesignComponents/Vehicle-and-Pedestrian-Access.htm",
+    "filename": "Vehicle-and-Pedestrian-Access.md",
+    "category": "urban_design",
+    "subcategory": "web_content",
+    "title": "Vehicular & Pedestrian Access",
+    "topic": "vehicle_access",
+    "summary": "This guideline covers standards for vehicular access drives and pedestrian access ways, including their width, design, and materials. It emphasizes the importance of providing clear and safe pedestrian access separate from vehicular access.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Access drive shall generally traverse the front setback at a right angle.",
+        "isRequired": true,
+        "codeReference": "s.295-605-4c"
+      },
+      {
+        "rule": "The commissioner of public works shall approve the location and design of the curb cut and driveway apron for the access drive.",
+        "isRequired": true,
+        "codeReference": "s.295-605-4c"
+      },
+      {
+        "rule": "An access drive shall not exceed 30 feet in width.",
+        "isRequired": true,
+        "codeReference": "s.295-605-4c-2"
+      },
+      {
+        "rule": "Each principal building on a lot adjacent to a public sidewalk shall be served by a clearly identifiable walkway leading from the public sidewalk to the entrance of the building.",
+        "isRequired": true,
+        "codeReference": "s.295-605-4d"
+      },
+      {
+        "rule": "All required pedestrian access ways shall be paved with non-asphalt materials.",
+        "isRequired": true,
+        "codeReference": "s.295-605-4d-2"
+      },
+      {
+        "rule": "All required pedestrian access ways shall be at least 5 feet in width.",
+        "isRequired": true,
+        "codeReference": "s.295-605-4d-3"
+      }
+    ],
+    "bestPractices": [
+      "Design vehicular access drives to resemble streets with driving lanes and pedestrian sidewalks.",
+      "Ensure clear pedestrian access points across vehicular drive-thru lanes.",
+      "Place pedestrian access paths perpendicular to main entrances in large retail parking lots to keep pedestrians off driving lanes.",
+      "Use curb bump-outs to narrow streets and accommodate pedestrians.",
+      "Utilize non-asphalt materials to clearly identify pedestrian access paths."
+    ],
+    "illustrations": [
+      "Vehicular access drive designed similar to a street with driving lanes and pedestrian sidewalks.",
+      "Clear pedestrian access point across a McDonald's vehicular drive-thru lane.",
+      "Large-format retail parking lot with pedestrian access paths perpendicular to main entrances.",
+      "Street narrowing via curb bump-outs to accommodate pedestrians.",
+      "Pedestrian access point connecting public sidewalk to retail entrance, using non-asphalt materials."
+    ],
+    "relatedTopics": [
+      "site_layout",
+      "pedestrian_access",
+      "streetscape"
+    ],
+    "triggers": [
+      "access drive",
+      "driveway",
+      "sidewalk",
+      "pedestrian access",
+      "curb cut",
+      "vehicular access",
+      "parking lot",
+      "walkway"
+    ],
+    "enrichedAt": "2026-01-27T16:32:25.330Z"
+  },
+  {
+    "id": "citywide",
+    "url": "https://city.milwaukee.gov/Designguidelines/Citywide.htm",
+    "filename": "Citywide.md",
+    "category": "urban_design",
+    "subcategory": "web_content",
+    "enrichedAt": "2026-01-27T16:32:29.921Z",
+    "title": "Principles of Urban Design",
+    "topic": "site_layout",
+    "summary": "This guideline outlines principles for urban design in Milwaukee, focusing on neighborhood compatibility, pedestrian-friendly design, land use diversity, and transportation diversity. It emphasizes creating a cohesive, people-friendly environment that enhances the city's unique characteristics and quality of life.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [
+      "Relate to the physical character and scale of the neighborhood.",
+      "Enhance linkages to surrounding uses, especially public services and amenities.",
+      "Locate buildings to define street edges and corners.",
+      "Enliven street frontages to enhance the pedestrian experience.",
+      "Create a balanced circulation system that accommodates mobility choice (pedestrians, automobiles, bicycles, and transit)."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "pedestrian_access",
+      "land_use",
+      "transportation"
+    ],
+    "triggers": [
+      "neighborhood compatibility",
+      "pedestrian-friendly design",
+      "land use diversity",
+      "transportation diversity",
+      "urban form",
+      "building facades",
+      "circulation network",
+      "public realm"
+    ]
+  },
+  {
+    "id": "2011-05-09-milw-guidelines",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Streetscape/pdf/2011.05.09_Milw_Guidelines.pdf",
+    "filename": "2011.05.09_Milw_Guidelines.pdf",
+    "category": "urban_design",
+    "subcategory": "streetscape",
+    "title": "Streetscape Guidelines",
+    "topic": "streetscape",
+    "summary": "This guideline outlines principles and standards for streetscape design in Milwaukee. It covers organization, functional requirements, and specific elements like lighting, plantings, sidewalks, and furniture to enhance public spaces, promote pedestrian and bicycle access, and support economic development while considering maintenance and community involvement.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Maintain a minimum clear sidewalk width of 5 feet, with 3 feet required per ADA guidelines.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Ensure detectable warning surfaces comply with Federal ADA requirements. Finished detectable surface must contrast with the surrounding surface colors",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Tree grate openings must comply with ADA guidelines. Slots must not be more than 3/8\" wide.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "High-quality street trees must be selected for high salt tolerance, ease of maintenance, four-season color, flowering, and texture characteristics",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Design street lighting to meet current standards established by the Illuminating Engineering Society of North America (IESNA), with a minimum of 25 feet between trees and lights, and 40 feet between a light pole and traffic signal face.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "When existing bike lanes are present, streetscape improvements must carefully incorporate them into the design.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Design CPTED to promote real and perceived safety, visibility, and natural surveillance.",
+      "For wider sidewalks and greater comfort, use seating arrangements to improve the streetscape.",
+      "Use permeable pavements and biowales to decrease the flow of surface water and runoff.",
+      "Use standard components for streetscape furniture ease of maintenance and replacement",
+      "Coordinate all bed installations for proper head layout for cost savings and maintenance efficiencies"
+    ],
+    "illustrations": [
+      "Diagrams showing streetscape zones: sidewalk, parking, roadway.",
+      "Examples of different street furniture, such as benches, trash receptacles, bicycle racks, bus shelters, and planters.",
+      "Illustrations of proper and improper installation of unit pavers.",
+      "Schematic tree clearance zones at intersections and near light poles",
+      "Illustrations of various crosswalk designs using different materials."
+    ],
+    "relatedTopics": [
+      "landscaping",
+      "pedestrian_access",
+      "vehicle_access",
+      "lighting",
+      "signage",
+      "materials"
+    ],
+    "triggers": [
+      "streetscape improvement",
+      "sidewalk reconstruction",
+      "new construction",
+      "public space",
+      "commercial area",
+      "Business Improvement District",
+      "new development",
+      "street lighting"
+    ],
+    "enrichedAt": "2026-01-27T16:33:59.597Z"
+  },
+  {
+    "id": "introduction",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Streetscape/pdf/Introduction.pdf",
+    "filename": "Introduction.pdf",
+    "category": "urban_design",
+    "subcategory": "streetscape",
+    "title": "Milwaukee Streetscape Guidelines",
+    "topic": "streetscape",
+    "summary": "This document provides guidelines for planning and designing successful streetscapes in Milwaukee. It covers various elements like roadways, sidewalks, trees, lighting, and amenities, aiming to enhance the quality of life, strengthen the economy, and promote environmental benefits.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [
+      "Prioritize pedestrian area enhancements.",
+      "Balance costs and public amenities.",
+      "Coordinate with stakeholders for input and consensus.",
+      "Address maintenance concerns early in the design process.",
+      "Use standard streetscape elements from the City of Milwaukee palette."
+    ],
+    "illustrations": [
+      "Examples of historic and modern streetscapes in Milwaukee",
+      "Planter detail",
+      "Milwaukee sidewalks",
+      "Design concepts"
+    ],
+    "relatedTopics": [
+      "landscaping",
+      "pedestrian_access",
+      "bicycle_facilities",
+      "lighting"
+    ],
+    "triggers": [
+      "streetscape improvement",
+      "public way",
+      "sidewalk",
+      "street trees",
+      "street lighting",
+      "street furniture",
+      "Business Improvement District (BID)",
+      "commercial area"
+    ],
+    "enrichedAt": "2026-01-27T16:34:07.642Z"
+  },
+  {
+    "id": "organizingastreetscape",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Streetscape/pdf/OrganizingAStreetscape.pdf",
+    "filename": "OrganizingAStreetscape.pdf",
+    "category": "urban_design",
+    "subcategory": "streetscape",
+    "title": "Milwaukee Streetscape Guidelines",
+    "topic": "streetscape",
+    "summary": "This document provides guidelines for organizing and designing streetscapes in Milwaukee, covering elements such as street trees, lighting, furniture, pedestrian zones, and safety. It aims to enhance the public realm by considering factors like pedestrian comfort, accessibility, traffic flow, and crime prevention.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Ensure grade and cross-slope of walks are designed with low slopes to minimize instability.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Snow and ice removal must be done frequently to keep all walkways, corners and crosswalks easily accessible.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Provide lighting to clearly lit areas to promote real and perceived safety or visibility in an area.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Maintain property to establish a perception of safety, Proper and prompt maintenance helps to establish a perception of safety. A well-maintained area helps pedestrians to feel comfortable and encourages them to return to the area.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Design streets as Complete Streets to enable safe access for all users (pedestrians, bicyclists, motorists, and public transportation users).",
+      "Consider street diets to reduce unnecessary pavement width and reallocate space for bicycle lanes, parking lanes, or wider pedestrian zones.",
+      "Clearly designate accessible parking signs.",
+      "Use street trees in sufficient numbers to create a strong visual statement.",
+      "When possible design transit shelters with one or two supporting posts rather than four."
+    ],
+    "illustrations": [
+      "Diagrams illustrating the organization of streetscape zones (sidewalk, parking, roadway).",
+      "Illustrations of Fruin's Body Ellipse and levels of service.",
+      "Examples of utility gratings, improperly installed pavers, and improperly maintained elements.",
+      "Examples of adequate and inadequate crosswalks and driveways."
+    ],
+    "relatedTopics": [
+      "pedestrian_access",
+      "landscaping",
+      "bicycle_facilities",
+      "transit"
+    ],
+    "triggers": [
+      "streetscape design",
+      "sidewalk improvements",
+      "pedestrian safety",
+      "bicycle lanes",
+      "street lighting",
+      "street trees",
+      "public art",
+      "transit facilities"
+    ],
+    "enrichedAt": "2026-01-27T16:34:20.082Z"
+  },
+  {
+    "id": "combiningstreetscapeelements",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Streetscape/pdf/CombiningStreetscapeElements.pdf",
+    "filename": "CombiningStreetscapeElements.pdf",
+    "category": "urban_design",
+    "subcategory": "streetscape",
+    "title": "Milwaukee Streetscape Guidelines",
+    "topic": "streetscape",
+    "summary": "This guideline provides guidance on combining streetscape elements in Milwaukee, covering budgets, maintenance, tree clearance zones, and design layouts. It offers examples for different sidewalk widths, addressing elements like lighting, trees, plantings, and paving materials.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "At corners, near-side tree clearance must be at least 40 feet from the property line.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "At corners, far-side tree clearance must be at least 20 feet from the property line.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "There should be a 20-foot tree clearance from street light poles.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Consider maintenance costs when selecting streetscape elements.",
+      "Use higher performance paving systems to reduce long-term maintenance.",
+      "Utilize stock items over custom items for easier replacement.",
+      "Balance aesthetics with budget and maintenance considerations.",
+      "Blend design considerations with the overall desires of the City and BIDs."
+    ],
+    "illustrations": [
+      "Combining Streetscape Elements with photographs showing examples.",
+      "Intricate landscapes require higher levels of maintenance.",
+      "Custom elements require high-quality materials to last.",
+      "Tree clearance zones and pedestrian eddy zones at intersections.",
+      "Intersection clearance zones.",
+      "Tree clearance zones at light poles.",
+      "Opposite light pole and tree layout.",
+      "Alternating light pole and tree layout.",
+      "Streetscape master plan example.",
+      "Various streetscape concepts for sidewalk widths less than 9 feet, between 9 and 12 feet, and greater than 12 feet."
+    ],
+    "relatedTopics": [
+      "landscaping",
+      "pedestrian_access",
+      "site_layout"
+    ],
+    "triggers": [
+      "streetscape design",
+      "sidewalk improvements",
+      "street trees",
+      "street lighting",
+      "paving materials",
+      "public art",
+      "intersection design",
+      "sidewalk cafe"
+    ],
+    "enrichedAt": "2026-01-27T16:35:30.719Z"
+  },
+  {
+    "id": "streetscape-guidelines",
+    "url": "https://city.milwaukee.gov/Designguidelines/Streetscape-Guidelines.htm",
+    "filename": "Streetscape-Guidelines.md",
+    "category": "urban_design",
+    "subcategory": "web_content",
+    "enrichedAt": "2026-01-27T16:35:36.179Z",
+    "title": "Milwaukee Streetscape Guidelines",
+    "topic": "streetscape",
+    "summary": "These guidelines provide a coordinating document for designing and implementing streetscape projects in Milwaukee. They offer a \"kit of parts\" of standard streetscape elements, review landscape design issues, outline the approval process, and give an overview of maintenance responsibilities. Well-designed streetscape projects look good, improve quality of life, enhance business opportunities, increase property values, and have a positive environmental effect.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [
+      "Well-designed streetscapes should enliven shopping districts and neighborhoods.",
+      "Projects should provide enhanced design and engineering that contributes to an improved quality of life.",
+      "Designs should consider increased pedestrian traffic to enhance business opportunities and economic development.",
+      "Streetscapes should add to property values and provide a catalyst to strengthen the economy.",
+      "Projects should utilize trees and plantings to increase storm water retention and help mitigate the urban heat island."
+    ],
+    "illustrations": [
+      "Lighting setting the night-time rhythm.",
+      "Street trees setting the day-time rhythm.",
+      "Street furniture adding texture to the streetscape.",
+      "Outdoor cafe corral with wood planters and enclosures."
+    ],
+    "relatedTopics": [
+      "landscaping",
+      "pedestrian_access",
+      "bicycle_facilities",
+      "site_layout"
+    ],
+    "triggers": [
+      "streetscape design",
+      "streetscape projects",
+      "business improvement districts",
+      "community groups",
+      "urban planners",
+      "landscape design",
+      "streetscape elements",
+      "public realm"
+    ]
+  },
+  {
+    "id": "eastsidebid20guidelines",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Northeast/pdfs/EastSideBID20Guidelines.pdf",
+    "filename": "EastSideBID20Guidelines.pdf",
+    "category": "design_guidelines",
+    "subcategory": "general",
+    "enrichedAt": "2026-01-27T16:35:54.116Z",
+    "title": "East Side Business Improvement District #20 Architectural Review Board Design Guidelines",
+    "topic": "streetscape",
+    "summary": "These guidelines define urban and architectural design objectives for the East Side Business Improvement District #20 in Milwaukee.  The goal is to maximize real estate investment and enhance the District as a destination by focusing on architectural features, urban design, and street edge guidelines.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Building entries in commercial blocks must be directly from the street.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Buildings should be built along the street edge at the property line(s) except as provided for in Section IV.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "At a rate of one large tree per 8 parking stalls planted directly in the ground, surface parking lots should provide trees for shading of the paving.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Streetfront openings on arcade frontages must be 10 feet clear.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Bulkheads should be installed at the base of storefronts.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Provide native plants for any landscaping.",
+        "isRequired": true,
+        "codeReference": "City of Milwaukee parking lot edge standards per code section 295-405"
+      }
+    ],
+    "bestPractices": [
+      "Strive to achieve a contemporary expression in new buildings",
+      "Compose new elevations that recognize the horizontal regulating lines in adjacent significant facades and create visual relationships and transitions relating the new to the old in noticeable ways",
+      "Maximize the transparency of windows.",
+      "Use natural materials rich in color & grain.",
+      "Incorporate public art in the building design.",
+      "Incorporate surface relief to add visual interest."
+    ],
+    "illustrations": [
+      "Examples of massing, wall openings, ways of dressing the building, how a building meets the ground, roof and sky silhouetting, use of projected elements, and site design."
+    ],
+    "relatedTopics": [
+      "landscaping",
+      "facades",
+      "signage",
+      "lighting",
+      "urban design"
+    ],
+    "triggers": [
+      "new construction",
+      "exterior rehabilitation",
+      "reconstruction",
+      "building modifications",
+      "building permit",
+      "Commercial Building",
+      "Urban Design"
+    ]
+  },
+  {
+    "id": "thirdwarddesign",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/ThirdWardDesign/ThirdWardDesign.pdf",
+    "filename": "ThirdWardDesign.pdf",
+    "category": "design_guidelines",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:36:36.044Z",
+    "title": "The Historic Third Ward Neighborhood Design Guidelines",
+    "topic": "facades",
+    "summary": "These guidelines aim to preserve the historic architectural character of the Third Ward in Milwaukee, focusing on building facades. It covers topics like facade height, design composition (base, middle, top), materials, windows, storefronts, signage, and integration with the streetscape to maintain a cohesive and visually appealing urban environment.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "The overall maximum height of a building, not including unoccupied elements, shall not exceed the width of the street right of way.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "The height of street facades along the property line shall not be greater than seven stories and not less than 30'.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Buildings should establish a continuous edge at the property line.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "No additional demolition of historic building facades of pivotal or contributing buildings will be permitted.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Building elevations should express a building module similar to the typical historical lot sizes of the Third Ward District.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "The architectural composition of building elevations shall express base, middle, and top articulation on all street facades.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Gabled roof forms shall not be expressed on the street facade.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Major facades and entrances should face the major streets, and access to service bays and to parking should be from secondary streets or alleys.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Street edge continuity shall be re-established by infill development of vacant sites.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "The height of buildings within the Historic District shall be contained within the range of 70% to 130% of adjacent historic building heights along the street edge, but not less than three stories (30 feet).",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "The base of the building on the street facade should be transparent",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "The addition of projecting balconies to street facades of pivotal or contributing buildings is prohibited.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "The vertical extension of facades classified as pivotal by the historic district designation is prohibited.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Exterior fire escapes, ladders, standpipes, vents, etc. should be well maintained and painted to blend with the color of the building or painted black.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "New rooftop HVAC units require screening.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "The replacement of windows and window openings should replicate the original configuration of solid (structure) to void (window). The blocking up of window openings or any portion of the window opening on the street facade is not permitted.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "All window air conditioners shall be relegated to secondary facades of the building.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Storefronts shall not have blank street facades.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Fixed, collapsible and rolling security grills and gates are prohibited on street and riverfront display windows and doors.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "New buildings should be designed using similar materials (brick, metal, glass, stone) to those used on existing buildings and respect the mass, rhythm, height, robust scale, and ornamentation of existing buildings.",
+      "Existing low-rise manufacturing buildings should be aggressively redesigned to add visual interest to the street.",
+      "For new construction, balconies should be recessed or semi-recessed into the street facades.",
+      "Riverside facades should follow design guidelines established for street facades.",
+      "The height of buildings outside the Historic District shall comply with the guidelines on page 14."
+    ],
+    "illustrations": [
+      "Diagrams of desirable and undesirable facades",
+      "Examples of acceptable and unacceptable materials",
+      "Diagrams for massing and scale"
+    ],
+    "relatedTopics": [
+      "site_layout",
+      "materials",
+      "signage",
+      "streetscape",
+      "residential_design"
+    ],
+    "triggers": [
+      "New construction",
+      "Facade renovation",
+      "Historic building",
+      "Third Ward",
+      "Commercial building",
+      "Multi-family housing",
+      "Infill development",
+      "Storefront alteration"
+    ]
+  },
+  {
+    "id": "updatedvalleysustainabledesignguidelinespdf2",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Menomonee-Valley/UpdatedValleySustainableDesignGuidelinesPDF2.pdf",
+    "filename": "UpdatedValleySustainableDesignGuidelinesPDF2.pdf",
+    "category": "design_guidelines",
+    "subcategory": "signage",
+    "title": "Sustainable Design Guidelines for the Menomonee River Valley, Milwaukee, Wisconsin",
+    "topic": "site_layout",
+    "summary": "These sustainable design guidelines address various aspects of site and building design in the Menomonee River Valley to promote environmental responsibility and energy efficiency. The guidelines include requirements and recommendations for site design, building construction, materials, and operations & maintenance.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Maintain a ratio of total gross floor area to the total lot area of no less than 33% for initial site build-out.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Along the primary street, build to street-fronting property line. If not feasible the setback shall not be more than 10 feet.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Surface parking lots shall have interior landscaping requirements in accordance with Sec. 295-405-2 of the City of Milwaukee Zoning Code.",
+        "isRequired": true,
+        "codeReference": "Section 295-405-2"
+      },
+      {
+        "rule": "Implement a Construction or Demolition (if applicable) Waste Management Plan to recycle and/or salvage at least 75% of construction, demolition and land clearing waste.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Follow Wisconsin Administrative Code NR 216 and City of Milwaukee Chapter 290 to control erosion regardless of the size of land disturbance.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Demonstrate ventilation compliance at a worst-case condition (i.e. supply fan at minimum speed and outdoor air damper at minimum position).",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Utilize beneficial reuse practices with construction materials, including soils.",
+      "Use locally sourced and/or recycled materials for building and site signage.",
+      "Install utility lines underground when feasible.",
+      "Connect to the regional stormwater treatment area or coordinate with neighboring parcels to create a regional stormwater management system.",
+      "Utilize on-street parking and shared parking in all parking calculations to minimize the area of surface parking on site.",
+      "Use high efficiency LED lighting or plasma lighting."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "landscaping",
+      "facades",
+      "parking",
+      "materials",
+      "energy_efficiency"
+    ],
+    "triggers": [
+      "new construction",
+      "redevelopment",
+      "site design",
+      "building design",
+      "stormwater management",
+      "parking areas",
+      "energy efficiency"
+    ],
+    "enrichedAt": "2026-01-27T16:36:47.001Z"
+  },
+  {
+    "1": {
+      "title": "Commercial Design Guidelines",
+      "topic": "facades",
+      "summary": "These guidelines outline requirements and recommendations for building facades, aiming to enhance visual appeal and street interaction. Key considerations include street-facing facades, material detailing, delineation between floor levels, and roof cornice lines.",
+      "applicableZoningDistricts": [
+        "all"
+      ],
+      "requirements": [
+        {
+          "rule": "The facade shall be oriented to the main arterial street with the primary entrances and storefronts facing that street.",
+          "isRequired": true,
+          "codeReference": null
+        },
+        {
+          "rule": "Finished elevations should wrap around corners where visible from principle streets.",
+          "isRequired": true,
+          "codeReference": null
+        },
+        {
+          "rule": "Where the differing materials of a façade meet up, there should be a significant change in surface plane, likely 4-8 inches in difference.",
+          "isRequired": true,
+          "codeReference": null
+        },
+        {
+          "rule": "The area where the first-floor commercial base meets the second floor, residential, or other use, should be clearly defined with a strong cornice, sign band or other significant element.",
+          "isRequired": true,
+          "codeReference": null
+        },
+        {
+          "rule": "Traditional commercial street buildings typically have a perimeter parapet which helps define the building stylistically.",
+          "isRequired": true,
+          "codeReference": null
+        }
+      ],
+      "bestPractices": [
+        "Avoid walls that have different materials and elements that occur in the same plane, as they will appear flat and lifeless.",
+        "First Floor Façade Materials should be high quality, durable finish materials such as face brick and stone.",
+        "Buildings should have entrances on the primary arterial street frontage.",
+        "Entrances should generally be recessed within the façade so that the door swing does not obstruct pedestrian movement on the public sidewalk.",
+        "Storefront windows must always meet minimum zoning code requirements, however, proposals are encouraged to maximize the glazing area as reasonably as possible."
+      ],
+      "illustrations": [],
+      "relatedTopics": [
+        "materials",
+        "entrances",
+        "signage"
+      ],
+      "triggers": [
+        "facade",
+        "street facing",
+        "material",
+        "cornice",
+        "building entrance",
+        "storefront windows",
+        "signage"
+      ]
+    },
+    "2": {
+      "title": "Commercial Design Guidelines",
+      "topic": "signage",
+      "summary": "These guidelines offer standards for building signage to ensure it complements the facade design and meets zoning requirements. The focus is on integrating signage with the building's architecture and adhering to specific criteria for illuminated signs and permitted sign types.",
+      "applicableZoningDistricts": [
+        "all"
+      ],
+      "requirements": [
+        {
+          "rule": "Building signage should be integral to the design of the façade, place in the sign band above the first-floor windows or on blank wall areas specifically intended for signage.",
+          "isRequired": true,
+          "codeReference": null
+        },
+        {
+          "rule": "Signage, which is considered Type A by the zoning code, can be internally illuminated individual letter signs or external illuminated traditional board signs.",
+          "isRequired": true,
+          "codeReference": null
+        },
+        {
+          "rule": "No internally illuminated box signs are permitted.",
+          "isRequired": true,
+          "codeReference": null
+        }
+      ],
+      "bestPractices": [],
+      "illustrations": [],
+      "relatedTopics": [
+        "facades",
+        "wall_signs"
+      ],
+      "triggers": [
+        "building signage",
+        "sign band",
+        "illuminated signs",
+        "Type A signage",
+        "wall signs",
+        "storefront signage"
+      ]
+    },
+    "3": {
+      "title": "Commercial Design Guidelines",
+      "topic": "landscaping",
+      "summary": "These guidelines outline standards for parking lot landscaping and screening. They aim to enhance neighborhood aesthetics, promote environmental sustainability, and provide clear requirements for landscape buffers, street trees, and overall site greenery.",
+      "applicableZoningDistricts": [
+        "all"
+      ],
+      "requirements": [
+        {
+          "rule": "Parking lots should meet the minimum screening and landscaping standards of Chapter 295-405.",
+          "isRequired": true,
+          "codeReference": "Chapter 295-405"
+        },
+        {
+          "rule": "New or substantially improved parking lots over 1000 sq. ft. in size will likely require a storm sewer inlet or some other approved means to capture storm water.",
+          "isRequired": true,
+          "codeReference": null
+        }
+      ],
+      "bestPractices": [],
+      "illustrations": [],
+      "relatedTopics": [
+        "parking_lot_landscaping",
+        "site_layout"
+      ],
+      "triggers": [
+        "parking lot",
+        "landscape screening",
+        "storm water",
+        "street trees",
+        "buffer landscaping"
+      ]
+    },
+    "id": "commercial-design-guidelines-10-8-2023",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/realestate/CommercialBldgsforSale/Commercial-Design-Guidelines-10.8.2023.pdf",
+    "filename": "Commercial-Design-Guidelines-10.8.2023.pdf",
+    "category": "design_guidelines",
+    "subcategory": "streetscape",
+    "enrichedAt": "2026-01-27T16:37:03.297Z",
+    "title": "Commercial Design Guidelines",
+    "topic": "site_layout",
+    "summary": "These guidelines focus on site layout and building placement to enhance the streetscape and pedestrian experience. They address street edge conditions, setbacks, and the location of active uses, emphasizing building frontage alignment and pedestrian-friendly design.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Buildings should come up to the principle street property line and extend along the entire street frontage as far as practicable.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Buildings should generally be up to the street property line of the secondary street and should not be more than 5' from that line.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Area at the interiors of buildings along street frontage should be active uses as opposed to mechanical, utilitarian and parking uses.",
+        "isRequired": true,
+        "codeReference": "MCO 295-201-636"
+      },
+      {
+        "rule": "Parking should be predominantly behind the building.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Retail parking may not exceed 3.5 spaces per 1000 sq. ft. of floor area devoted to retail.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Locate parking off the rear alley unless a unique site layout can achieve better site utilization and building design.",
+      "Vehicle access to the parking should be from the least prominent, least pedestrian street.",
+      "Access point for structured parking should preferably be from the rear or alley side of the building.",
+      "When no rear and alley options exist and access must be from the less pedestrian street, any door should be recessed from the façade by at least 4' feet.",
+      "Provisions should be made for pedestrian safety where the drive crosses the public sidewalk, and the curb cut should be minimal in size."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "parking",
+      "vehicle_access",
+      "pedestrian_access",
+      "streetscape"
+    ],
+    "triggers": [
+      "mixed-use building",
+      "commercial building",
+      "residential building",
+      "street frontage",
+      "parking location",
+      "parking access",
+      "structured parking"
+    ]
+  },
+  {
+    "id": "milwaukeelandscapeguide",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/zoning/MilwaukeeLandscapeGuide.pdf",
+    "filename": "MilwaukeeLandscapeGuide.pdf",
+    "category": "design_guidelines",
+    "subcategory": "parking_landscaping",
+    "title": "Landscape Design Guide for Parking Lots in the City of Milwaukee",
+    "topic": "parking_lot_landscaping",
+    "summary": "This guide provides landscaping and screening requirements for parking lots in the City of Milwaukee, specifically addressing landscaping standards as part of the City's zoning code and sustainable landscaping solutions. It covers options for screening parking lots from public streets and residential districts, parking lot landscaping requirements, and retrofitting existing sites.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "Provide landscaping elements between parking lots and streets to define the public realm, enhance the appearance of commercial districts and mitigate the visual impact of parking lots in neighborhoods.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "Low-level plants and/or fences or walls must provide a continuous edge below 3 feet in height when screening parking lots from streets.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "Closely spaced canopy trees must provide a continuous edge above 6 feet in height when screening parking lots from streets.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "When screening from residential districts, eye-level plants and/or fences or walls must provide a continuous opaque edge at least 4 feet in height.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "Provide a minimum amount of trees and landscape areas at all parking lots.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "1 canopy tree and 100 square feet of landscaped area is required for every 4 parking spaces or fraction thereof.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "Canopy trees, landscape areas and green infrastructure must be located within 50 feet of the parking lot in order to count as parking lot landscaping.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "No portion of a parking lot may be more than 100 feet from a landscape area or more than 150 feet from a canopy tree.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "Large parking fields must be divided into areas of no more than 50,000 square feet each through the use landscaped islands, peninsulas and/or medians.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "Planting areas for trees must have a minimum surface area of 100 square feet per tree.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      },
+      {
+        "rule": "Trees must be at least 2.5 inches in diameter at the time of planting.",
+        "isRequired": true,
+        "codeReference": "Section 295-405"
+      }
+    ],
+    "bestPractices": [
+      "Consider the selection of native or drought-tolerant plant species to minimize water usage and maintenance.",
+      "Utilize green infrastructure elements such as permeable paving and bioswales to manage stormwater runoff and improve water quality.",
+      "Design landscape areas to provide shade and reduce the heat island effect.",
+      "Incorporate diverse plant species to enhance biodiversity and create visual interest.",
+      "Where feasible, consider retrofitting existing parking lots to include additional landscaping and green infrastructure."
+    ],
+    "illustrations": [
+      "Diagrams illustrating options for screening parking lots from streets using various combinations of trees, shrubs, fences, and walls.",
+      "Diagrams illustrating options for screening parking lots from residential districts using evergreen trees, tall shrubs, fences and walls.",
+      "Images showcasing green infrastructure features such as permeable paving, rain gardens, and bioswales.",
+      "Illustrations demonstrating how to remove pavement and create landscaped areas in existing parking lots."
+    ],
+    "relatedTopics": [
+      "landscaping",
+      "site_layout",
+      "streetscape"
+    ],
+    "triggers": [
+      "parking lot",
+      "surface parking",
+      "landscape buffer",
+      "screening requirements",
+      "parking lot landscaping",
+      "green infrastructure",
+      "residential district",
+      "public street"
+    ],
+    "enrichedAt": "2026-01-27T16:37:28.261Z"
+  },
+  {
+    "id": "goodforbusiness-grayscale1",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityHPC/Books/GoodForBusiness-grayscale1.pdf",
+    "filename": "GoodForBusiness-grayscale1.pdf",
+    "category": "design_guidelines",
+    "subcategory": "parking_landscaping",
+    "title": "Good for Business: A Guide to Renovating the Exteriors of Older Commercial Buildings",
+    "topic": "facades",
+    "summary": "This document provides guidance on rehabilitating the exteriors of older commercial buildings, with a focus on preserving original features and architectural styles. It outlines best practices for storefronts, masonry, roofing, signage, and other exterior elements, emphasizing sensitive rehabilitation over unsympathetic modernizations.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [
+      {
+        "rule": "When selecting materials and fittings, choose those that are historically appropriate for the building's construction date.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Ensure storefront repairs or reconstruction are sympathetic to the original design by referencing available resources.",
+        "isRequired": true,
+        "codeReference": null
+      },
+      {
+        "rule": "Preserve existing historic features.",
+        "isRequired": true,
+        "codeReference": null
+      }
+    ],
+    "bestPractices": [
+      "Research the building's history to inform design decisions and ensure accurate period representation.",
+      "Retain original materials whenever possible, opting for repair and restoration over replacement.",
+      "Address essential maintenance items like roofing and weatherproofing before pursuing aesthetic enhancements.",
+      "Select signage that complements the building's architecture and avoids clutter or obscuring details.",
+      "Consult with the Milwaukee Historic Preservation Commission for design review and guidance on appropriateness."
+    ],
+    "illustrations": [
+      "Drawings illustrating storefront features and terminology.",
+      "Before-and-after photos demonstrating the impact of insensitive remodelings.",
+      "Photos showcasing examples of architectural styles and building components (cornices, windows, signage)."
+    ],
+    "relatedTopics": [
+      "signage",
+      "materials",
+      "streetscape"
+    ],
+    "triggers": [
+      "commercial building",
+      "facade renovation",
+      "storefront",
+      "historic building",
+      "architectural style",
+      "preservation",
+      "rehabilitation",
+      "signage"
+    ],
+    "enrichedAt": "2026-01-27T16:38:38.628Z"
+  },
+  {
+    "id": "designguidelines",
+    "url": "https://city.milwaukee.gov/DCD/Planning/UrbanDesign/DesignGuidelines",
+    "filename": "DesignGuidelines.md",
+    "category": "design_guidelines",
+    "subcategory": "web_content",
+    "enrichedAt": "2026-01-27T16:38:45.349Z",
+    "title": "Design Guidelines",
+    "topic": "site_layout",
+    "summary": "These design guidelines provide urban design principles for specific neighborhoods or site design elements. Some documents include elements required by zoning, in addition to recommended information highlighting best practices. The guidelines cover various aspects like neighborhood-specific designs, citywide urban design principles, and streetscape guidelines.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [
+      "Refer to East Side - North Avenue guidelines for designs in that area (subject to East Side Architectural Review Board).",
+      "Refer to Third Ward guidelines for designs in that area (subject to Third Ward Architectural Review Board).",
+      "Consult Citywide Urban Design Principles for general guidance.",
+      "Use Streetscape Guidelines for streetscape design.",
+      "Consider Landscape Design Guide for Parking Lots for landscaping."
+    ],
+    "illustrations": [],
+    "relatedTopics": [
+      "streetscape",
+      "landscaping",
+      "facades"
+    ],
+    "triggers": [
+      "urban design",
+      "site design",
+      "neighborhood design",
+      "streetscape design",
+      "commercial development",
+      "parking lots",
+      "building renovation"
+    ]
+  },
+  {
+    "id": "catalyticmapandprojects",
+    "url": "https://city.milwaukee.gov/ImageLibrary/Groups/cityDCD/planning/plans/Area/CatalyticProjects/CatalyticMapandProjects.pdf",
+    "filename": "CatalyticMapandProjects.pdf",
+    "category": "design_guidelines",
+    "subcategory": "signage",
+    "enrichedAt": "2026-01-27T16:38:54.961Z",
+    "title": "City of Milwaukee Area Plan Catalytic Projects",
+    "topic": null,
+    "summary": "This document lists area plan catalytic projects in the city of Milwaukee. It shows the project name, location, current use, and proposed use for each project.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [],
+    "illustrations": [],
+    "relatedTopics": [],
+    "triggers": [
+      "area plan",
+      "catalytic project",
+      "revitalization",
+      "land use",
+      "proposed use",
+      "development",
+      "city planning"
+    ]
+  },
+  {
+    "id": "urbandesignresources",
+    "url": "https://city.milwaukee.gov/DCD/Planning/UrbanDesign/UrbanDesignResources",
+    "filename": "UrbanDesignResources.md",
+    "category": "design_guidelines",
+    "subcategory": "web_content",
+    "enrichedAt": "2026-01-27T16:38:59.999Z",
+    "title": "Urban Design Resources",
+    "topic": "site_layout",
+    "summary": "The Urban Design Resources establish a framework for urban design principles, promoting high quality, context-sensitive, sustainable, and market-competitive designs. The resources include elements required by zoning and information highlighting best practices to sustain, restore, and enhance the livability and character of Milwaukee’s neighborhoods.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [
+      "New development should be compatible with the pattern of its surrounding context.",
+      "Locate buildings to define street edges and corners.",
+      "Encourage a compatible mix of uses at the neighborhood scale",
+      "Create a balanced circulation system that accommodates mobility choice (pedestrians, automobiles, bicycles and transit)"
+    ],
+    "illustrations": [
+      "Various images displaying Marquette Engineering, MSOE, and Urban Design Cover Page."
+    ],
+    "relatedTopics": [
+      "landscaping",
+      "facades",
+      "pedestrian_access",
+      "vehicle_access"
+    ],
+    "triggers": [
+      "urban design",
+      "site development",
+      "neighborhood compatibility",
+      "pedestrian friendly design",
+      "land use diversity",
+      "transportation diversity",
+      "zoning compliance",
+      "area plans"
+    ]
+  },
+  {
+    "1": {
+      "title": "Urban Design",
+      "topic": "site_layout",
+      "summary": "This section of the City of Milwaukee website outlines the city's urban design principles and resources. It focuses on creating a vibrant, walkable city with cohesive mixed-use neighborhoods connected by a functional network of streets and blocks.",
+      "applicableZoningDistricts": [
+        "all"
+      ],
+      "requirements": [],
+      "bestPractices": [],
+      "illustrations": [],
+      "relatedTopics": [
+        "streetscape",
+        "pedestrian_access",
+        "bicycle_facilities"
+      ],
+      "triggers": [
+        "urban design",
+        "site layout",
+        "mixed-use neighborhoods",
+        "walkable city",
+        "design guidelines",
+        "urban design resources",
+        "city design review"
+      ]
+    },
+    "id": "urbandesign",
+    "url": "https://city.milwaukee.gov/DCD/Planning/UrbanDesign",
+    "filename": "UrbanDesign.md",
+    "category": "design_guidelines",
+    "subcategory": "web_content",
+    "enrichedAt": "2026-01-27T16:39:06.479Z",
+    "title": "City of Milwaukee Website Content",
+    "topic": null,
+    "summary": "This document represents the content and structure of the City of Milwaukee's official website. It provides a directory of services, departments, and resources available to residents, businesses, and visitors.",
+    "applicableZoningDistricts": [
+      "all"
+    ],
+    "requirements": [],
+    "bestPractices": [],
+    "illustrations": [],
+    "relatedTopics": [],
+    "triggers": [
+      "city services",
+      "city departments",
+      "elected officials",
+      "business resources",
+      "resident services",
+      "news and events"
+    ]
+  }
+]

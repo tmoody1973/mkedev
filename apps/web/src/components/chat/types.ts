@@ -31,6 +31,11 @@ export type GenerativeCardType =
   | 'development-sites-list'
   | 'vacant-lot'
   | 'vacant-lots-list'
+  | 'permit-forms-list'
+  | 'permit-recommendations'
+  | 'permit-form-details'
+  | 'design-guidelines-list'
+  | 'design-guideline-details'
 
 /**
  * Generative card type for rendering UI components within messages.
@@ -90,6 +95,119 @@ export interface HomeListItemData {
  */
 export interface HomesListCardData {
   homes: HomeListItemData[]
+}
+
+// =============================================================================
+// Permit Form Card Data Interfaces
+// =============================================================================
+
+/**
+ * Permit form item for permit-forms-list card.
+ */
+export interface PermitFormListItem {
+  id: string
+  officialName: string
+  purpose: string
+  category: string
+  subcategory: string
+  url: string
+  estimatedCompletionTime?: string
+  fees?: string | null
+}
+
+/**
+ * Data interface for permit-forms-list card type.
+ */
+export interface PermitFormsListCardData {
+  forms: PermitFormListItem[]
+  query?: string
+  totalResults?: number
+}
+
+/**
+ * Data interface for permit-recommendations card type.
+ */
+export interface PermitRecommendationsCardData {
+  recommendations: PermitFormListItem[]
+  projectDescription?: string
+  projectType?: string
+}
+
+/**
+ * Data interface for permit-form-details card type.
+ */
+export interface PermitFormDetailsCardData {
+  id: string
+  officialName: string
+  purpose: string
+  category: string
+  subcategory: string
+  url: string
+  filename: string
+  whenRequired: string[]
+  prerequisites: string[]
+  relatedForms: string[]
+  estimatedCompletionTime: string
+  submissionMethod: string[]
+  fees: string | null
+  applicableProjectTypes: string[]
+  zoningDistricts: string[]
+  triggers: string[]
+}
+
+// =============================================================================
+// Design Guideline Card Data Interfaces
+// =============================================================================
+
+/**
+ * Design guideline item for design-guidelines-list card.
+ */
+export interface DesignGuidelineListItem {
+  id: string
+  title: string
+  topic: string
+  summary: string
+  category: string
+  subcategory: string
+  url: string
+}
+
+/**
+ * Data interface for design-guidelines-list card type.
+ */
+export interface DesignGuidelinesListCardData {
+  guidelines: DesignGuidelineListItem[]
+  query?: string
+  totalResults?: number
+}
+
+/**
+ * Design requirement in guideline details.
+ */
+export interface DesignRequirementData {
+  rule: string
+  isRequired: boolean
+  codeReference?: string | null
+}
+
+/**
+ * Data interface for design-guideline-details card type.
+ */
+export interface DesignGuidelineDetailsCardData {
+  id: string
+  title: string
+  topic: string
+  summary: string
+  category: string
+  subcategory: string
+  url: string
+  filename: string
+  applicableZoningDistricts: string[]
+  requirements: DesignRequirementData[]
+  bestPractices: string[]
+  illustrations: string[]
+  relatedTopics: string[]
+  triggers: string[]
 }
 
 // =============================================================================

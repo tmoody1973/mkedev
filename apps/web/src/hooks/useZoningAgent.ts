@@ -406,6 +406,144 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
         }
         break;
       }
+
+      // ========================================================================
+      // Permit Forms & Design Guidelines Tools
+      // ========================================================================
+
+      case 'search_permit_forms': {
+        const r = result as {
+          success?: boolean;
+          forms?: Array<{
+            id: string;
+            name: string;
+            purpose: string;
+            url: string;
+            projectTypes?: string[];
+            estimatedTime?: string;
+          }>;
+          count?: number;
+        };
+        if (r.success && r.forms && r.forms.length > 0) {
+          cards.push({
+            type: 'permit-forms-list',
+            data: {
+              forms: r.forms.map((f) => ({
+                id: f.id,
+                name: f.name,
+                purpose: f.purpose,
+                url: f.url,
+                projectTypes: f.projectTypes,
+                estimatedTime: f.estimatedTime,
+              })),
+            },
+          });
+        }
+        break;
+      }
+
+      case 'recommend_permits_for_project': {
+        const r = result as {
+          success?: boolean;
+          required?: Array<{ id: string; name: string; purpose: string; url: string }>;
+          recommended?: Array<{ id: string; name: string; purpose: string; url: string }>;
+          optional?: Array<{ id: string; name: string; purpose: string; url: string }>;
+        };
+        if (r.success) {
+          cards.push({
+            type: 'permit-recommendations',
+            data: {
+              required: r.required || [],
+              recommended: r.recommended || [],
+              optional: r.optional || [],
+            },
+          });
+        }
+        break;
+      }
+
+      case 'get_permit_form_details': {
+        const r = result as {
+          success?: boolean;
+          form?: {
+            id: string;
+            name: string;
+            purpose: string;
+            whenRequired: string[];
+            prerequisites: string[];
+            estimatedTime: string;
+            submissionMethods: string[];
+            fees: string | null;
+            fields: Array<{
+              name: string;
+              type: string;
+              required: boolean;
+              description: string;
+              autoFillable: boolean;
+            }>;
+            url: string;
+          };
+        };
+        if (r.success && r.form) {
+          cards.push({
+            type: 'permit-form-details',
+            data: r.form,
+          });
+        }
+        break;
+      }
+
+      case 'search_design_guidelines': {
+        const r = result as {
+          success?: boolean;
+          guidelines?: Array<{
+            id: string;
+            title: string;
+            topic: string;
+            summary: string;
+            url: string;
+            requirementsCount?: number;
+          }>;
+          count?: number;
+        };
+        if (r.success && r.guidelines && r.guidelines.length > 0) {
+          cards.push({
+            type: 'design-guidelines-list',
+            data: {
+              guidelines: r.guidelines,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'get_guideline_details': {
+        const r = result as {
+          success?: boolean;
+          guideline?: {
+            id: string;
+            title: string;
+            topic: string;
+            summary: string;
+            applicableZoning: string[];
+            requirements: Array<{
+              rule: string;
+              isRequired: boolean;
+              codeReference?: string;
+            }>;
+            bestPractices: string[];
+            relatedTopics: string[];
+            url: string;
+          };
+        };
+        if (r.success && r.guideline) {
+          cards.push({
+            type: 'design-guideline-details',
+            data: r.guideline,
+          });
+        }
+        break;
+      }
     }
   }
 

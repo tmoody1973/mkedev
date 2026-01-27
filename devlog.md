@@ -1976,4 +1976,106 @@ export const getByIdEnriched = query({
 
 ---
 
+## 2026-01-21 - Visualizer Zoom/Pan & Screenshot Persistence
+
+### Completed
+- [x] Add zoom/pan to VisualizerCanvas for accurate masking (scroll to zoom, space+drag to pan)
+- [x] Add zoom/pan to GenerationResult comparison view (synced zoom for both images)
+- [x] Add zoom controls to MaskToolbar (zoom in, zoom out, reset, percentage display)
+- [x] Fix uploaded images not saving to screenshot gallery
+- [x] Persist screenshots and visualizations to localStorage (survives page refresh)
+- [x] Add Gemini model fallback (gemini-2.5-flash-image-preview when primary fails)
+- [x] Add on-demand area plans fetching in ParcelCard
+- [x] Fix RAGResult type narrowing TypeScript error
+- [x] Add Sentry SDK for error and performance monitoring
+
+### Implementation Summary
+
+**Visualizer Zoom & Pan**
+
+Two-component zoom system for the AI Site Visualizer:
+
+| Component | Features |
+|-----------|----------|
+| `VisualizerCanvas` | Konva.js canvas with scroll zoom (0.5x-5x), space+drag pan, cursor-relative zoom |
+| `GenerationResult` | Comparison view with synced zoom for original/generated images |
+| `MaskToolbar` | Zoom controls (in/out/reset), percentage display, instruction hints |
+
+**Zoom Implementation:**
+```typescript
+// visualizerStore.ts - New state
+zoomLevel: number;  // 0.5 to 5
+panOffset: { x: number; y: number };
+
+// Actions
+setZoomLevel, zoomIn, zoomOut, resetZoom, setPanOffset
+```
+
+**Screenshot Gallery Persistence**
+
+| Issue | Solution |
+|-------|----------|
+| Uploaded images not saved | Added `addScreenshot()` call in ImageCapture on upload |
+| Screenshots lost on refresh | Added screenshots/visualizations to store's `partialize` |
+| Storage limits | Limited to 10 screenshots, 20 visualizations |
+
+**Gemini Model Fallback**
+
+```typescript
+// visualization/generate.ts
+const GEMINI_IMAGE_MODEL_PRIMARY = "gemini-3-pro-image-preview";
+const GEMINI_IMAGE_MODEL_FALLBACK = "gemini-2.5-flash-image-preview"; // Nano Banana
+
+// Nested retry: 3 attempts per model, 2 models total
+for (const currentModel of models) {
+  for (let attempt = 0; attempt < RETRIES_PER_MODEL; attempt++) {
+    // Try generation...
+  }
+}
+```
+
+**Area Plans On-Demand**
+
+ParcelCard now fetches area plans lazily when the tab is clicked:
+- Added `queryAreaPlans` action in ragV2.ts
+- ParcelCard uses `useAction` hook to fetch on tab activation
+- Shows loading spinner while fetching
+- Displays error state if fetch fails
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `visualizerStore.ts` | Added zoom/pan state, persist screenshots/visualizations |
+| `VisualizerCanvas.tsx` | Wheel zoom, space+drag pan, cursor-relative positioning |
+| `MaskToolbar.tsx` | Zoom controls (in/out/reset), percentage display |
+| `GenerationResult.tsx` | Synced zoom for side-by-side and slider views |
+| `ImageCapture.tsx` | Save uploaded images to gallery |
+| `visualization/generate.ts` | Model fallback with nested retry loop |
+| `ragV2.ts` | Added queryAreaPlans action |
+| `ParcelCard.tsx` | On-demand area plans fetching, fixed RAGResult types |
+
+### Git Commits
+
+```
+34c1aff feat(observability): Add Sentry SDK for error and performance monitoring
+a5b9361 fix(copilot): Fix RAGResult type narrowing in ParcelCard
+1e86cf4 feat(visualizer): Add zoom/pan, screenshot persistence, and model fallback
+```
+
+### Technical Notes
+
+1. **Zoom Transform** - Uses CSS transform with scale() and translate() for image containers
+2. **Cursor-Relative Zoom** - Canvas zooms toward mouse position, not center
+3. **Pan Gating** - Panning only enabled when zoom > 1x
+4. **localStorage Limits** - Large base64 images truncated to 10 screenshots to avoid quota errors
+5. **Type Narrowing** - RAGResult is discriminated union; use `!result.success` to narrow to error case
+
+### Next Up
+- [ ] Add Gemini Live voice interface
+- [ ] Production deployment preparation
+- [ ] Final hackathon submission materials
+
+---
+
 *Log entries below will be added as development progresses*

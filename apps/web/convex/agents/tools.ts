@@ -362,6 +362,104 @@ export const TOOL_DECLARATIONS = [
       required: ["lotId"],
     },
   },
+  // ---------------------------------------------------------------------------
+  // Permit Forms & Design Guidelines Tools
+  // ---------------------------------------------------------------------------
+  {
+    name: "search_permit_forms",
+    description:
+      "Search Milwaukee permit forms and applications by keyword. Use when users ask about permits, forms, applications, or paperwork needed for construction, renovation, home occupation, signs, variances, or other development projects.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query (e.g., 'home occupation', 'sign permit', 'variance', 'deck', 'ADU', 'building permit')",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "search_design_guidelines",
+    description:
+      "Search Milwaukee design guidelines by keyword. Use when users ask about design requirements, building standards, urban design rules, facade requirements, parking design, landscaping requirements, or signage regulations.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query (e.g., 'parking', 'facade', 'landscaping', 'signage', 'structured parking')",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "recommend_permits_for_project",
+    description:
+      "Get recommended permit forms based on project details. Use this when you understand what the user is planning to build, renovate, or change. Returns required, recommended, and optional forms organized by priority.",
+    parameters: {
+      type: "object",
+      properties: {
+        projectType: {
+          type: "string",
+          description: "Comma-separated project types: new_construction, renovation, addition, change_of_use, conversion, adu, deck, fence, garage, sign, home_occupation, variance, conditional_use, demolition",
+        },
+        description: {
+          type: "string",
+          description: "Free-text description of the project",
+        },
+        zoningDistrict: {
+          type: "string",
+          description: "Zoning district code if known (e.g., 'LB1', 'RM4', 'IO')",
+        },
+        hasParking: {
+          type: "boolean",
+          description: "Whether the project includes parking",
+        },
+        isResidential: {
+          type: "boolean",
+          description: "Whether the project is residential",
+        },
+        isCommercial: {
+          type: "boolean",
+          description: "Whether the project is commercial",
+        },
+      },
+      required: ["description"],
+    },
+  },
+  {
+    name: "get_permit_form_details",
+    description:
+      "Get full details about a specific permit form including all fields, requirements, fees, and submission methods. Use when a user wants to know more about a specific form or needs to fill it out.",
+    parameters: {
+      type: "object",
+      properties: {
+        formId: {
+          type: "string",
+          description: "The form ID (e.g., 'bozainfo', 'footing', 'sign-permits', 'adu')",
+        },
+      },
+      required: ["formId"],
+    },
+  },
+  {
+    name: "get_guideline_details",
+    description:
+      "Get full details about a specific design guideline including requirements, best practices, and code references.",
+    parameters: {
+      type: "object",
+      properties: {
+        guidelineId: {
+          type: "string",
+          description: "The guideline ID",
+        },
+      },
+      required: ["guidelineId"],
+    },
+  },
 ];
 
 // =============================================================================
@@ -1267,6 +1365,495 @@ export async function getVacantLotDetails(
     return {
       success: false,
       error: `Failed to get vacant lot details: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+// =============================================================================
+// Permit Forms & Design Guidelines Tool Implementations
+// =============================================================================
+
+// Import permit data (bundled with Convex)
+import permitFormsData from "../data/permit-forms.json";
+import designGuidelinesData from "../data/design-guidelines.json";
+
+interface PermitForm {
+  id: string;
+  url: string;
+  filename: string;
+  category: string;
+  subcategory: string;
+  officialName?: string;
+  purpose?: string;
+  whenRequired?: string[];
+  prerequisites?: string[];
+  relatedForms?: string[];
+  estimatedCompletionTime?: string;
+  submissionMethod?: string[];
+  fees?: string | null;
+  fields?: Array<{
+    name: string;
+    type: string;
+    required: boolean;
+    description: string;
+    autoFillSource?: string;
+  }>;
+  applicableProjectTypes?: string[];
+  zoningDistricts?: string[];
+  triggers?: string[];
+}
+
+interface DesignGuideline {
+  id: string;
+  url: string;
+  filename: string;
+  category: string;
+  subcategory: string;
+  title?: string;
+  topic?: string;
+  summary?: string;
+  applicableZoningDistricts?: string[];
+  requirements?: Array<{
+    rule: string;
+    isRequired: boolean;
+    codeReference?: string;
+  }>;
+  bestPractices?: string[];
+  illustrations?: string[];
+  relatedTopics?: string[];
+  triggers?: string[];
+}
+
+const permitForms = permitFormsData as PermitForm[];
+const designGuidelines = designGuidelinesData as DesignGuideline[];
+
+/**
+ * Search permit forms by keyword.
+ */
+export async function searchPermitForms(
+  _ctx: ActionCtx,
+  params: { query: string }
+): Promise<{
+  success: boolean;
+  forms?: Array<{
+    id: string;
+    name: string;
+    purpose: string;
+    url: string;
+    projectTypes?: string[];
+    estimatedTime?: string;
+  }>;
+  count?: number;
+  error?: string;
+}> {
+  try {
+    const normalizedQuery = params.query.toLowerCase();
+    const queryTerms = normalizedQuery.split(/\s+/);
+
+    const scoredForms = permitForms
+      .map((form) => {
+        let score = 0;
+
+        // Check triggers (highest weight)
+        const triggerMatches =
+          form.triggers?.filter((trigger) =>
+            queryTerms.some((term) => trigger.toLowerCase().includes(term))
+          ).length || 0;
+        score += triggerMatches * 10;
+
+        // Check purpose
+        if (form.purpose?.toLowerCase().includes(normalizedQuery)) {
+          score += 5;
+        }
+
+        // Check official name
+        if (form.officialName?.toLowerCase().includes(normalizedQuery)) {
+          score += 8;
+        }
+
+        // Check whenRequired
+        const whenRequiredMatches =
+          form.whenRequired?.filter((when) =>
+            queryTerms.some((term) => when.toLowerCase().includes(term))
+          ).length || 0;
+        score += whenRequiredMatches * 3;
+
+        return { form, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    const results = scoredForms.map((item) => ({
+      id: item.form.id,
+      name: item.form.officialName || item.form.filename,
+      purpose: item.form.purpose || "",
+      url: item.form.url,
+      projectTypes: item.form.applicableProjectTypes,
+      estimatedTime: item.form.estimatedCompletionTime,
+    }));
+
+    return {
+      success: true,
+      forms: results,
+      count: results.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to search permit forms: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Search design guidelines by keyword.
+ */
+export async function searchDesignGuidelines(
+  _ctx: ActionCtx,
+  params: { query: string }
+): Promise<{
+  success: boolean;
+  guidelines?: Array<{
+    id: string;
+    title: string;
+    topic: string;
+    summary: string;
+    url: string;
+    requirementsCount?: number;
+  }>;
+  count?: number;
+  error?: string;
+}> {
+  try {
+    const normalizedQuery = params.query.toLowerCase();
+    const queryTerms = normalizedQuery.split(/\s+/);
+
+    const scoredGuidelines = designGuidelines
+      .map((guide) => {
+        let score = 0;
+
+        // Check triggers (highest weight)
+        const triggerMatches =
+          guide.triggers?.filter((trigger) =>
+            queryTerms.some((term) => trigger.toLowerCase().includes(term))
+          ).length || 0;
+        score += triggerMatches * 10;
+
+        // Check title
+        if (guide.title?.toLowerCase().includes(normalizedQuery)) {
+          score += 8;
+        }
+
+        // Check summary
+        if (guide.summary?.toLowerCase().includes(normalizedQuery)) {
+          score += 3;
+        }
+
+        // Check topic
+        if (guide.topic?.toLowerCase().includes(normalizedQuery)) {
+          score += 5;
+        }
+
+        return { guide, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    const results = scoredGuidelines.map((item) => ({
+      id: item.guide.id,
+      title: item.guide.title || item.guide.filename,
+      topic: item.guide.topic || "",
+      summary: item.guide.summary || "",
+      url: item.guide.url,
+      requirementsCount: item.guide.requirements?.length || 0,
+    }));
+
+    return {
+      success: true,
+      guidelines: results,
+      count: results.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to search design guidelines: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+type ProjectType =
+  | "new_construction"
+  | "renovation"
+  | "addition"
+  | "change_of_use"
+  | "conversion"
+  | "adu"
+  | "deck"
+  | "fence"
+  | "garage"
+  | "sign"
+  | "home_occupation"
+  | "variance"
+  | "conditional_use"
+  | "demolition";
+
+/**
+ * Recommend permits based on project context.
+ */
+export async function recommendPermitsForProject(
+  _ctx: ActionCtx,
+  params: {
+    projectType?: string;
+    description: string;
+    zoningDistrict?: string;
+    hasParking?: boolean;
+    isResidential?: boolean;
+    isCommercial?: boolean;
+  }
+): Promise<{
+  success: boolean;
+  required?: Array<{ id: string; name: string; purpose: string; url: string }>;
+  recommended?: Array<{ id: string; name: string; purpose: string; url: string }>;
+  optional?: Array<{ id: string; name: string; purpose: string; url: string }>;
+  error?: string;
+}> {
+  try {
+    const projectTypes = params.projectType
+      ? (params.projectType.split(",").map((t) => t.trim()) as ProjectType[])
+      : [];
+
+    const allKeywords = [
+      ...(params.description?.toLowerCase().split(/\s+/) || []),
+      ...projectTypes,
+    ];
+
+    // Score each form
+    const scoredForms = permitForms.map((form) => {
+      let score = 0;
+      let isRequired = false;
+
+      // Project type match (high importance)
+      for (const pt of projectTypes) {
+        if (form.applicableProjectTypes?.includes(pt)) {
+          score += 20;
+          isRequired = true;
+        }
+      }
+
+      // Zoning district match
+      if (params.zoningDistrict) {
+        if (
+          form.zoningDistricts?.includes("all") ||
+          form.zoningDistricts?.includes(params.zoningDistrict)
+        ) {
+          score += 5;
+        }
+      }
+
+      // Keyword/trigger matches
+      const triggerMatches =
+        form.triggers?.filter((trigger) =>
+          allKeywords.some((keyword) =>
+            trigger.toLowerCase().includes(keyword.toLowerCase())
+          )
+        ).length || 0;
+      score += triggerMatches * 8;
+
+      // Special conditions
+      if (params.hasParking && form.triggers?.some((t) => t.includes("parking"))) {
+        score += 10;
+      }
+
+      if (
+        params.isResidential &&
+        form.applicableProjectTypes?.some((t) => ["adu", "renovation", "addition"].includes(t))
+      ) {
+        score += 5;
+      }
+
+      if (
+        params.isCommercial &&
+        form.applicableProjectTypes?.some((t) => ["sign", "change_of_use"].includes(t))
+      ) {
+        score += 5;
+      }
+
+      return { form, score, isRequired };
+    });
+
+    // Sort by score
+    const sorted = scoredForms.sort((a, b) => b.score - a.score);
+
+    // Categorize
+    const required = sorted
+      .filter((item) => item.isRequired && item.score >= 20)
+      .slice(0, 5)
+      .map((item) => ({
+        id: item.form.id,
+        name: item.form.officialName || item.form.filename,
+        purpose: item.form.purpose || "",
+        url: item.form.url,
+      }));
+
+    const recommended = sorted
+      .filter((item) => !item.isRequired && item.score >= 15)
+      .slice(0, 5)
+      .map((item) => ({
+        id: item.form.id,
+        name: item.form.officialName || item.form.filename,
+        purpose: item.form.purpose || "",
+        url: item.form.url,
+      }));
+
+    const optional = sorted
+      .filter((item) => !item.isRequired && item.score >= 5 && item.score < 15)
+      .slice(0, 3)
+      .map((item) => ({
+        id: item.form.id,
+        name: item.form.officialName || item.form.filename,
+        purpose: item.form.purpose || "",
+        url: item.form.url,
+      }));
+
+    return {
+      success: true,
+      required,
+      recommended,
+      optional,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to recommend permits: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Get details about a specific permit form.
+ */
+export async function getPermitFormDetails(
+  _ctx: ActionCtx,
+  params: { formId: string }
+): Promise<{
+  success: boolean;
+  form?: {
+    id: string;
+    name: string;
+    purpose: string;
+    whenRequired: string[];
+    prerequisites: string[];
+    relatedForms: string[];
+    estimatedTime: string;
+    submissionMethods: string[];
+    fees: string | null;
+    fields: Array<{
+      name: string;
+      type: string;
+      required: boolean;
+      description: string;
+      autoFillable: boolean;
+    }>;
+    url: string;
+  };
+  error?: string;
+}> {
+  try {
+    const form = permitForms.find((f) => f.id === params.formId);
+
+    if (!form) {
+      return {
+        success: false,
+        error: `Form not found: ${params.formId}`,
+      };
+    }
+
+    return {
+      success: true,
+      form: {
+        id: form.id,
+        name: form.officialName || form.filename,
+        purpose: form.purpose || "",
+        whenRequired: form.whenRequired || [],
+        prerequisites: form.prerequisites || [],
+        relatedForms: form.relatedForms || [],
+        estimatedTime: form.estimatedCompletionTime || "Unknown",
+        submissionMethods: form.submissionMethod || [],
+        fees: form.fees || null,
+        fields:
+          form.fields?.map((f) => ({
+            name: f.name,
+            type: f.type,
+            required: f.required,
+            description: f.description,
+            autoFillable: !!f.autoFillSource && f.autoFillSource !== "null",
+          })) || [],
+        url: form.url,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to get form details: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Get details about a specific design guideline.
+ */
+export async function getGuidelineDetails(
+  _ctx: ActionCtx,
+  params: { guidelineId: string }
+): Promise<{
+  success: boolean;
+  guideline?: {
+    id: string;
+    title: string;
+    topic: string;
+    summary: string;
+    applicableZoning: string[];
+    requirements: Array<{
+      rule: string;
+      isRequired: boolean;
+      codeReference?: string;
+    }>;
+    bestPractices: string[];
+    relatedTopics: string[];
+    url: string;
+  };
+  error?: string;
+}> {
+  try {
+    const guide = designGuidelines.find((g) => g.id === params.guidelineId);
+
+    if (!guide) {
+      return {
+        success: false,
+        error: `Guideline not found: ${params.guidelineId}`,
+      };
+    }
+
+    return {
+      success: true,
+      guideline: {
+        id: guide.id,
+        title: guide.title || guide.filename,
+        topic: guide.topic || "",
+        summary: guide.summary || "",
+        applicableZoning: guide.applicableZoningDistricts || [],
+        requirements: guide.requirements || [],
+        bestPractices: guide.bestPractices || [],
+        relatedTopics: guide.relatedTopics || [],
+        url: guide.url,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to get guideline details: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 }

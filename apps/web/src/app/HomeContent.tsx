@@ -21,6 +21,11 @@ import {
   DevelopmentSitesListCard,
   VacantLotCard,
   VacantLotsListCard,
+  PermitFormsListCard,
+  PermitRecommendationsCard,
+  PermitFormDetailsCard,
+  DesignGuidelinesListCard,
+  DesignGuidelineDetailsCard,
   type HomeListItem,
   type CommercialPropertyListItem,
   type DevelopmentSiteListItem,
@@ -1176,6 +1181,166 @@ export default function HomeContent() {
             status={data.status}
             onFlyTo={handleVacantLotFlyTo}
             onOpenStreetView={openStreetView}
+          />
+        );
+      }
+
+      // ========================================================================
+      // Permit Forms & Design Guidelines Cards
+      // ========================================================================
+
+      case 'permit-forms-list': {
+        const data = card.data as {
+          forms: Array<{
+            id: string;
+            officialName: string;
+            purpose: string;
+            category: string;
+            subcategory: string;
+            url: string;
+            estimatedCompletionTime?: string;
+            fees?: string | null;
+          }>;
+          query?: string;
+          totalResults?: number;
+        };
+        return (
+          <PermitFormsListCard
+            forms={data.forms}
+            query={data.query}
+            status="complete"
+          />
+        );
+      }
+
+      case 'permit-recommendations': {
+        const data = card.data as {
+          recommendations: Array<{
+            id: string;
+            officialName: string;
+            purpose: string;
+            category: string;
+            subcategory: string;
+            url: string;
+            estimatedCompletionTime?: string;
+            fees?: string | null;
+          }>;
+          projectDescription?: string;
+          projectType?: string;
+        };
+        return (
+          <PermitRecommendationsCard
+            recommendations={data.recommendations}
+            projectDescription={data.projectDescription}
+            projectType={data.projectType}
+            status="complete"
+          />
+        );
+      }
+
+      case 'permit-form-details': {
+        const data = card.data as {
+          id: string;
+          officialName: string;
+          purpose: string;
+          category: string;
+          subcategory: string;
+          url: string;
+          filename: string;
+          whenRequired: string[];
+          prerequisites: string[];
+          relatedForms: string[];
+          estimatedCompletionTime: string;
+          submissionMethod: string[];
+          fees: string | null;
+          applicableProjectTypes: string[];
+          zoningDistricts: string[];
+          triggers: string[];
+        };
+        return (
+          <PermitFormDetailsCard
+            id={data.id}
+            officialName={data.officialName}
+            purpose={data.purpose}
+            category={data.category}
+            subcategory={data.subcategory}
+            url={data.url}
+            filename={data.filename}
+            whenRequired={data.whenRequired || []}
+            prerequisites={data.prerequisites || []}
+            relatedForms={data.relatedForms || []}
+            estimatedCompletionTime={data.estimatedCompletionTime || ''}
+            submissionMethod={data.submissionMethod || []}
+            fees={data.fees}
+            applicableProjectTypes={data.applicableProjectTypes || []}
+            zoningDistricts={data.zoningDistricts || []}
+            triggers={data.triggers || []}
+            status="complete"
+          />
+        );
+      }
+
+      case 'design-guidelines-list': {
+        const data = card.data as {
+          guidelines: Array<{
+            id: string;
+            title: string;
+            topic: string;
+            summary: string;
+            category: string;
+            subcategory: string;
+            url: string;
+          }>;
+          query?: string;
+          totalResults?: number;
+        };
+        return (
+          <DesignGuidelinesListCard
+            guidelines={data.guidelines}
+            query={data.query}
+            status="complete"
+          />
+        );
+      }
+
+      case 'design-guideline-details': {
+        const data = card.data as {
+          id: string;
+          title: string;
+          topic: string;
+          summary: string;
+          category: string;
+          subcategory: string;
+          url: string;
+          filename: string;
+          applicableZoningDistricts: string[];
+          requirements: Array<{
+            rule: string;
+            isRequired: boolean;
+            codeReference?: string | null;
+          }>;
+          bestPractices: string[];
+          illustrations: string[];
+          relatedTopics: string[];
+          triggers: string[];
+        };
+        return (
+          <DesignGuidelineDetailsCard
+            id={data.id}
+            title={data.title}
+            topic={data.topic}
+            summary={data.summary}
+            category={data.category}
+            subcategory={data.subcategory}
+            url={data.url}
+            filename={data.filename}
+            applicableZoningDistricts={data.applicableZoningDistricts || []}
+            requirements={data.requirements || []}
+            bestPractices={data.bestPractices || []}
+            illustrations={data.illustrations || []}
+            relatedTopics={data.relatedTopics || []}
+            triggers={data.triggers || []}
+            status="complete"
           />
         );
       }

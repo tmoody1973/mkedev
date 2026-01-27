@@ -376,6 +376,67 @@ export const VOICE_TOOLS: VoiceTool[] = [
       required: ['siteId'],
     },
   },
+
+  // ---------------------------------------------------------------------------
+  // Permit Forms & Design Guidelines Tools
+  // ---------------------------------------------------------------------------
+  {
+    name: 'search_permit_forms',
+    description:
+      'Search Milwaukee permit forms and applications by keyword. Use when users ask about permits, forms, applications, or paperwork needed for construction, renovation, signs, variances, or other projects.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: "Search query (e.g., 'home occupation', 'sign permit', 'variance', 'deck', 'building permit')",
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'recommend_permits_for_project',
+    description:
+      'Get recommended permit forms based on project details. Use when you understand what the user is planning to build or renovate.',
+    parameters: {
+      type: 'object',
+      properties: {
+        projectType: {
+          type: 'string',
+          description: 'Type of project: new_construction, renovation, addition, change_of_use, adu, deck, sign, home_occupation, variance',
+        },
+        description: {
+          type: 'string',
+          description: 'Brief description of the project',
+        },
+        isResidential: {
+          type: 'boolean',
+          description: 'Whether the project is residential',
+        },
+        isCommercial: {
+          type: 'boolean',
+          description: 'Whether the project is commercial',
+        },
+      },
+      required: ['description'],
+    },
+  },
+  {
+    name: 'search_design_guidelines',
+    description:
+      'Search Milwaukee design guidelines for building standards, facade requirements, parking design, landscaping, or signage rules.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: "Search query (e.g., 'parking', 'facade', 'landscaping', 'signage')",
+        },
+      },
+      required: ['query'],
+    },
+  },
 ]
 
 // ============================================================================
@@ -390,6 +451,8 @@ Your capabilities:
 - Show and hide map layers (zoning, TIF districts, opportunity zones, etc.)
 - Display city-owned properties available for development
 - Generate AI architectural visualizations
+- Search permit forms and recommend permits for projects
+- Find design guidelines for building standards
 
 Conversation style:
 - Be conversational and helpful, like a knowledgeable local expert
