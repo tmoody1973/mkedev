@@ -90,6 +90,23 @@ export interface MapContextValue {
   clearParcelSelection: () => void
   /** Register a clear selection function from the layer manager */
   registerClearParcelSelection: (fn: () => void) => void
+  /** Whether measurement mode is active */
+  isMeasuring: boolean
+  /** Toggle measurement mode */
+  setIsMeasuring: (enabled: boolean) => void
+  /** Current measurement result */
+  measurement: MeasurementResult | null
+  /** Set the current measurement result */
+  setMeasurement: (result: MeasurementResult | null) => void
+}
+
+export interface MeasurementResult {
+  /** Area in square feet */
+  areaSqFt: number
+  /** Area in acres */
+  areaAcres: number
+  /** Perimeter in feet */
+  perimeterFt: number
 }
 
 // =============================================================================
@@ -195,6 +212,9 @@ export function MapProvider({
   const [mapError, setMapError] = useState<string | null>(null)
   // Always start with false to match server render, sync from localStorage after hydration
   const [is3DMode, setIs3DModeState] = useState<boolean>(false)
+
+  const [isMeasuring, setIsMeasuring] = useState(false)
+  const [measurement, setMeasurement] = useState<MeasurementResult | null>(null)
 
   // Refs for parcel highlight functions (registered by layer manager)
   const highlightParcelRef = useRef<((taxKey: string) => void) | null>(null)
@@ -420,6 +440,10 @@ export function MapProvider({
     registerHighlightParcel,
     clearParcelSelection,
     registerClearParcelSelection,
+    isMeasuring,
+    setIsMeasuring,
+    measurement,
+    setMeasurement,
   }
 
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>

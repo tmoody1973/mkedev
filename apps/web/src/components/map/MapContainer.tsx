@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
+import MapboxDraw from '@mapbox/mapbox-gl-draw'
+import turfArea from '@turf/area'
+import turfLength from '@turf/length'
 import { MapPin, AlertTriangle, Loader2 } from 'lucide-react'
 import {
   useMap,
@@ -22,6 +25,7 @@ import { CommercialPropertyPopup } from './CommercialPropertyPopup'
 import { DevelopmentSitePopup } from './DevelopmentSitePopup'
 import { VacantLotPopup } from './VacantLotPopup'
 import { MapScreenshotButton } from './MapScreenshotButton'
+import { MeasurementButton } from './MeasurementButton'
 import type { ParcelData } from './layers/esri-layer-manager'
 import type { HomeForSale } from './layers/homes-layer-manager'
 import type { CommercialProperty } from './layers/commercial-layer-manager'
@@ -30,6 +34,7 @@ import type { VacantLot } from './layers/vacant-lots-layer-manager'
 
 // Import Mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css'
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 
 // =============================================================================
 // Types
@@ -139,10 +144,16 @@ export function MapContainer({
     animateTo3DView,
     animateTo2DView,
     marker,
+    isMeasuring,
+    setIsMeasuring,
+    setMeasurement,
   } = useMap()
 
   // Ref to track the Mapbox marker instance
   const markerInstanceRef = useRef<mapboxgl.Marker | null>(null)
+
+  // Ref for MapboxDraw instance (measurement tool)
+  const drawRef = useRef<MapboxDraw | null>(null)
 
   // Determine the style URL based on 3D mode (prop overrides if provided)
   const effectiveStyle = mapStyle ?? (is3DMode ? MAP_STYLE_3D : MAP_STYLE_2D)
@@ -485,6 +496,165 @@ export function MapContainer({
     }
   }, [marker, isLoading])
 
+  // Handle measurement mode: add/remove MapboxDraw control
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map || isLoading) return
+
+    if (isMeasuring) {
+      // Add Draw control if not already present
+      if (!drawRef.current) {
+        const draw = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {},
+          defaultMode: 'draw_polygon',
+          styles: [
+            // Polygon fill (semi-transparent sky blue)
+            {
+              id: 'gl-draw-polygon-fill',
+              type: 'fill',
+              filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+              paint: {
+                'fill-color': '#0ea5e9',
+                'fill-outline-color': '#0ea5e9',
+                'fill-opacity': 0.15,
+              },
+            },
+            // Polygon outline
+            {
+              id: 'gl-draw-polygon-stroke-active',
+              type: 'line',
+              filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+              layout: {
+                'line-cap': 'round',
+                'line-join': 'round',
+              },
+              paint: {
+                'line-color': '#0ea5e9',
+                'line-dasharray': [0.2, 2],
+                'line-width': 3,
+              },
+            },
+            // Active line
+            {
+              id: 'gl-draw-line-active',
+              type: 'line',
+              filter: ['all', ['==', '$type', 'LineString'], ['!=', 'mode', 'static']],
+              layout: {
+                'line-cap': 'round',
+                'line-join': 'round',
+              },
+              paint: {
+                'line-color': '#0ea5e9',
+                'line-dasharray': [0.2, 2],
+                'line-width': 3,
+              },
+            },
+            // Vertex points
+            {
+              id: 'gl-draw-point-active',
+              type: 'circle',
+              filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'vertex']],
+              paint: {
+                'circle-radius': 6,
+                'circle-color': '#ffffff',
+                'circle-stroke-color': '#0ea5e9',
+                'circle-stroke-width': 2,
+              },
+            },
+            // Midpoints
+            {
+              id: 'gl-draw-point-midpoint',
+              type: 'circle',
+              filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'midpoint']],
+              paint: {
+                'circle-radius': 4,
+                'circle-color': '#0ea5e9',
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 1,
+              },
+            },
+          ],
+        })
+
+        map.addControl(draw as unknown as mapboxgl.IControl)
+        drawRef.current = draw
+
+        // Calculate measurement from drawn geometry
+        const updateMeasurement = () => {
+          const data = draw.getAll()
+          if (data.features.length > 0) {
+            const feature = data.features[0]
+            if (feature.geometry.type === 'Polygon') {
+              // Area in square meters → square feet
+              const areaSqM = turfArea(feature as GeoJSON.Feature<GeoJSON.Polygon>)
+              const areaSqFt = areaSqM * 10.7639
+
+              // Perimeter: length of the polygon boundary in km → feet
+              const perimeterKm = turfLength(feature as GeoJSON.Feature, { units: 'kilometers' })
+              const perimeterFt = perimeterKm * 3280.84
+
+              setMeasurement({
+                areaSqFt: Math.round(areaSqFt),
+                areaAcres: Math.round((areaSqFt / 43560) * 100) / 100,
+                perimeterFt: Math.round(perimeterFt),
+              })
+            }
+          } else {
+            setMeasurement(null)
+          }
+        }
+
+        map.on('draw.create', updateMeasurement)
+        map.on('draw.update', updateMeasurement)
+        map.on('draw.delete', updateMeasurement)
+      }
+    } else {
+      // Remove Draw control
+      if (drawRef.current) {
+        try {
+          map.removeControl(drawRef.current as unknown as mapboxgl.IControl)
+        } catch {
+          // Control may already be removed (e.g., during style change)
+        }
+        drawRef.current = null
+        setMeasurement(null)
+      }
+    }
+  }, [isMeasuring, isLoading, setMeasurement])
+
+  // Clean up draw control on style change to prevent stale references
+  useEffect(() => {
+    if (isStyleChanging && drawRef.current) {
+      const map = mapInstanceRef.current
+      if (map) {
+        try {
+          map.removeControl(drawRef.current as unknown as mapboxgl.IControl)
+        } catch {
+          // Ignore
+        }
+      }
+      drawRef.current = null
+      if (isMeasuring) {
+        setIsMeasuring(false)
+        setMeasurement(null)
+      }
+    }
+  }, [isStyleChanging, isMeasuring, setIsMeasuring, setMeasurement])
+
+  // Handle Escape key to exit measurement mode
+  useEffect(() => {
+    if (!isMeasuring) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMeasuring(false)
+        setMeasurement(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isMeasuring, setIsMeasuring, setMeasurement])
+
   // Handle 3D mode style switching and camera animation
   useEffect(() => {
     const map = mapInstanceRef.current
@@ -630,6 +800,7 @@ export function MapContainer({
             />
           )}
           {showLayerPanel && <LayerPanel />}
+          <MeasurementButton />
           <MapScreenshotButton />
           {showParcelPopup && selectedParcel && (
             <ParcelPopup
