@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
-import type MapboxDrawType from '@mapbox/mapbox-gl-draw'
+// Measurement tool uses raw map events + Turf.js (no MapboxDraw dependency)
 import { MapPin, AlertTriangle, Loader2 } from 'lucide-react'
 import {
   useMap,
@@ -32,7 +32,7 @@ import type { VacantLot } from './layers/vacant-lots-layer-manager'
 
 // Import Mapbox CSS
 import 'mapbox-gl/dist/mapbox-gl.css'
-import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
+// MapboxDraw CSS no longer needed - using custom GeoJSON measurement
 
 // =============================================================================
 // Types
@@ -150,8 +150,9 @@ export function MapContainer({
   // Ref to track the Mapbox marker instance
   const markerInstanceRef = useRef<mapboxgl.Marker | null>(null)
 
-  // Ref for MapboxDraw instance (measurement tool)
-  const drawRef = useRef<MapboxDrawType | null>(null)
+  // Measurement tool state: collected polygon vertices
+  const measurePointsRef = useRef<[number, number][]>([])
+  const measureCleanupRef = useRef<(() => void) | null>(null)
 
   // Determine the style URL based on 3D mode (prop overrides if provided)
   const effectiveStyle = mapStyle ?? (is3DMode ? MAP_STYLE_3D : MAP_STYLE_2D)
@@ -494,116 +495,198 @@ export function MapContainer({
     }
   }, [marker, isLoading])
 
-  // Handle measurement mode: add/remove MapboxDraw control
+  // Handle measurement mode: custom click-based polygon drawing with GeoJSON layers
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map || isLoading) return
 
+    // Cleanup previous measurement session
+    const cleanup = () => {
+      if (measureCleanupRef.current) {
+        measureCleanupRef.current()
+        measureCleanupRef.current = null
+      }
+      measurePointsRef.current = []
+    }
+
     if (isMeasuring) {
-      // Add Draw control if not already present
-      if (!drawRef.current) {
-        // Dynamic import to avoid SSR issues and ensure proper module resolution
-        Promise.all([
-          import('@mapbox/mapbox-gl-draw'),
-          import('@turf/area'),
-          import('@turf/length'),
-        ]).then(([drawModule, areaModule, lengthModule]) => {
-          // Guard: user may have toggled off while imports loaded
-          if (!drawRef.current && mapInstanceRef.current) {
-            const MapboxDraw = drawModule.default
-            const turfArea = areaModule.default
-            const turfLength = lengthModule.default
+      // Already active? Skip
+      if (measureCleanupRef.current) return
 
-            console.log('[measurement] Creating MapboxDraw instance')
+      // Dynamically import Turf
+      Promise.all([
+        import('@turf/area'),
+        import('@turf/length'),
+      ]).then(([areaModule, lengthModule]) => {
+        const currentMap = mapInstanceRef.current
+        if (!currentMap) return
 
-            const draw = new MapboxDraw({
-              displayControlsDefault: false,
-              controls: {},
-              defaultMode: 'simple_select',
-            })
+        const turfArea = areaModule.default
+        const turfLength = lengthModule.default
+        const points: [number, number][] = []
+        measurePointsRef.current = points
 
-            map.addControl(draw as unknown as mapboxgl.IControl)
-            drawRef.current = draw
+        const MEASURE_SOURCE = 'measurement-source'
+        const MEASURE_FILL = 'measurement-fill'
+        const MEASURE_LINE = 'measurement-line'
+        const MEASURE_POINTS = 'measurement-points'
 
-            console.log('[measurement] Draw control added, switching to draw_polygon')
+        // Add GeoJSON source for measurement polygon
+        currentMap.addSource(MEASURE_SOURCE, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        })
 
-            // Explicitly enter draw_polygon mode after control is fully attached
-            setTimeout(() => {
-              try {
-                if (drawRef.current) {
-                  drawRef.current.changeMode('draw_polygon')
-                  console.log('[measurement] Now in draw_polygon mode')
-                }
-              } catch (err) {
-                console.warn('[measurement] Failed to enter draw_polygon mode:', err)
-              }
-            }, 150)
+        // Polygon fill (semi-transparent sky blue)
+        currentMap.addLayer({
+          id: MEASURE_FILL,
+          type: 'fill',
+          source: MEASURE_SOURCE,
+          filter: ['==', '$type', 'Polygon'],
+          paint: {
+            'fill-color': '#0ea5e9',
+            'fill-opacity': 0.2,
+          },
+        })
 
-            // Calculate measurement from drawn geometry
-            const updateMeasurement = () => {
-              const data = draw.getAll()
-              if (data.features.length > 0) {
-                const feature = data.features[0]
-                if (feature.geometry.type === 'Polygon') {
-                  const areaSqM = turfArea(feature as GeoJSON.Feature<GeoJSON.Polygon>)
-                  const areaSqFt = areaSqM * 10.7639
-                  const perimeterKm = turfLength(feature as GeoJSON.Feature, { units: 'kilometers' })
-                  const perimeterFt = perimeterKm * 3280.84
+        // Polygon/line outline
+        currentMap.addLayer({
+          id: MEASURE_LINE,
+          type: 'line',
+          source: MEASURE_SOURCE,
+          paint: {
+            'line-color': '#0ea5e9',
+            'line-width': 3,
+            'line-dasharray': [2, 1],
+          },
+        })
 
-                  setMeasurement({
-                    areaSqFt: Math.round(areaSqFt),
-                    areaAcres: Math.round((areaSqFt / 43560) * 100) / 100,
-                    perimeterFt: Math.round(perimeterFt),
-                  })
-                }
-              } else {
-                setMeasurement(null)
-              }
-            }
+        // Vertex points
+        currentMap.addLayer({
+          id: MEASURE_POINTS,
+          type: 'circle',
+          source: MEASURE_SOURCE,
+          filter: ['==', '$type', 'Point'],
+          paint: {
+            'circle-radius': 6,
+            'circle-color': '#ffffff',
+            'circle-stroke-color': '#0ea5e9',
+            'circle-stroke-width': 2,
+          },
+        })
 
-            map.on('draw.create', updateMeasurement)
-            map.on('draw.update', updateMeasurement)
-            map.on('draw.delete', updateMeasurement)
-            map.on('draw.modechange', (e: { mode: string }) => {
-              console.log('[measurement] mode changed to:', e.mode)
+        // Update the GeoJSON source with current points
+        const updateSource = () => {
+          const source = currentMap.getSource(MEASURE_SOURCE) as mapboxgl.GeoJSONSource | undefined
+          if (!source) return
+
+          const features: GeoJSON.Feature[] = []
+
+          // Add vertex point features
+          for (const pt of points) {
+            features.push({
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: pt },
+              properties: {},
             })
           }
-        }).catch((err) => {
-          console.error('[measurement] Failed to load MapboxDraw:', err)
-        })
-      }
-    } else {
-      // Remove Draw control
-      if (drawRef.current) {
-        try {
-          map.removeControl(drawRef.current as unknown as mapboxgl.IControl)
-        } catch {
-          // Control may already be removed (e.g., during style change)
+
+          if (points.length >= 2) {
+            // Draw a line through all points
+            features.push({
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [...points],
+              },
+              properties: {},
+            })
+          }
+
+          if (points.length >= 3) {
+            // Close the polygon
+            const closed = [...points, points[0]]
+            features.push({
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: [closed],
+              },
+              properties: {},
+            })
+
+            // Calculate area and perimeter
+            const polygon: GeoJSON.Feature<GeoJSON.Polygon> = {
+              type: 'Feature',
+              geometry: { type: 'Polygon', coordinates: [closed] },
+              properties: {},
+            }
+
+            const areaSqM = turfArea(polygon)
+            const areaSqFt = areaSqM * 10.7639
+            const perimeterKm = turfLength(polygon, { units: 'kilometers' })
+            const perimeterFt = perimeterKm * 3280.84
+
+            setMeasurement({
+              areaSqFt: Math.round(areaSqFt),
+              areaAcres: Math.round((areaSqFt / 43560) * 100) / 100,
+              perimeterFt: Math.round(perimeterFt),
+            })
+          } else {
+            setMeasurement(null)
+          }
+
+          source.setData({ type: 'FeatureCollection', features })
         }
-        drawRef.current = null
-        setMeasurement(null)
-      }
+
+        // Click handler: add a vertex
+        const handleClick = (e: mapboxgl.MapMouseEvent) => {
+          e.preventDefault()
+          points.push([e.lngLat.lng, e.lngLat.lat])
+          console.log(`[measurement] Point ${points.length}: [${e.lngLat.lng.toFixed(5)}, ${e.lngLat.lat.toFixed(5)}]`)
+          updateSource()
+        }
+
+        // Double-click handler: finish polygon (prevent zoom)
+        const handleDblClick = (e: mapboxgl.MapMouseEvent) => {
+          e.preventDefault()
+          // Remove the duplicate last point added by the second click of dblclick
+          if (points.length > 3) {
+            points.pop()
+            updateSource()
+          }
+          console.log('[measurement] Polygon complete with', points.length, 'vertices')
+          // Remove click handler so no more points are added
+          currentMap.off('click', handleClick)
+        }
+
+        currentMap.on('click', handleClick)
+        currentMap.on('dblclick', handleDblClick)
+
+        // Store cleanup function
+        measureCleanupRef.current = () => {
+          currentMap.off('click', handleClick)
+          currentMap.off('dblclick', handleDblClick)
+          try { currentMap.removeLayer(MEASURE_POINTS) } catch { /* */ }
+          try { currentMap.removeLayer(MEASURE_LINE) } catch { /* */ }
+          try { currentMap.removeLayer(MEASURE_FILL) } catch { /* */ }
+          try { currentMap.removeSource(MEASURE_SOURCE) } catch { /* */ }
+        }
+
+        console.log('[measurement] Ready - click to place vertices, double-click to finish')
+      }).catch((err) => {
+        console.error('[measurement] Failed to load Turf.js:', err)
+      })
+    } else {
+      cleanup()
+      setMeasurement(null)
+    }
+
+    return () => {
+      // Only cleanup if we're unmounting, not on every re-render
+      // The cleanup for toggling off is handled in the else branch above
     }
   }, [isMeasuring, isLoading, setMeasurement])
-
-  // Clean up draw control on style change to prevent stale references
-  useEffect(() => {
-    if (isStyleChanging && drawRef.current) {
-      const map = mapInstanceRef.current
-      if (map) {
-        try {
-          map.removeControl(drawRef.current as unknown as mapboxgl.IControl)
-        } catch {
-          // Ignore
-        }
-      }
-      drawRef.current = null
-      if (isMeasuring) {
-        setIsMeasuring(false)
-        setMeasurement(null)
-      }
-    }
-  }, [isStyleChanging, isMeasuring, setIsMeasuring, setMeasurement])
 
   // Handle Escape key to exit measurement mode
   useEffect(() => {
@@ -617,6 +700,19 @@ export function MapContainer({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isMeasuring, setIsMeasuring, setMeasurement])
+
+  // Clean up measurement on style change
+  useEffect(() => {
+    if (isStyleChanging && measureCleanupRef.current) {
+      measureCleanupRef.current()
+      measureCleanupRef.current = null
+      measurePointsRef.current = []
+      if (isMeasuring) {
+        setIsMeasuring(false)
+        setMeasurement(null)
+      }
+    }
+  }, [isStyleChanging, isMeasuring, setIsMeasuring, setMeasurement])
 
   // Handle 3D mode style switching and camera animation
   useEffect(() => {
