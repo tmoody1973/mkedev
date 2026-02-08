@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
-import MapboxDraw from '@mapbox/mapbox-gl-draw'
-import turfArea from '@turf/area'
-import turfLength from '@turf/length'
+import type MapboxDrawType from '@mapbox/mapbox-gl-draw'
 import { MapPin, AlertTriangle, Loader2 } from 'lucide-react'
 import {
   useMap,
@@ -153,7 +151,7 @@ export function MapContainer({
   const markerInstanceRef = useRef<mapboxgl.Marker | null>(null)
 
   // Ref for MapboxDraw instance (measurement tool)
-  const drawRef = useRef<MapboxDraw | null>(null)
+  const drawRef = useRef<MapboxDrawType | null>(null)
 
   // Determine the style URL based on 3D mode (prop overrides if provided)
   const effectiveStyle = mapStyle ?? (is3DMode ? MAP_STYLE_3D : MAP_STYLE_2D)
@@ -504,69 +502,74 @@ export function MapContainer({
     if (isMeasuring) {
       // Add Draw control if not already present
       if (!drawRef.current) {
-        const draw = new MapboxDraw({
-          displayControlsDefault: false,
-          controls: {},
-          // Use simple_select as default — we switch to draw_polygon explicitly below
-          defaultMode: 'simple_select',
-        })
+        // Dynamic import to avoid SSR issues and ensure proper module resolution
+        Promise.all([
+          import('@mapbox/mapbox-gl-draw'),
+          import('@turf/area'),
+          import('@turf/length'),
+        ]).then(([drawModule, areaModule, lengthModule]) => {
+          // Guard: user may have toggled off while imports loaded
+          if (!drawRef.current && mapInstanceRef.current) {
+            const MapboxDraw = drawModule.default
+            const turfArea = areaModule.default
+            const turfLength = lengthModule.default
 
-        map.addControl(draw as unknown as mapboxgl.IControl)
-        drawRef.current = draw
+            console.log('[measurement] Creating MapboxDraw instance')
 
-        // Explicitly enter draw_polygon mode after control is attached
-        // Using setTimeout ensures the control is fully initialized on the map
-        setTimeout(() => {
-          try {
-            if (drawRef.current) {
-              drawRef.current.changeMode('draw_polygon')
+            const draw = new MapboxDraw({
+              displayControlsDefault: false,
+              controls: {},
+              defaultMode: 'simple_select',
+            })
+
+            map.addControl(draw as unknown as mapboxgl.IControl)
+            drawRef.current = draw
+
+            console.log('[measurement] Draw control added, switching to draw_polygon')
+
+            // Explicitly enter draw_polygon mode after control is fully attached
+            setTimeout(() => {
+              try {
+                if (drawRef.current) {
+                  drawRef.current.changeMode('draw_polygon')
+                  console.log('[measurement] Now in draw_polygon mode')
+                }
+              } catch (err) {
+                console.warn('[measurement] Failed to enter draw_polygon mode:', err)
+              }
+            }, 150)
+
+            // Calculate measurement from drawn geometry
+            const updateMeasurement = () => {
+              const data = draw.getAll()
+              if (data.features.length > 0) {
+                const feature = data.features[0]
+                if (feature.geometry.type === 'Polygon') {
+                  const areaSqM = turfArea(feature as GeoJSON.Feature<GeoJSON.Polygon>)
+                  const areaSqFt = areaSqM * 10.7639
+                  const perimeterKm = turfLength(feature as GeoJSON.Feature, { units: 'kilometers' })
+                  const perimeterFt = perimeterKm * 3280.84
+
+                  setMeasurement({
+                    areaSqFt: Math.round(areaSqFt),
+                    areaAcres: Math.round((areaSqFt / 43560) * 100) / 100,
+                    perimeterFt: Math.round(perimeterFt),
+                  })
+                }
+              } else {
+                setMeasurement(null)
+              }
             }
-          } catch (err) {
-            console.warn('[measurement] Failed to enter draw_polygon mode:', err)
+
+            map.on('draw.create', updateMeasurement)
+            map.on('draw.update', updateMeasurement)
+            map.on('draw.delete', updateMeasurement)
+            map.on('draw.modechange', (e: { mode: string }) => {
+              console.log('[measurement] mode changed to:', e.mode)
+            })
           }
-        }, 100)
-
-        // Calculate measurement from drawn geometry
-        const updateMeasurement = () => {
-          const data = draw.getAll()
-          if (data.features.length > 0) {
-            const feature = data.features[0]
-            if (feature.geometry.type === 'Polygon') {
-              // Area in square meters → square feet
-              const areaSqM = turfArea(feature as GeoJSON.Feature<GeoJSON.Polygon>)
-              const areaSqFt = areaSqM * 10.7639
-
-              // Perimeter: length of the polygon boundary in km → feet
-              const perimeterKm = turfLength(feature as GeoJSON.Feature, { units: 'kilometers' })
-              const perimeterFt = perimeterKm * 3280.84
-
-              setMeasurement({
-                areaSqFt: Math.round(areaSqFt),
-                areaAcres: Math.round((areaSqFt / 43560) * 100) / 100,
-                perimeterFt: Math.round(perimeterFt),
-              })
-            }
-          } else {
-            setMeasurement(null)
-          }
-        }
-
-        // On create: measure, then delete old polygon and restart draw mode
-        // so user can draw a new one immediately
-        const handleCreate = () => {
-          updateMeasurement()
-        }
-
-        map.on('draw.create', handleCreate)
-        map.on('draw.update', updateMeasurement)
-        map.on('draw.delete', updateMeasurement)
-
-        // When mode changes to simple_select (after completing polygon),
-        // stay in that mode so user can edit vertices by dragging them
-        map.on('draw.modechange', (e: { mode: string }) => {
-          // If user somehow enters direct_select, that's fine (editing vertices)
-          // If entering simple_select after create, also fine (can click polygon to edit)
-          console.log('[measurement] mode changed to:', e.mode)
+        }).catch((err) => {
+          console.error('[measurement] Failed to load MapboxDraw:', err)
         })
       }
     } else {
