@@ -18,14 +18,18 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 ### Key Features
 
 - **Voice-First Interface** - Real-time voice conversations via Gemini Live API with full chat integration
-- **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG (14 tools)
+- **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG (22 tools)
 - **AI Site Visualizer** - Transform photos into architectural renderings with Gemini 3 Pro Image
 - **Generative UI Cards** - Rich interactive cards for homes, parcels, zoning info, and properties
 - **Interactive 3D Map** - Mapbox GL JS with 2D/3D toggle and 8 Milwaukee ESRI data layers
 - **File Search RAG** - 42 documents across 5 stores (zoning codes, area plans, policies, incentives)
 - **Conversation History** - Persistent chat with search, starring, and PDF report generation
+- **Document Analyzer** - Upload civic documents (site plans, floor plans, narratives) for AI classification, zoning enrichment, and compliance analysis
+- **Permit & Design Tools** - Search Milwaukee permit forms, design guidelines, and get project-specific recommendations
+- **Parcel Lookup** - Look up lot size, owner, assessed value, and zoning from ESRI parcels layer
 - **Homes MKE Integration** - Search city-owned homes for sale with detailed property cards
 - **Vacant Lots Layer** - Browse city-owned vacant lots from Strong Neighborhoods program
+- **Multi-Page PDF Reports** - Export conversations with tables and compliance data via Hybiscus API
 - **High-Performance Tiles** - PMTiles (313,000+ features) for instant map rendering
 
 ### Target Users
@@ -133,6 +137,7 @@ mkedev/
 │   │   │   └── lib/voice/      # Gemini Live voice integration
 │   │   ├── convex/             # Convex schema & functions
 │   │   │   ├── agents/         # Zoning Interpreter Agent
+│   │   │   ├── documents/      # Document analyzer pipeline
 │   │   │   └── ingestion/      # RAG & File Search Stores
 │   │   └── scripts/            # Setup scripts
 │   └── agents/                 # Google ADK agents (standalone)
@@ -201,12 +206,13 @@ Layers are served via PMTiles for optimal performance (313,000+ features).
 
 The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning requirements through natural conversation.
 
-### Agent Tools (14 Total)
+### Agent Tools (22 Total)
 
 | Tool | Description |
 |------|-------------|
 | `geocode_address` | Convert street addresses to coordinates via Mapbox |
 | `query_zoning_at_point` | Get zoning district + overlays from Milwaukee ESRI |
+| `lookup_parcel` | Look up parcel details (lot size, owner, assessed value) |
 | `calculate_parking` | Calculate required parking spaces by use type |
 | `query_zoning_code` | RAG search against 12 zoning code PDFs |
 | `query_area_plans` | Search neighborhood plans for development context |
@@ -219,6 +225,13 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 | `get_development_site_details` | Get development site details |
 | `search_vacant_lots` | Find city-owned vacant lots with filters |
 | `get_vacant_lot_details` | Get vacant lot info with parcel enrichment |
+| `search_permit_forms` | Search Milwaukee permit forms and applications |
+| `search_design_guidelines` | Search building design guidelines |
+| `recommend_permits_for_project` | Get recommended permits for a project |
+| `get_permit_form_details` | Get full details about a specific permit form |
+| `get_guideline_details` | Get full details about a design guideline |
+| `analyze_document` | Upload and analyze civic documents for zoning compliance |
+| `analyze_site_photo` | Analyze site photos for development potential |
 
 ### Example Queries
 
@@ -237,6 +250,12 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 
 "Show me vacant lots in Harambee"
 → Returns VacantLotsListCard with available properties
+
+"What's the lot size at 1021 S 21st Street?"
+→ Looks up parcel data including owner, assessed value, zoning
+
+"What permits do I need for a restaurant buildout?"
+→ Returns PermitRecommendationsCard with required forms and fees
 ```
 
 ### RAG Document Corpus
@@ -255,13 +274,18 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 
 ## Generative UI Cards
 
-Rich interactive cards render in chat for structured data:
+21 rich interactive card types render in chat for structured data:
 
 | Card Type | Use Case |
 |-----------|----------|
 | `ZoneInfoCard` | Zoning district summary with category and overlays |
 | `ParcelCard` | Full parcel info with address, zoning, permitted uses |
+| `ParcelAnalysisCard` | Deep parcel analysis with development potential |
 | `CodeCitationCard` | Zoning code excerpts with PDF viewer links |
+| `IncentivesSummaryCard` | Financial incentives and assistance programs |
+| `AreaPlanContextCard` | Neighborhood plan context and goals |
+| `PermitProcessCard` | Permit process overview and requirements |
+| `OpportunityListCard` | Development opportunities in an area |
 | `HomeCard` | Detailed home listing with images and Street View |
 | `HomesListCard` | List of homes with quick select |
 | `CommercialPropertyCard` | Commercial property details |
@@ -270,6 +294,42 @@ Rich interactive cards render in chat for structured data:
 | `DevelopmentSitesListCard` | List of development sites |
 | `VacantLotCard` | Vacant lot details with Street View and visualize |
 | `VacantLotsListCard` | List of vacant lots with status badges |
+| `PermitFormsListCard` | Search results for permit forms |
+| `PermitRecommendationsCard` | Project-specific permit recommendations |
+| `PermitFormDetailsCard` | Full permit form details with fields and fees |
+| `DesignGuidelinesListCard` | Search results for design guidelines |
+| `DesignGuidelineDetailsCard` | Full design guideline standards |
+| `DocumentUploadCard` | Upload civic documents for AI analysis |
+| `ComplianceReportCard` | Zoning compliance analysis with dimensional tables |
+| `SiteAnalysisCard` | AI vision site assessment for development potential |
+
+---
+
+## Document Analyzer
+
+Upload civic documents (PDFs, images) for AI-powered classification and zoning compliance analysis:
+
+### Pipeline
+
+1. **Upload** - Drag & drop or click to upload documents via the paperclip button in chat
+2. **Classify** - Gemini 3 Flash identifies document type (site plan, floor plan, elevation, narrative, variance application, etc.) and extracts structured data
+3. **Enrich** - Auto-geocodes extracted addresses and fetches zoning district, overlays, and parcel data from Milwaukee ESRI
+4. **Analyze** - Gemini 3 Pro performs deep compliance analysis against Milwaukee zoning code with dimensional requirements, setback checks, and condition assessment
+5. **Report** - Results displayed as interactive ComplianceReportCard with status indicators
+
+### Supported Document Types
+
+| Type | Examples |
+|------|----------|
+| Site Plan | Building footprint, setbacks, parking layout |
+| Floor Plan | Interior layout with dimensions |
+| Elevation | Building facade views, height, materials |
+| Project Narrative | Written description of proposed development |
+| Variance Application | Request to deviate from zoning standards |
+| Conditional Use | Special use permit applications |
+| Traffic Study | Traffic impact analysis |
+| Environmental Assessment | Phase I/II environmental reports |
+| Survey | ALTA, boundary, or topographic surveys |
 
 ---
 
@@ -333,13 +393,13 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 - [x] PMTiles pipeline
 
 ### Week 2: Voice & AI (Complete)
-- [x] **Zoning Interpreter Agent** - Gemini function calling with 14 tools
+- [x] **Zoning Interpreter Agent** - Gemini function calling with 22 tools
 - [x] **File Search RAG** - 42 docs across 5 persistent stores
 - [x] **ESRI Integration** - Geocoding + zoning lookup
 - [x] **3D Map Visualization** - Zoning extrusions with category colors
 - [x] **Gemini Live API** - Voice conversations with text transcription
 - [x] **Voice-to-Chat** - Voice messages render in chat with cards
-- [x] **Generative UI Cards** - 11 card types for structured data
+- [x] **Generative UI Cards** - 21 card types for structured data
 - [x] **Conversation History** - Persistence, search, starring
 - [x] **Homes MKE Integration** - City-owned homes search
 - [x] **AI Site Visualizer** - Gemini 3 Pro Image architectural rendering
@@ -358,7 +418,17 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 - [x] On-demand area plans fetching in ParcelCard
 - [x] Sentry error and performance monitoring
 
-### Week 4: Polish & Submit
+### Week 4: Document Analyzer & Polish (In Progress)
+- [x] Document upload with drag & drop UI
+- [x] Gemini 3 Flash document classification (10 types)
+- [x] Auto-enrichment (geocode + zoning + parcel lookup)
+- [x] Gemini 3 Pro deep compliance analysis
+- [x] ComplianceReportCard and SiteAnalysisCard
+- [x] Permit forms search and recommendations tools
+- [x] Design guidelines search tools
+- [x] Parcel lookup tool (lot size, owner, assessed value)
+- [x] Multi-page PDF reports with table rendering
+- [x] Chat scroll behavior fix (no hijacking during streaming)
 - [ ] Accessibility testing
 - [ ] Demo video
 - [ ] Submission materials
