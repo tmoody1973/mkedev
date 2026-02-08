@@ -679,10 +679,20 @@ export function MapContainer({
       {/* Map container - always rendered so ref is attached */}
       <div
         ref={mapContainerRef}
-        className="absolute inset-0 z-0"
+        className={`absolute inset-0 z-0 ${isMeasuring ? 'measurement-active' : ''}`}
         style={{ width: '100%', height: '100%' }}
         data-testid="mapbox-container"
       />
+
+      {/* Force crosshair cursor when measuring - overrides all programmatic cursor changes */}
+      {isMeasuring && (
+        <style>{`
+          .measurement-active canvas,
+          .measurement-active .mapboxgl-canvas {
+            cursor: crosshair !important;
+          }
+        `}</style>
+      )}
 
       {/* Loading overlay */}
       {isLoading && !error && (
