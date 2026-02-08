@@ -21,6 +21,7 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 - **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG (22 tools)
 - **AI Site Visualizer** - Transform photos into architectural renderings with Gemini 3 Pro Image
 - **Generative UI Cards** - Rich interactive cards for homes, parcels, zoning info, and properties
+- **Map Measurement Tool** - Draw polygons to measure area (sq ft/acres) and perimeter on any site
 - **Interactive 3D Map** - Mapbox GL JS with 2D/3D toggle and 8 Milwaukee ESRI data layers
 - **File Search RAG** - 42 documents across 5 stores (zoning codes, area plans, policies, incentives)
 - **Conversation History** - Persistent chat with search, starring, and PDF report generation
@@ -200,6 +201,18 @@ MKE.dev integrates 8 Milwaukee GIS data layers:
 
 Layers are served via PMTiles for optimal performance (313,000+ features).
 
+### Map Measurement Tool
+
+Click the ruler button on the map to enter measurement mode:
+
+- **Draw polygons** by clicking to place vertices on any parcel or site
+- **Double-click** to finish the polygon and see results
+- **Area** displayed in square feet and acres
+- **Perimeter** displayed in feet
+- Press **Escape** or click the X button to exit
+
+Uses a custom GeoJSON drawing system with Turf.js for geodesic-accurate calculations.
+
 ---
 
 ## Zoning Interpreter Agent
@@ -274,7 +287,7 @@ The AI-powered Zoning Interpreter Agent helps users understand Milwaukee zoning 
 
 ## Generative UI Cards
 
-21 rich interactive card types render in chat for structured data:
+24 rich interactive card types render in chat for structured data:
 
 | Card Type | Use Case |
 |-----------|----------|
@@ -399,7 +412,7 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 - [x] **3D Map Visualization** - Zoning extrusions with category colors
 - [x] **Gemini Live API** - Voice conversations with text transcription
 - [x] **Voice-to-Chat** - Voice messages render in chat with cards
-- [x] **Generative UI Cards** - 21 card types for structured data
+- [x] **Generative UI Cards** - 24 card types for structured data
 - [x] **Conversation History** - Persistence, search, starring
 - [x] **Homes MKE Integration** - City-owned homes search
 - [x] **AI Site Visualizer** - Gemini 3 Pro Image architectural rendering
@@ -429,6 +442,7 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 - [x] Parcel lookup tool (lot size, owner, assessed value)
 - [x] Multi-page PDF reports with table rendering
 - [x] Chat scroll behavior fix (no hijacking during streaming)
+- [x] Map measurement tool (area/perimeter with custom polygon drawing)
 - [ ] Accessibility testing
 - [ ] Demo video
 - [ ] Submission materials
