@@ -8,4 +8,5 @@ export type {
   ScreenshotSourceType,
   VisualizationEntry,
   VisualizerState,
+  SiteAnalysisResult,
 } from './visualizerStore';

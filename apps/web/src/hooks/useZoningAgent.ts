@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '@/../convex/_generated/api';
 import type { GenerativeCard } from '@/components/chat/ChatPanel';
+import { classifyQueryComplexity } from '@/lib/queryComplexity';
 
 /**
  * Tool result from the agent for generative UI rendering.
@@ -559,6 +560,125 @@ function mapToolResultsToCards(toolResults: ToolResult[]): GenerativeCard[] {
         }
         break;
       }
+
+      // ========================================================================
+      // Document Analysis Tools - Convert to generative UI cards
+      // ========================================================================
+
+      case 'analyze_document': {
+        const r = result as {
+          success?: boolean;
+          needsUpload?: boolean;
+          message?: string;
+          documentId?: string;
+          analysisId?: string;
+          analysis?: Record<string, unknown>;
+          analysisTimeMs?: number;
+          modelUsed?: string;
+        };
+
+        if (r.success && r.needsUpload) {
+          // No document uploaded yet - show upload card
+          cards.push({
+            type: 'document-upload',
+            data: {
+              documentId: '',
+              filename: '',
+              mimeType: '',
+              status: 'uploading',
+            },
+          });
+        } else if (r.success && r.analysis) {
+          // Document was analyzed - show upload card (classified state) + compliance report
+          const analysis = r.analysis as {
+            executiveSummary?: string;
+            overallStatus?: string;
+            approvalPathway?: string;
+            estimatedTimeline?: string;
+            dimensionalCompliance?: unknown[];
+            useCompliance?: unknown[];
+            areaPlanAlignment?: unknown;
+            variancesRequired?: unknown[];
+            incentiveOpportunities?: unknown[];
+            recommendedNextSteps?: unknown[];
+            riskAssessment?: unknown[];
+          };
+
+          // Push the compliance report card with the full analysis
+          cards.push({
+            type: 'compliance-report',
+            data: {
+              documentId: r.documentId || '',
+              address: '',
+              zoningDistrict: '',
+              analysisDate: new Date().toLocaleDateString(),
+              overallStatus: analysis.overallStatus || 'variances_required',
+              analysis: {
+                executiveSummary: analysis.executiveSummary || '',
+                overallStatus: analysis.overallStatus || 'variances_required',
+                approvalPathway: analysis.approvalPathway || '',
+                estimatedTimeline: analysis.estimatedTimeline || '',
+                dimensionalCompliance: analysis.dimensionalCompliance || [],
+                useCompliance: analysis.useCompliance || [],
+                areaPlanAlignment: analysis.areaPlanAlignment,
+                variancesRequired: analysis.variancesRequired || [],
+                incentiveOpportunities: analysis.incentiveOpportunities || [],
+                recommendedNextSteps: analysis.recommendedNextSteps || [],
+                riskAssessment: analysis.riskAssessment || [],
+              },
+            },
+          });
+        }
+        break;
+      }
+
+      case 'analyze_site_photo': {
+        const r = result as {
+          success?: boolean;
+          needsUpload?: boolean;
+          message?: string;
+          imageStorageId?: string;
+          siteDescription?: {
+            lotCharacteristics?: string;
+            existingConditions?: string;
+            topography?: string;
+            vegetation?: string;
+          };
+          contextAnalysis?: {
+            adjacentBuildings?: string;
+            neighborhoodCharacter?: string;
+            streetType?: string;
+            pedestrianEnvironment?: string;
+          };
+          developmentPotential?: {
+            suitableUses?: string[];
+            estimatedCapacity?: string;
+            designConsiderations?: string[];
+            challenges?: string[];
+            opportunities?: string[];
+          };
+          questionsToInvestigate?: string[];
+        };
+
+        if (r.success && r.needsUpload) {
+          // No image uploaded yet - the agent will instruct the user
+          break;
+        }
+
+        if (r.success && r.siteDescription) {
+          cards.push({
+            type: 'site-analysis',
+            data: {
+              imageStorageId: r.imageStorageId || '',
+              siteDescription: r.siteDescription || {},
+              contextAnalysis: r.contextAnalysis || {},
+              developmentPotential: r.developmentPotential || {},
+              questionsToInvestigate: r.questionsToInvestigate || [],
+            },
+          });
+        }
+        break;
+      }
     }
   }
 
@@ -663,6 +783,7 @@ function generateSessionId(): string {
  *
  * Manages conversation state and sends messages to the Convex agent action.
  * Subscribes to real-time status updates for displaying agent activity.
+ * Automatically classifies query complexity and passes thinkingLevel hint to the agent.
  */
 export function useZoningAgent(): UseZoningAgentReturn {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -706,6 +827,7 @@ export function useZoningAgent(): UseZoningAgentReturn {
 
   /**
    * Send a message to the agent and get a response.
+   * Automatically classifies query complexity and passes thinkingLevel to the agent.
    */
   const sendMessage = useCallback(
     async (message: string) => {
@@ -713,6 +835,9 @@ export function useZoningAgent(): UseZoningAgentReturn {
 
       setError(null);
       setIsLoading(true);
+
+      // Classify query complexity for the agent
+      const thinkingLevel = classifyQueryComplexity(message);
 
       // Generate a new session ID for this conversation turn
       const sessionId = generateSessionId();
@@ -736,11 +861,12 @@ export function useZoningAgent(): UseZoningAgentReturn {
           content: msg.content,
         }));
 
-        // Call the agent with session ID for status tracking
+        // Call the agent with session ID for status tracking and thinking level
         const result = await chatAction({
           message,
           sessionId,
           conversationHistory,
+          thinkingLevel,
         });
 
         // Map tool results to generative UI cards

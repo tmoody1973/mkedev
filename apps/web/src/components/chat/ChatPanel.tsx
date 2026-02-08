@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, type ReactNode, type FormEvent } from 'react'
-import { Send, Mic, MessageCircle, MapPin, FileSearch, Calculator, BookOpen, CheckCircle2, Loader2, Home, Download } from 'lucide-react'
+import { Send, Mic, MessageCircle, MapPin, FileSearch, Calculator, BookOpen, CheckCircle2, Loader2, Home, Download, Paperclip } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,8 @@ import dynamic from 'next/dynamic'
 import { CitationText, SourcesFooter } from './CitationText'
 import { enhanceCitations, hasCitationMarkers, type EnhancedCitation, type RawCitation } from '@/lib/citations'
 import { matchDocumentUrl } from '@/lib/documentUrls'
+import { ThinkingIndicator } from './ThinkingIndicator'
+import { classifyQueryComplexity, type ThinkingLevel } from '@/lib/queryComplexity'
 
 // Dynamic import to avoid SSR issues with react-pdf (uses DOMMatrix)
 const PDFViewerModal = dynamic(
@@ -43,6 +45,9 @@ export interface GenerativeCard {
     | 'permit-form-details'
     | 'design-guidelines-list'
     | 'design-guideline-details'
+    | 'document-upload'
+    | 'compliance-report'
+    | 'site-analysis'
   data: unknown
 }
 
@@ -92,6 +97,8 @@ export interface ChatPanelProps {
   onDownloadReport?: () => void
   /** Whether a report is currently being generated */
   isGeneratingReport?: boolean
+  /** Callback when the upload button is clicked */
+  onFileUpload?: () => void
 }
 
 /**
@@ -102,6 +109,7 @@ export interface ChatPanelProps {
  * - Loading indicator with animated bouncing dots
  * - Input area with text field, voice button, and send button
  * - Support for generative UI cards in messages
+ * - Adaptive thinking level indicator
  */
 export function ChatPanel({
   messages,
@@ -113,9 +121,13 @@ export function ChatPanel({
   renderCard,
   onDownloadReport,
   isGeneratingReport = false,
+  onFileUpload,
 }: ChatPanelProps) {
   const [input, setInput] = useState('')
+  const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('LOW')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const userScrolledUpRef = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // PDF Viewer modal state
@@ -135,9 +147,24 @@ export function ChatPanel({
     setPdfViewerState({ isOpen: false, citation: null })
   }
 
-  // Auto-scroll to latest message
+  // Track whether user has scrolled up from the bottom
   useEffect(() => {
-    if (messagesEndRef.current) {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      // User is "at bottom" if within 100px of the end
+      userScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 100
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Auto-scroll to latest message only if user hasn't scrolled up
+  useEffect(() => {
+    if (messagesEndRef.current && !userScrolledUpRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, isLoading])
@@ -146,6 +173,10 @@ export function ChatPanel({
     e.preventDefault()
     const trimmedInput = input.trim()
     if (trimmedInput && onSendMessage) {
+      // Classify thinking level before sending
+      const level = classifyQueryComplexity(trimmedInput)
+      setThinkingLevel(level)
+
       onSendMessage(trimmedInput)
       setInput('')
     }
@@ -161,6 +192,14 @@ export function ChatPanel({
   const formatTimestamp = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
+
+  // Determine if the agent is actively processing
+  const isAgentActive = isLoading && (
+    agentStatus?.status === 'thinking' ||
+    agentStatus?.status === 'executing_tool' ||
+    agentStatus?.status === 'generating_response' ||
+    !agentStatus // No status yet but still loading
+  )
 
   return (
     <div
@@ -204,6 +243,7 @@ export function ChatPanel({
 
       {/* Messages Area */}
       <div
+        ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
         role="log"
         aria-label="Chat messages"
@@ -226,7 +266,20 @@ export function ChatPanel({
         )}
 
         {/* Loading indicator with agent status */}
-        {isLoading && <AgentStatusIndicator status={agentStatus} />}
+        {isLoading && (
+          <>
+            <AgentStatusIndicator status={agentStatus} />
+            {/* Thinking level indicator - shown below agent status */}
+            {isAgentActive && (
+              <div className="flex justify-start pl-1 -mt-2">
+                <ThinkingIndicator
+                  thinkingLevel={thinkingLevel}
+                  isActive={isAgentActive}
+                />
+              </div>
+            )}
+          </>
+        )}
 
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />
@@ -259,6 +312,29 @@ export function ChatPanel({
             )}
             data-testid="chat-input"
           />
+
+          {/* File Upload Button */}
+          {onFileUpload && (
+            <button
+              type="button"
+              onClick={onFileUpload}
+              disabled={isLoading}
+              aria-label="Upload document"
+              className={cn(
+                'w-12 h-12 rounded-lg border-2 border-black dark:border-white',
+                'bg-emerald-400 text-stone-900',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]',
+                'hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]',
+                'active:translate-y-2 active:shadow-none',
+                'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+                'transition-all duration-100',
+                'flex items-center justify-center'
+              )}
+              data-testid="file-upload-button"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
+          )}
 
           {/* Voice Input Button */}
           <button

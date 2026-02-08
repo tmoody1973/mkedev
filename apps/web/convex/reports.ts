@@ -25,6 +25,13 @@ interface HybiscusPayload {
     report_title: string;
     report_byline: string;
     version_number?: string;
+    logo_url?: string;
+    footer_text?: string;
+  };
+  config?: {
+    enable_multi_page?: boolean;
+    enable_pagination?: boolean;
+    color_theme?: string;
   };
   components: HybiscusComponent[];
 }
@@ -499,6 +506,145 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
       break;
     }
 
+    case "compliance-report": {
+      const sections: HybiscusComponent[] = [];
+
+      // Status header
+      if (data.status) {
+        sections.push({
+          type: "Text",
+          options: {
+            text: `**Status:** ${data.status}`,
+            markdown_format: true,
+            size: "sm",
+            bg_colour: "accent",
+            inner_padding: 3,
+          },
+        });
+      }
+
+      // Summary
+      if (data.summary) {
+        sections.push({
+          type: "Text",
+          options: { text: String(data.summary), markdown_format: true, size: "sm" },
+        });
+      }
+
+      // Dimensional requirements table
+      if (data.dimensionalRequirements && Array.isArray(data.dimensionalRequirements)) {
+        const reqs = data.dimensionalRequirements as Array<{
+          requirement?: string;
+          standard?: string;
+          proposed?: string;
+          status?: string;
+        }>;
+        sections.push({
+          type: "Table",
+          options: {
+            title: "Dimensional Requirements",
+            headings: ["Requirement", "Standard", "Proposed", "Status"],
+            rows: reqs.map((r) => [
+              `<b>${r.requirement || ""}</b>`,
+              r.standard || "",
+              r.proposed || "",
+              r.status === "Compliant"
+                ? "<span style='color: #16a34a;'><b>Compliant</b></span>"
+                : `<span style='color: #dc2626;'><b>${r.status || "Unknown"}</b></span>`,
+            ]),
+            striped: true,
+            table_border: true,
+            col_borders: true,
+            col_width: [30, 25, 25, 20],
+            headings_font_size: "xs",
+            rows_font_size: "xs",
+          },
+        });
+      }
+
+      // Variances
+      if (data.variances && Array.isArray(data.variances)) {
+        const variances = data.variances as Array<{
+          type?: string;
+          description?: string;
+          hardshipBasis?: string;
+        }>;
+        let varianceText = "";
+        for (const v of variances) {
+          varianceText += `**${v.type || "Variance"}:** ${v.description || ""}\n`;
+          if (v.hardshipBasis) varianceText += `_Hardship Basis: ${v.hardshipBasis}_\n`;
+          varianceText += "\n";
+        }
+        sections.push({
+          type: "Text",
+          options: { text: varianceText, markdown_format: true, size: "sm" },
+        });
+      }
+
+      // Incentives
+      if (data.incentives && Array.isArray(data.incentives)) {
+        const incentives = data.incentives as Array<{
+          name?: string;
+          description?: string;
+        }>;
+        let incText = "";
+        for (const inc of incentives) {
+          incText += `**${inc.name || "Incentive"}:** ${inc.description || ""}\n`;
+        }
+        sections.push({
+          type: "Text",
+          options: { text: incText, markdown_format: true, size: "sm" },
+        });
+      }
+
+      // Next steps
+      if (data.nextSteps && Array.isArray(data.nextSteps)) {
+        let stepsText = "";
+        const steps = data.nextSteps as string[];
+        steps.forEach((step, i) => {
+          stepsText += `${i + 1}. ${step}\n`;
+        });
+        sections.push({
+          type: "Text",
+          options: { text: stepsText, markdown_format: true, size: "sm" },
+        });
+      }
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: "Compliance Analysis Report",
+          icon: "clipboard",
+          highlighted: true,
+        },
+        components: sections,
+      });
+      break;
+    }
+
+    case "site-analysis": {
+      let analysisText = "";
+      if (data.summary) analysisText += `${data.summary}\n\n`;
+      if (data.address) analysisText += `**Address:** ${data.address}\n`;
+      if (data.zoningDistrict) analysisText += `**Zoning District:** ${data.zoningDistrict}\n`;
+      if (data.areaPlan) analysisText += `**Area Plan:** ${data.areaPlan}\n`;
+      if (data.alignmentScore !== undefined) analysisText += `**Area Plan Alignment:** ${data.alignmentScore}%\n`;
+
+      components.push({
+        type: "Section",
+        options: {
+          section_title: (data.address as string) || "Site Analysis",
+          icon: "map-pin",
+          highlighted: true,
+        },
+        components: [{
+          type: "Text",
+          options: { text: analysisText, markdown_format: true, size: "sm" },
+        }],
+      });
+      break;
+    }
+
     default:
       break;
   }
@@ -507,7 +653,166 @@ function buildCardComponents(card: CardData): HybiscusComponent[] {
 }
 
 /**
+ * Convert markdown bold (**text**) to HTML bold (<b>text</b>) for Hybiscus table cells.
+ */
+function mdBoldToHtml(text: string): string {
+  return text.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+}
+
+/**
+ * Parse message content into sequential top-level Hybiscus components.
+ * Each text block and table becomes its own Section to prevent column layout.
+ * Markdown tables are converted to Hybiscus Table components.
+ */
+function parseContentToSections(
+  text: string,
+  roleLabel: string,
+  timestamp: number,
+  roleIcon: string,
+  isUser: boolean,
+): HybiscusComponent[] {
+  const components: HybiscusComponent[] = [];
+  const lines = text.split("\n");
+
+  let currentText = "";
+  let isFirstSection = true;
+  let i = 0;
+
+  const flushText = () => {
+    if (!currentText.trim()) return;
+    const sectionTitle = isFirstSection
+      ? `${roleLabel} • ${formatTimestamp(timestamp)}`
+      : " ";
+    const sectionOpts: Record<string, unknown> = {
+      section_title: sectionTitle,
+      highlighted: !isUser,
+      horizontal_margin: 2,
+      vertical_margin: isFirstSection ? 1 : 0,
+    };
+    if (isFirstSection) {
+      sectionOpts.icon = roleIcon;
+      isFirstSection = false;
+    }
+    components.push({
+      type: "Section",
+      options: sectionOpts,
+      components: [{
+        type: "Text",
+        options: {
+          text: currentText,
+          markdown_format: true,
+          size: "sm",
+        },
+      }],
+    });
+    currentText = "";
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Detect markdown table: line with pipes and next line is separator
+    if (
+      line.includes("|") &&
+      i + 1 < lines.length &&
+      /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(lines[i + 1])
+    ) {
+      flushText();
+
+      // Parse header row - convert markdown bold to HTML bold
+      const headings = line
+        .split("|")
+        .map((h) => mdBoldToHtml(h.trim()))
+        .filter((h) => h.length > 0);
+
+      // Skip separator row
+      i += 2;
+
+      // Parse data rows
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim() !== "") {
+        const row = lines[i]
+          .split("|")
+          .map((c) => mdBoldToHtml(c.trim()))
+          .filter((c, idx, arr) => {
+            if (idx === 0 && c === "") return false;
+            if (idx === arr.length - 1 && c === "") return false;
+            return true;
+          });
+        if (row.length > 0) rows.push(row);
+        i++;
+      }
+
+      // Distribute column widths evenly
+      const numCols = headings.length || (rows[0]?.length ?? 1);
+      const colWidth = Math.floor(100 / numCols);
+      const colWidths = Array(numCols).fill(colWidth);
+
+      const tableSectionTitle = isFirstSection
+        ? `${roleLabel} • ${formatTimestamp(timestamp)}`
+        : " ";
+      const tableSectionOpts: Record<string, unknown> = {
+        section_title: tableSectionTitle,
+        highlighted: !isUser,
+        horizontal_margin: 2,
+        vertical_margin: isFirstSection ? 1 : 0,
+      };
+      if (isFirstSection) {
+        tableSectionOpts.icon = roleIcon;
+        isFirstSection = false;
+      }
+
+      components.push({
+        type: "Section",
+        options: tableSectionOpts,
+        components: [{
+          type: "Table",
+          options: {
+            headings,
+            rows,
+            striped: true,
+            table_border: true,
+            col_borders: true,
+            col_width: colWidths,
+            headings_font_size: "xs",
+            rows_font_size: "xs",
+          },
+        }],
+      });
+      continue;
+    }
+
+    currentText += line + "\n";
+    i++;
+  }
+
+  flushText();
+
+  // If no sections were created (empty message), add a placeholder
+  if (isFirstSection) {
+    components.push({
+      type: "Section",
+      options: {
+        section_title: `${roleLabel} • ${formatTimestamp(timestamp)}`,
+        icon: roleIcon,
+        highlighted: !isUser,
+        horizontal_margin: 2,
+        vertical_margin: 1,
+      },
+      components: [{
+        type: "Text",
+        options: { text: text || "(empty)", markdown_format: true, size: "sm" },
+      }],
+    });
+  }
+
+  return components;
+}
+
+/**
  * Build Hybiscus components from conversation messages.
+ * Each piece of content (text block, table, card) gets its own Section
+ * to ensure vertical stacking instead of column layout.
  */
 function buildReportComponents(
   messages: Array<{
@@ -519,50 +824,28 @@ function buildReportComponents(
 ): HybiscusComponent[] {
   const components: HybiscusComponent[] = [];
 
-  // Add each message as a section
   for (const message of messages) {
     const isUser = message.role === "user";
     const roleLabel = isUser ? "You" : "MKE.dev Assistant";
     const roleIcon = isUser ? "user" : "robot";
-    const bgColor = isUser ? "background-muted" : "background-faded";
 
-    // Build section components array
-    const sectionComponents: HybiscusComponent[] = [];
+    // Parse message content into sequential sections (text + tables)
+    const contentSections = parseContentToSections(
+      message.content,
+      roleLabel,
+      message.timestamp,
+      roleIcon,
+      isUser,
+    );
+    components.push(...contentSections);
 
-    // Add main message text
-    sectionComponents.push({
-      type: "Text",
-      options: {
-        text: message.content,
-        bg_colour: bgColor,
-        inner_padding: 4,
-        markdown_format: true,
-        size: "sm",
-      },
-    });
-
-    // Add card components (with images, proper formatting)
+    // Add card components as separate top-level sections
     if (message.cards && message.cards.length > 0) {
       for (const card of message.cards) {
         const cardComponents = buildCardComponents(card);
-        sectionComponents.push(...cardComponents);
+        components.push(...cardComponents);
       }
     }
-
-    // Create section for this message
-    const section: HybiscusComponent = {
-      type: "Section",
-      options: {
-        section_title: `${roleLabel} • ${formatTimestamp(message.timestamp)}`,
-        icon: roleIcon,
-        highlighted: !isUser,
-        horizontal_margin: 2,
-        vertical_margin: 1,
-      },
-      components: sectionComponents,
-    };
-
-    components.push(section);
   }
 
   return components;
@@ -628,23 +911,14 @@ export const generateReport = action({
         report_title: "MKE.dev Conversation Report",
         report_byline: `${title} • Generated ${formatReportDate()}`,
         version_number: "1.0",
+        logo_url: MKEDEV_LOGO_URL,
+        footer_text: "<i>Generated by MKE.dev — Milwaukee's AI-powered civic intelligence platform</i>",
+      },
+      config: {
+        enable_multi_page: true,
+        enable_pagination: true,
       },
       components: [
-        // Logo header
-        {
-          type: "Image",
-          options: {
-            image_url: MKEDEV_LOGO_URL,
-            width: "1/4",
-            align: "center",
-          },
-        },
-        {
-          type: "VerticalSpacer",
-          options: {
-            space: 2,
-          },
-        },
         // Header section
         {
           type: "Section",

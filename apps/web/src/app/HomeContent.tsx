@@ -26,11 +26,19 @@ import {
   PermitFormDetailsCard,
   DesignGuidelinesListCard,
   DesignGuidelineDetailsCard,
+  DocumentUploadCard,
+  ComplianceReportCard,
+  SiteAnalysisCard,
   type HomeListItem,
   type CommercialPropertyListItem,
   type DevelopmentSiteListItem,
   type VacantLotListItem,
 } from '@/components/copilot'
+import type {
+  DocumentUploadCardData,
+  ComplianceReportCardData,
+  SiteAnalysisCardData,
+} from '@/components/chat/types'
 import { LandingPage } from '@/components/landing'
 import dynamic from 'next/dynamic'
 
@@ -610,6 +618,12 @@ export default function HomeContent() {
       generateReport(currentConversationId)
     }
   }, [currentConversationId, generateReport])
+
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false)
+
+  const handleFileUpload = useCallback(() => {
+    setShowDocumentUpload(prev => !prev)
+  }, [])
 
   // Handle parcel selection from map
   const handleParcelSelect = useCallback((parcel: ParcelData) => {
@@ -1356,10 +1370,62 @@ export default function HomeContent() {
         );
       }
 
+      // ========================================================================
+      // Document Analysis Cards - Document Analyzer Feature
+      // ========================================================================
+
+      case 'document-upload': {
+        const data = card.data as DocumentUploadCardData;
+        return (
+          <DocumentUploadCard
+            documentId={data.documentId}
+            filename={data.filename}
+            mimeType={data.mimeType}
+            status={data.status}
+            classification={data.classification}
+            parcelContext={data.parcelContext}
+            errorMessage={data.errorMessage}
+            onAnalyzeCompliance={(docId, address) => {
+              sendMessage(`Analyze the compliance of document ${docId}${address ? ` for the property at ${address}` : ''}`)
+            }}
+          />
+        );
+      }
+
+      case 'compliance-report': {
+        const data = card.data as ComplianceReportCardData;
+        return (
+          <ComplianceReportCard
+            documentId={data.documentId}
+            address={data.address}
+            zoningDistrict={data.zoningDistrict}
+            analysisDate={data.analysisDate}
+            overallStatus={data.overallStatus}
+            analysis={data.analysis}
+          />
+        );
+      }
+
+      case 'site-analysis': {
+        const data = card.data as SiteAnalysisCardData;
+        return (
+          <SiteAnalysisCard
+            imageStorageId={data.imageStorageId}
+            siteDescription={data.siteDescription}
+            contextAnalysis={data.contextAnalysis}
+            developmentPotential={data.developmentPotential}
+            questionsToInvestigate={data.questionsToInvestigate}
+            onAskQuestion={(question) => {
+              sendMessage(question)
+            }}
+          />
+        );
+      }
+
       default:
         return null;
     }
-  }, [openPdfViewer, openStreetView, handleHomeFlyTo, handleHomeSelect, handleCommercialPropertySelect, handleCommercialFlyTo, handleDevelopmentSiteSelect, handleDevelopmentSiteFlyTo, handleVacantLotSelect, handleVacantLotFlyTo])
+  }, [openPdfViewer, openStreetView, handleHomeFlyTo, handleHomeSelect, handleCommercialPropertySelect, handleCommercialFlyTo, handleDevelopmentSiteSelect, handleDevelopmentSiteFlyTo, handleVacantLotSelect, handleVacantLotFlyTo, sendMessage])
 
   // Show loading skeleton while auth state is being determined
   // This prevents hydration mismatch between server and client
@@ -1415,17 +1481,46 @@ export default function HomeContent() {
             />
           }
           chatPanel={
-            <ChatPanel
-              messages={messages}
-              onSendMessage={handleSendMessage}
-              onVoiceInput={handleVoiceInput}
-              isLoading={isLoading}
-              agentStatus={agentStatus}
-              placeholder="Ask about zoning, permits, or any property in Milwaukee..."
-              renderCard={renderCard}
-              onDownloadReport={currentConversationId ? handleDownloadReport : undefined}
-              isGeneratingReport={isGeneratingReport}
-            />
+            <div className="flex flex-col h-full">
+              {showDocumentUpload && (
+                <div className="p-4 border-b-2 border-black dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-bold font-head">Document Analysis</h3>
+                    <button
+                      onClick={() => setShowDocumentUpload(false)}
+                      className="text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 text-lg leading-none"
+                      aria-label="Close upload panel"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                  <DocumentUploadCard
+                    documentId=""
+                    filename=""
+                    mimeType=""
+                    status="uploading"
+                    onAnalyzeCompliance={(docId, address) => {
+                      setShowDocumentUpload(false)
+                      sendMessage(`Analyze the compliance of document ${docId}${address ? ` for the property at ${address}` : ''}`)
+                    }}
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-h-0">
+                <ChatPanel
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                  onVoiceInput={handleVoiceInput}
+                  isLoading={isLoading}
+                  agentStatus={agentStatus}
+                  placeholder="Ask about zoning, permits, or any property in Milwaukee..."
+                  renderCard={renderCard}
+                  onDownloadReport={currentConversationId ? handleDownloadReport : undefined}
+                  isGeneratingReport={isGeneratingReport}
+                  onFileUpload={handleFileUpload}
+                />
+              </div>
+            </div>
           }
           mapPanel={
             <MapContainer

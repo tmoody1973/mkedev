@@ -17,6 +17,7 @@ import { query, mutation } from "./_generated/server";
 const TTL = {
   geocode: 30 * 24 * 60 * 60 * 1000, // 30 days - addresses rarely change
   zoning: 7 * 24 * 60 * 60 * 1000, // 7 days - zoning changes infrequently
+  parcel: 7 * 24 * 60 * 60 * 1000, // 7 days - parcel data changes infrequently
   rag: 24 * 60 * 60 * 1000, // 24 hours - documents may be updated
 };
 
@@ -42,7 +43,7 @@ function simpleHash(str: string): string {
  * Uses djb2 hash for fast, deterministic keys without crypto dependency.
  */
 export function generateCacheKey(
-  queryType: "geocode" | "zoning" | "rag",
+  queryType: "geocode" | "zoning" | "parcel" | "rag",
   params: Record<string, unknown>
 ): string {
   const normalized = JSON.stringify(params, Object.keys(params).sort());
@@ -107,6 +108,7 @@ export const getStats = query({
       byType: {
         geocode: { count: 0, hits: 0 },
         zoning: { count: 0, hits: 0 },
+        parcel: { count: 0, hits: 0 },
         rag: { count: 0, hits: 0 },
       },
       totalHits: 0,
@@ -144,6 +146,7 @@ export const set = mutation({
     queryType: v.union(
       v.literal("geocode"),
       v.literal("zoning"),
+      v.literal("parcel"),
       v.literal("rag")
     ),
     result: v.string(), // JSON serialized result
@@ -232,7 +235,7 @@ export const cleanExpired = mutation({
 export const clearAll = mutation({
   args: {
     queryType: v.optional(
-      v.union(v.literal("geocode"), v.literal("zoning"), v.literal("rag"))
+      v.union(v.literal("geocode"), v.literal("zoning"), v.literal("parcel"), v.literal("rag"))
     ),
   },
   handler: async (ctx, args) => {

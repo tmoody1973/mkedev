@@ -21,6 +21,9 @@ export { PermitRecommendationsCard } from "./PermitRecommendationsCard";
 export { PermitFormDetailsCard } from "./PermitFormDetailsCard";
 export { DesignGuidelinesListCard } from "./DesignGuidelinesListCard";
 export { DesignGuidelineDetailsCard } from "./DesignGuidelineDetailsCard";
+export { DocumentUploadCard } from "./DocumentUploadCard";
+export { ComplianceReportCard } from "./ComplianceReportCard";
+export { SiteAnalysisCard } from "./SiteAnalysisCard";
 
 // Export props interfaces for type safety
 export type { HomeCardProps } from "./HomeCard";
@@ -31,6 +34,9 @@ export type { DevelopmentSiteCardProps } from "./DevelopmentSiteCard";
 export type { DevelopmentSiteListItem, DevelopmentSitesListCardProps } from "./DevelopmentSitesListCard";
 export type { VacantLotCardProps } from "./VacantLotCard";
 export type { VacantLotListItem, VacantLotsListCardProps } from "./VacantLotsListCard";
+export type { DocumentUploadCardProps } from "./DocumentUploadCard";
+export type { ComplianceReportCardProps } from "./ComplianceReportCard";
+export type { SiteAnalysisCardProps } from "./SiteAnalysisCard";
 
 // Note: CopilotActions must be imported directly from "./CopilotActions"
 // to avoid SSR issues with @copilotkit/react-core

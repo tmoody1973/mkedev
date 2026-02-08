@@ -238,7 +238,17 @@ export const addMessage = mutation({
             v.literal("commercial-property"),
             v.literal("commercial-properties-list"),
             v.literal("development-site"),
-            v.literal("development-sites-list")
+            v.literal("development-sites-list"),
+            v.literal("vacant-lot"),
+            v.literal("vacant-lots-list"),
+            v.literal("permit-forms-list"),
+            v.literal("permit-recommendations"),
+            v.literal("permit-form-details"),
+            v.literal("design-guidelines-list"),
+            v.literal("design-guideline-details"),
+            v.literal("document-upload"),
+            v.literal("compliance-report"),
+            v.literal("site-analysis")
           ),
           data: v.any(),
         })

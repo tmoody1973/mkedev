@@ -36,6 +36,9 @@ export type GenerativeCardType =
   | 'permit-form-details'
   | 'design-guidelines-list'
   | 'design-guideline-details'
+  | 'document-upload'
+  | 'compliance-report'
+  | 'site-analysis'
 
 /**
  * Generative card type for rendering UI components within messages.
@@ -211,6 +214,228 @@ export interface DesignGuidelineDetailsCardData {
 }
 
 // =============================================================================
+// Document Upload Card Data Interfaces
+// =============================================================================
+
+/**
+ * Classification result for an uploaded document.
+ */
+export interface DocumentClassification {
+  type:
+    | 'site_plan'
+    | 'floor_plan'
+    | 'elevation'
+    | 'project_narrative'
+    | 'variance_application'
+    | 'conditional_use_application'
+    | 'traffic_study'
+    | 'environmental_assessment'
+    | 'survey'
+    | 'unknown'
+  confidence: number
+  summary: string
+  extractedData: {
+    projectAddress?: string
+    proposedUse?: string
+    buildingHeight?: string
+    stories?: number
+    unitCount?: number
+    squareFootage?: number
+    parkingSpaces?: number
+    lotSize?: string
+  }
+}
+
+/**
+ * Parcel context enriched from geocoding and zoning queries.
+ */
+export interface ParcelContextData {
+  address?: string
+  coordinates?: [number, number]
+  zoningDistrict?: string
+  zoningCategory?: string
+  overlayZones?: string[]
+  incentiveZones?: string[]
+  areaPlan?: string
+  lotSize?: number
+}
+
+/**
+ * Data interface for document-upload card type.
+ * Displays upload progress, classification results, and analysis trigger.
+ */
+export interface DocumentUploadCardData {
+  documentId: string
+  filename: string
+  mimeType: string
+  status:
+    | 'uploading'
+    | 'classifying'
+    | 'classified'
+    | 'enriching'
+    | 'analyzing'
+    | 'complete'
+    | 'error'
+  classification?: DocumentClassification
+  parcelContext?: ParcelContextData
+  errorMessage?: string
+}
+
+// =============================================================================
+// Compliance Report Card Data Interfaces
+// =============================================================================
+
+/**
+ * Dimensional compliance item in the compliance report.
+ */
+export interface DimensionalComplianceItem {
+  requirement: string
+  standard: string
+  proposed: string
+  status: 'compliant' | 'variance_required' | 'non_compliant'
+  notes?: string
+}
+
+/**
+ * Use compliance item in the compliance report.
+ */
+export interface UseComplianceItem {
+  use: string
+  permissionLevel: 'permitted' | 'conditional' | 'prohibited'
+  notes?: string
+}
+
+/**
+ * Area plan alignment data in the compliance report.
+ */
+export interface AreaPlanAlignmentData {
+  score: number
+  alignedElements: string[]
+  concerns: string[]
+  recommendations: string[]
+}
+
+/**
+ * Variance item in the compliance report.
+ */
+export interface VarianceRequiredItem {
+  type: string
+  standardRequired: string
+  proposed: string
+  hardshipBasis: string
+  approvalLikelihood: 'high' | 'medium' | 'low'
+  precedentNotes?: string
+}
+
+/**
+ * Incentive opportunity item in the compliance report.
+ */
+export interface IncentiveOpportunityItem {
+  program: string
+  eligibility: 'eligible' | 'possibly_eligible' | 'not_eligible'
+  estimatedBenefit?: string
+  requirements?: string
+  nextSteps?: string
+}
+
+/**
+ * Recommended next step in the compliance report.
+ */
+export interface RecommendedNextStep {
+  step: number
+  action: string
+  rationale: string
+}
+
+/**
+ * Risk assessment item in the compliance report.
+ */
+export interface RiskAssessmentItem {
+  risk: string
+  likelihood: 'low' | 'medium' | 'high'
+  impact: 'low' | 'medium' | 'high'
+  mitigation: string
+}
+
+/**
+ * Full compliance analysis result structure.
+ * Matches the shape of complianceAnalyses.analysis from Gemini output.
+ */
+export interface ComplianceAnalysisResult {
+  executiveSummary: string
+  overallStatus: 'compliant' | 'variances_required' | 'non_compliant'
+  approvalPathway: string
+  estimatedTimeline: string
+  dimensionalCompliance: DimensionalComplianceItem[]
+  useCompliance: UseComplianceItem[]
+  areaPlanAlignment?: AreaPlanAlignmentData
+  variancesRequired: VarianceRequiredItem[]
+  incentiveOpportunities: IncentiveOpportunityItem[]
+  recommendedNextSteps: RecommendedNextStep[]
+  riskAssessment: RiskAssessmentItem[]
+}
+
+/**
+ * Data interface for compliance-report card type.
+ * Displays the full compliance analysis report in the chat.
+ */
+export interface ComplianceReportCardData {
+  documentId: string
+  address: string
+  zoningDistrict: string
+  analysisDate: string
+  overallStatus: 'compliant' | 'variances_required' | 'non_compliant'
+  analysis: ComplianceAnalysisResult
+}
+
+// =============================================================================
+// Site Analysis Card Data Interfaces
+// =============================================================================
+
+/**
+ * Site description from visual analysis.
+ */
+export interface SiteDescriptionData {
+  lotCharacteristics?: string
+  existingConditions?: string
+  topography?: string
+  vegetation?: string
+}
+
+/**
+ * Context analysis from visual site assessment.
+ */
+export interface ContextAnalysisData {
+  adjacentBuildings?: string
+  neighborhoodCharacter?: string
+  streetType?: string
+  pedestrianEnvironment?: string
+}
+
+/**
+ * Development potential assessment from visual site analysis.
+ */
+export interface DevelopmentPotentialData {
+  suitableUses?: string[]
+  estimatedCapacity?: string
+  designConsiderations?: string[]
+  challenges?: string[]
+  opportunities?: string[]
+}
+
+/**
+ * Data interface for site-analysis card type.
+ * Displays structured site analysis results from image assessment.
+ */
+export interface SiteAnalysisCardData {
+  imageStorageId: string
+  siteDescription: SiteDescriptionData
+  contextAnalysis: ContextAnalysisData
+  developmentPotential: DevelopmentPotentialData
+  questionsToInvestigate: string[]
+}
+
+// =============================================================================
 // Agent Status Types
 // =============================================================================
 
@@ -273,4 +498,37 @@ export function isHomesListCardData(data: unknown): data is HomesListCardData {
   if (!data || typeof data !== 'object') return false
   const d = data as Record<string, unknown>
   return Array.isArray(d.homes)
+}
+
+/**
+ * Type guard to check if card data is DocumentUploadCardData
+ */
+export function isDocumentUploadCardData(
+  data: unknown
+): data is DocumentUploadCardData {
+  if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  return typeof d.documentId === 'string' && typeof d.filename === 'string'
+}
+
+/**
+ * Type guard to check if card data is ComplianceReportCardData
+ */
+export function isComplianceReportCardData(
+  data: unknown
+): data is ComplianceReportCardData {
+  if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  return typeof d.documentId === 'string' && typeof d.overallStatus === 'string' && d.analysis !== undefined
+}
+
+/**
+ * Type guard to check if card data is SiteAnalysisCardData
+ */
+export function isSiteAnalysisCardData(
+  data: unknown
+): data is SiteAnalysisCardData {
+  if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  return typeof d.imageStorageId === 'string' && Array.isArray(d.questionsToInvestigate)
 }

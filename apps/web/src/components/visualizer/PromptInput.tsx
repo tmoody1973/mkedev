@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, Search } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
-import { useAction } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import type { Id } from '../../../convex/_generated/dataModel';
 
 /**
  * Analyze the mask to describe the region to modify (client-side).
@@ -82,8 +83,40 @@ const PROMPT_SUGGESTIONS = [
   { label: 'Urban garden', prompt: 'Convert to an urban community garden with raised beds' },
 ];
 
+const ANALYSIS_SUGGESTIONS = [
+  { label: 'Development potential', prompt: 'What types of development would be most suitable for this site?' },
+  { label: 'Zoning constraints', prompt: 'What are the key zoning constraints visible from this site?' },
+  { label: 'Infill opportunities', prompt: 'Is this a good infill development opportunity?' },
+  { label: 'Site challenges', prompt: 'What are the main challenges for developing this site?' },
+  { label: 'Neighborhood fit', prompt: 'What building types would fit the neighborhood character?' },
+  { label: 'General analysis', prompt: '' },
+];
+
 /**
- * PromptInput - User prompt input and generate button
+ * Upload a base64 image to Convex storage and return the storage ID.
+ */
+async function uploadBase64ToStorage(
+  base64Data: string,
+  generateUploadUrl: () => Promise<string>
+): Promise<Id<"_storage">> {
+  const response = await fetch(base64Data);
+  const blob = await response.blob();
+  const uploadUrl = await generateUploadUrl();
+  const result = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': blob.type || 'image/png' },
+    body: blob,
+  });
+  if (!result.ok) {
+    throw new Error('Failed to upload image to storage');
+  }
+  const { storageId } = await result.json();
+  return storageId as Id<"_storage">;
+}
+
+/**
+ * PromptInput - User prompt input and generate/analyze button
+ * Adapts behavior based on analyzeMode from the visualizer store.
  */
 export function PromptInput() {
   const {
@@ -100,13 +133,20 @@ export function PromptInput() {
     coordinates,
     sourceType,
     setGeneratedImage,
+    analyzeMode,
+    isAnalyzing,
+    setIsAnalyzing,
+    setAnalysisResult,
+    setAnalysisError,
   } = useVisualizerStore();
 
   const [charCount, setCharCount] = useState(0);
   const maxChars = 500;
 
-  // Connect to Convex action for Gemini 3 Pro Image generation
+  // Connect to Convex actions
   const generateVisualization = useAction(api.visualization.generate.generate);
+  const analyzeSite = useAction(api.visualization.analyze.analyzeSite);
+  const generateUploadUrl = useMutation(api.visualization.gallery.generateUploadUrl);
 
   const handlePromptChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -186,23 +226,73 @@ export function PromptInput() {
     setGeneratedImage,
   ]);
 
-  const canGenerate = prompt.trim().length > 0 && sourceImage && !isGenerating;
+  const handleAnalyze = useCallback(async () => {
+    if (!sourceImage) return;
+
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    setMode('generate');
+
+    try {
+      // Upload the base64 image to Convex storage
+      const imageStorageId = await uploadBase64ToStorage(sourceImage, generateUploadUrl);
+
+      // Call the analyzeSite action
+      const result = await analyzeSite({
+        imageStorageId,
+        userQuestion: prompt.trim() || undefined,
+        zoningContext: zoningContext || undefined,
+      });
+
+      setAnalysisResult(result);
+      setMode('result');
+    } catch (error) {
+      console.error('Analysis error:', error);
+      setAnalysisError(
+        error instanceof Error ? error.message : 'Failed to analyze site'
+      );
+      setMode('edit');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [
+    sourceImage,
+    prompt,
+    zoningContext,
+    analyzeSite,
+    generateUploadUrl,
+    setIsAnalyzing,
+    setAnalysisError,
+    setAnalysisResult,
+    setMode,
+  ]);
+
+  const handleSubmit = analyzeMode ? handleAnalyze : handleGenerate;
+
+  // In analyze mode, no prompt is strictly required (analysis is automatic)
+  const canSubmit = analyzeMode
+    ? sourceImage && !isAnalyzing && !isGenerating
+    : prompt.trim().length > 0 && sourceImage && !isGenerating && !isAnalyzing;
+
+  const suggestions = analyzeMode ? ANALYSIS_SUGGESTIONS : PROMPT_SUGGESTIONS;
+  const isLoading = isGenerating || isAnalyzing;
 
   return (
     <div className="bg-white dark:bg-stone-900 border-t-2 border-stone-300 dark:border-stone-600 p-4">
       {/* Suggestions */}
       <div className="flex flex-wrap gap-2 mb-3">
         <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
-          Suggestions:
+          {analyzeMode ? 'Ask about this site:' : 'Suggestions:'}
         </span>
-        {PROMPT_SUGGESTIONS.map((suggestion) => (
+        {suggestions.map((suggestion) => (
           <button
             key={suggestion.label}
             onClick={() => handleSuggestionClick(suggestion.prompt)}
-            className="px-2 py-1 text-xs font-medium rounded-full
-              bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300
-              hover:bg-purple-200 dark:hover:bg-purple-800
-              transition-colors"
+            className={`px-2 py-1 text-xs font-medium rounded-full transition-colors
+              ${analyzeMode
+                ? 'bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-800'
+                : 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800'
+              }`}
           >
             {suggestion.label}
           </button>
@@ -215,22 +305,28 @@ export function PromptInput() {
           <textarea
             value={prompt}
             onChange={handlePromptChange}
-            placeholder="Describe what you want to add or change (e.g., 'Add a 3-story mixed-use building with brick facade')"
-            className="w-full h-20 px-3 py-2 text-sm bg-stone-50 dark:bg-stone-800
-              border-2 border-stone-300 dark:border-stone-600 rounded-lg
-              focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200
-              resize-none"
-            disabled={isGenerating}
+            placeholder={analyzeMode
+              ? "What would you like to know about this site? (optional - leave blank for general analysis)"
+              : "Describe what you want to add or change (e.g., 'Add a 3-story mixed-use building with brick facade')"
+            }
+            className={`w-full h-20 px-3 py-2 text-sm bg-stone-50 dark:bg-stone-800
+              border-2 rounded-lg resize-none
+              focus:outline-none focus:ring-2
+              ${analyzeMode
+                ? 'border-stone-300 dark:border-stone-600 focus:border-sky-500 focus:ring-sky-200'
+                : 'border-stone-300 dark:border-stone-600 focus:border-purple-500 focus:ring-purple-200'
+              }`}
+            disabled={isLoading}
           />
           <span className="absolute bottom-2 right-2 text-xs text-stone-400">
             {charCount}/{maxChars}
           </span>
         </div>
 
-        {/* Generate Button */}
+        {/* Generate/Analyze Button */}
         <button
-          onClick={handleGenerate}
-          disabled={!canGenerate}
+          onClick={handleSubmit}
+          disabled={!canSubmit}
           className={`flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-black
             font-bold text-white
             shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
@@ -239,17 +335,25 @@ export function PromptInput() {
             disabled:opacity-50 disabled:cursor-not-allowed
             disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
             transition-all duration-100
-            ${
-              canGenerate
+            ${analyzeMode
+              ? canSubmit
+                ? 'bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600'
+                : 'bg-stone-400'
+              : canSubmit
                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
                 : 'bg-stone-400'
             }
           `}
         >
-          {isGenerating ? (
+          {isLoading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Generating...
+              {analyzeMode ? 'Analyzing...' : 'Generating...'}
+            </>
+          ) : analyzeMode ? (
+            <>
+              <Search className="w-5 h-5" />
+              Analyze Site
             </>
           ) : (
             <>
@@ -264,7 +368,7 @@ export function PromptInput() {
       {zoningContext && (
         <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
           Zoning context ({zoningContext.zoningDistrict}) will be automatically included
-          in the generation prompt.
+          in the {analyzeMode ? 'analysis' : 'generation'} prompt.
         </p>
       )}
     </div>

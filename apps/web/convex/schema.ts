@@ -170,7 +170,15 @@ export default defineSchema({
             v.literal("development-site"),
             v.literal("development-sites-list"),
             v.literal("vacant-lot"),
-            v.literal("vacant-lots-list")
+            v.literal("vacant-lots-list"),
+            v.literal("permit-forms-list"),
+            v.literal("permit-recommendations"),
+            v.literal("permit-form-details"),
+            v.literal("design-guidelines-list"),
+            v.literal("design-guideline-details"),
+            v.literal("document-upload"),
+            v.literal("compliance-report"),
+            v.literal("site-analysis")
           ),
           data: v.any(),
         })
@@ -607,9 +615,10 @@ export default defineSchema({
 
     // Query type for TTL management
     queryType: v.union(
-      v.literal("geocode"), // Address → coordinates (TTL: 30 days)
-      v.literal("zoning"), // Coordinates → zoning district (TTL: 7 days)
-      v.literal("rag") // Question → answer (TTL: 24 hours)
+      v.literal("geocode"), // Address -> coordinates (TTL: 30 days)
+      v.literal("zoning"), // Coordinates -> zoning district (TTL: 7 days)
+      v.literal("parcel"), // Coordinates -> parcel details (TTL: 7 days)
+      v.literal("rag") // Question -> answer (TTL: 24 hours)
     ),
 
     // Cached result (JSON serialized)
@@ -697,4 +706,115 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_parcelId", ["parcelId"])
     .index("by_createdAt", ["createdAt"]),
+
+  // ---------------------------------------------------------------------------
+  // Uploaded Documents - User-uploaded civic documents for AI analysis
+  // ---------------------------------------------------------------------------
+  uploadedDocuments: defineTable({
+    // User association
+    userId: v.string(), // Clerk user ID
+
+    // File storage
+    storageId: v.id("_storage"), // Convex storage reference
+    filename: v.string(), // Original filename
+    mimeType: v.string(), // application/pdf, image/png, image/jpeg
+    fileSizeBytes: v.number(),
+
+    // Classification (populated by Gemini Flash)
+    classification: v.optional(
+      v.object({
+        type: v.union(
+          v.literal("site_plan"),
+          v.literal("floor_plan"),
+          v.literal("elevation"),
+          v.literal("project_narrative"),
+          v.literal("variance_application"),
+          v.literal("conditional_use_application"),
+          v.literal("traffic_study"),
+          v.literal("environmental_assessment"),
+          v.literal("survey"),
+          v.literal("unknown")
+        ),
+        confidence: v.number(), // 0.0 - 1.0
+        summary: v.string(), // 2-3 sentence summary
+        extractedData: v.object({
+          projectAddress: v.optional(v.string()),
+          proposedUse: v.optional(v.string()),
+          buildingHeight: v.optional(v.string()),
+          stories: v.optional(v.number()),
+          unitCount: v.optional(v.number()),
+          squareFootage: v.optional(v.number()),
+          parkingSpaces: v.optional(v.number()),
+          lotSize: v.optional(v.string()),
+        }),
+      })
+    ),
+
+    // Processing status
+    status: v.union(
+      v.literal("uploading"),
+      v.literal("classifying"),
+      v.literal("classified"),
+      v.literal("enriching"),
+      v.literal("analyzing"),
+      v.literal("complete"),
+      v.literal("error")
+    ),
+    errorMessage: v.optional(v.string()),
+
+    // Parcel context (populated during enrichment)
+    parcelContext: v.optional(
+      v.object({
+        address: v.optional(v.string()),
+        coordinates: v.optional(v.array(v.number())), // [lng, lat]
+        zoningDistrict: v.optional(v.string()),
+        zoningCategory: v.optional(v.string()),
+        overlayZones: v.optional(v.array(v.string())),
+        incentiveZones: v.optional(v.array(v.string())),
+        areaPlan: v.optional(v.string()),
+        lotSize: v.optional(v.number()),
+      })
+    ),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_userId_status", ["userId", "status"]),
+
+  // ---------------------------------------------------------------------------
+  // Compliance Analyses - AI-generated compliance reports for uploaded documents
+  // ---------------------------------------------------------------------------
+  complianceAnalyses: defineTable({
+    // References
+    userId: v.string(), // Clerk user ID
+    documentId: v.id("uploadedDocuments"),
+    conversationId: v.optional(v.id("conversations")),
+
+    // Analysis result (structured JSON from Gemini)
+    // Using v.any() for the deeply nested analysis object because:
+    // 1. The data comes from Gemini JSON output and is validated at the application layer
+    // 2. Defining every nested field would make the schema enormous
+    // 3. The TypeScript interfaces in types.ts provide compile-time safety
+    analysis: v.any(),
+
+    // Processing metadata
+    status: v.union(
+      v.literal("pending"),
+      v.literal("analyzing"),
+      v.literal("complete"),
+      v.literal("error")
+    ),
+    errorMessage: v.optional(v.string()),
+    analysisTimeMs: v.optional(v.number()),
+    modelUsed: v.optional(v.string()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_documentId", ["documentId"])
+    .index("by_conversationId", ["conversationId"])
+    .index("by_status", ["status"]),
 });

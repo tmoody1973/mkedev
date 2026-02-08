@@ -19,6 +19,47 @@ type ActionCtx = GenericActionCtx<DataModel>;
 
 export const TOOL_DECLARATIONS = [
   // ---------------------------------------------------------------------------
+  // Document Analysis Tools
+  // ---------------------------------------------------------------------------
+  {
+    name: "analyze_document",
+    description:
+      "Upload and analyze a civic document for zoning compliance. Use when user says 'analyze document', 'check compliance', 'upload site plan', 'review my plans', etc.",
+    parameters: {
+      type: "object",
+      properties: {
+        documentId: {
+          type: "string",
+          description: "ID of previously uploaded document",
+        },
+        address: {
+          type: "string",
+          description: "Project address for context enrichment",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "analyze_site_photo",
+    description:
+      "Analyze a site photo for development potential. Use when user says 'analyze this site', 'what could be built here', 'assess this property from the photo', etc.",
+    parameters: {
+      type: "object",
+      properties: {
+        imageStorageId: {
+          type: "string",
+          description: "Storage ID of site image",
+        },
+        question: {
+          type: "string",
+          description: "Specific question about the site",
+        },
+      },
+      required: [],
+    },
+  },
+  // ---------------------------------------------------------------------------
   // PERMIT TOOLS - CHECK THESE FIRST for permit/form/application questions!
   // ---------------------------------------------------------------------------
   {
@@ -66,6 +107,25 @@ export const TOOL_DECLARATIONS = [
   // ---------------------------------------------------------------------------
   // Address & Location Tools
   // ---------------------------------------------------------------------------
+  {
+    name: "lookup_parcel",
+    description:
+      "Look up parcel details at a location including lot size, owner, assessed value, and zoning code. Use when users ask about lot size, property area, who owns a parcel, or assessed value at a specific address. Requires coordinates from geocode_address.",
+    parameters: {
+      type: "object",
+      properties: {
+        longitude: {
+          type: "number",
+          description: "Longitude coordinate (e.g., -87.9095)",
+        },
+        latitude: {
+          type: "number",
+          description: "Latitude coordinate (e.g., 43.0389)",
+        },
+      },
+      required: ["longitude", "latitude"],
+    },
+  },
   {
     name: "geocode_address",
     description:
@@ -629,6 +689,54 @@ export async function queryZoningAtPoint(params: {
       error: "Milwaukee GIS server is temporarily unavailable. Please provide the zoning district code (e.g., RS6, LB2, DC) if you know it, or I can look up general zoning information for this area.",
       coordinates: { longitude, latitude },
       suggestion: "Use query_zoning_code tool to look up zoning information based on the neighborhood or address area.",
+    };
+  }
+}
+
+/**
+ * Query parcel details at a coordinate point.
+ */
+export async function queryParcelAtPoint(params: {
+  longitude: number;
+  latitude: number;
+}): Promise<{
+  success: boolean;
+  taxKey?: string;
+  address?: string;
+  lotSize?: number;
+  owner?: string;
+  assessedValue?: number;
+  zoneCode?: string;
+  error?: string;
+}> {
+  const { longitude, latitude } = params;
+
+  try {
+    const parcelUrl = `${ESRI_BASE}/property/parcels_mprop/MapServer/2/query?geometry=${longitude},${latitude}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=TAXKEY,ADDRESS,LOT_AREA,OWNER_NAME_1,C_A_TOTAL,ZONING&returnGeometry=false&f=json`;
+    const response = await fetchWithRetry(parcelUrl);
+    const data = await response.json();
+    const attrs = data.features?.[0]?.attributes;
+
+    if (!attrs) {
+      return {
+        success: false,
+        error: "No parcel found at this location.",
+      };
+    }
+
+    return {
+      success: true,
+      taxKey: attrs.TAXKEY || undefined,
+      address: attrs.ADDRESS || undefined,
+      lotSize: attrs.LOT_AREA || undefined,
+      owner: attrs.OWNER_NAME_1 || undefined,
+      assessedValue: attrs.C_A_TOTAL || undefined,
+      zoneCode: attrs.ZONING || undefined,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Parcel lookup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 }

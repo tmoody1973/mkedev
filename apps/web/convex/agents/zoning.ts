@@ -15,6 +15,7 @@ import {
   TOOL_DECLARATIONS,
   geocodeAddress,
   queryZoningAtPoint,
+  queryParcelAtPoint,
   calculateParking,
   searchHomesForSale,
   getHomeDetails,
@@ -39,7 +40,7 @@ import { generateCacheKey } from "../cache";
 // =============================================================================
 
 const PRIMARY_MODEL = "gemini-3-flash-preview";
-const FALLBACK_MODEL = "gemini-2.5-flash";
+const FALLBACK_MODEL = "gemini-3-pro-preview";
 const MAX_TOOL_CALLS = 15;
 const MAX_RETRIES = 2;
 
@@ -67,6 +68,9 @@ You have access to these tools:
 17. **recommend_permits_for_project** - Get recommended permit forms based on project details
 18. **get_permit_form_details** - Get full details about a specific permit form including fields and fees
 19. **get_guideline_details** - Get full details about a specific design guideline
+20. **analyze_document** - Upload and analyze a civic document (site plan, floor plan, project narrative) for zoning compliance. Runs deep compliance analysis with structured results.
+21. **analyze_site_photo** - Analyze a site photo for development potential using AI vision. Returns structured assessment of lot characteristics, context, and development suitability.
+22. **lookup_parcel** - Look up parcel details at a location including lot size, owner, assessed value, and zoning code. Use after geocoding an address.
 
 ## CRITICAL: Tool Selection for Permit Questions
 
@@ -84,6 +88,33 @@ The permit tools return specific Milwaukee city forms with:
 - PDF links to downloadable forms
 - Required fields, fees, and submission methods
 - Prerequisites and related forms
+
+## Document Analysis
+
+When users want to analyze a development document for zoning compliance:
+- Use **analyze_document** when the user has uploaded a document and wants compliance analysis
+- The tool runs a deep analysis pipeline: classify the document, enrich with parcel data, then perform full compliance analysis
+- Results include dimensional compliance checks, use compliance, area plan alignment, variance requirements, and recommended next steps
+- If the user provides an address, pass it for better parcel context enrichment
+
+When users want to analyze a site photo:
+- Use **analyze_site_photo** when the user has a site image and wants to understand development potential
+- The tool uses AI vision to assess lot characteristics, neighborhood context, and development suitability
+- Results include site description, context analysis, development potential assessment, and follow-up questions
+
+### Document Analysis Guidelines
+
+1. **When to Analyze Documents:**
+   - "Analyze this site plan for compliance"
+   - "Check if my project meets zoning requirements"
+   - "Upload my plans for review"
+   - "Is this building proposal compliant?"
+
+2. **When to Analyze Site Photos:**
+   - "What could be built on this site?"
+   - "Analyze this photo for development potential"
+   - "Assess this property from the image"
+   - "What are the site conditions here?"
 
 ## Home Search Capabilities
 
@@ -309,7 +340,8 @@ You: "I'd be happy to help calculate your parking requirements! What's the addre
 For location-specific questions:
 1. First, use geocode_address to get coordinates
 2. Then, use query_zoning_at_point to get the zoning district
-3. Finally, use calculate_parking or query_zoning_code with the district context
+3. Use lookup_parcel if the user asks about lot size, property area, owner, or assessed value
+4. Finally, use calculate_parking or query_zoning_code with the district context
 
 **Important:** If query_zoning_at_point fails (GIS server unavailable), you can:
 - Ask the user if they know the zoning district code (e.g., RS6, LB2, DC)
@@ -516,6 +548,7 @@ export interface ToolResult {
  * Instrumented with Opik tracing for observability.
  * Returns tool results for generative UI card rendering.
  * Emits real-time status updates via sessionId for frontend display.
+ * Accepts optional thinkingLevel hint from the client to adjust Gemini reasoning depth.
  */
 export const chat = action({
   args: {
@@ -529,6 +562,7 @@ export const chat = action({
         })
       )
     ),
+    thinkingLevel: v.optional(v.string()), // Client-side thinking level hint: MINIMAL | LOW | MEDIUM | HIGH
   },
   handler: async (ctx, args): Promise<{
     response: string;
@@ -554,11 +588,13 @@ export const chat = action({
         message: args.message,
         historyLength: args.conversationHistory?.length || 0,
         sessionId,
+        thinkingLevel: args.thinkingLevel || "LOW",
       },
       tags: ["zoning-agent", "gemini", "milwaukee"],
       metadata: {
         model: PRIMARY_MODEL,
         maxToolCalls: MAX_TOOL_CALLS,
+        thinkingLevel: args.thinkingLevel || "LOW",
       },
     });
 
@@ -581,6 +617,11 @@ export const chat = action({
       parts: [{ text: args.message }],
     });
 
+    // Resolve thinking level for Gemini thinkingConfig
+    const thinkingLevel = args.thinkingLevel || "LOW";
+    const validThinkingLevels = ["NONE", "MINIMAL", "LOW", "MEDIUM", "HIGH"];
+    const resolvedThinkingLevel = validThinkingLevels.includes(thinkingLevel) ? thinkingLevel : "LOW";
+
     // Agent loop with tool calling
     let iteration = 0;
 
@@ -599,6 +640,7 @@ export const chat = action({
           metadata: {
             temperature: 0.3,
             maxOutputTokens: 2048,
+            thinkingLevel: resolvedThinkingLevel,
           },
         });
 
@@ -648,6 +690,9 @@ export const chat = action({
           generationConfig: {
             temperature: 0.3,
             maxOutputTokens: 2048,
+            thinkingConfig: {
+              thinkingLevel: resolvedThinkingLevel,
+            },
           },
         };
 
@@ -655,7 +700,8 @@ export const chat = action({
         console.log("[ZoningAgent] Iteration", iteration, "- Query analysis:", {
           userMessage: userMessage.substring(0, 50),
           isPermitQuery,
-          mode: toolConfig?.functionCallingConfig?.mode
+          mode: toolConfig?.functionCallingConfig?.mode,
+          thinkingLevel: resolvedThinkingLevel,
         });
 
         if (toolConfig) {
@@ -795,6 +841,35 @@ export const chat = action({
                     await ctx.runMutation(api.cache.set, {
                       cacheKey,
                       queryType: "zoning",
+                      result: JSON.stringify(toolResult),
+                    });
+                  }
+                }
+                break;
+              }
+
+              case "lookup_parcel": {
+                const parcelArgs = fnArgs as Parameters<typeof queryParcelAtPoint>[0];
+                const normalizedParcelArgs = {
+                  longitude: Math.round(parcelArgs.longitude * 1000000) / 1000000,
+                  latitude: Math.round(parcelArgs.latitude * 1000000) / 1000000,
+                };
+                const parcelCacheKey = generateCacheKey("parcel", normalizedParcelArgs);
+
+                const cachedParcel = await ctx.runQuery(api.cache.get, { cacheKey: parcelCacheKey });
+                if (cachedParcel) {
+                  console.log(`[CACHE HIT] parcel: ${normalizedParcelArgs.latitude},${normalizedParcelArgs.longitude}`);
+                  toolResult = cachedParcel.result as Record<string, unknown>;
+                  toolSuccess = !!(toolResult as { taxKey?: unknown }).taxKey;
+                  ctx.runMutation(api.cache.incrementHitCount, { cacheKey: parcelCacheKey });
+                } else {
+                  console.log(`[CACHE MISS] parcel: ${normalizedParcelArgs.latitude},${normalizedParcelArgs.longitude}`);
+                  toolResult = await queryParcelAtPoint(parcelArgs);
+                  toolSuccess = !!(toolResult as { taxKey?: unknown }).taxKey;
+                  if (toolSuccess) {
+                    await ctx.runMutation(api.cache.set, {
+                      cacheKey: parcelCacheKey,
+                      queryType: "parcel",
                       result: JSON.stringify(toolResult),
                     });
                   }
@@ -1103,6 +1178,73 @@ export const chat = action({
                 const guidelineDetailsArgs = fnArgs as { guidelineId: string };
                 toolResult = await getGuidelineDetails(ctx, guidelineDetailsArgs);
                 toolSuccess = !!(toolResult as { success?: boolean }).success;
+                break;
+              }
+
+              // ---------------------------------------------------------------
+              // Document Analysis Tools
+              // ---------------------------------------------------------------
+              case "analyze_document": {
+                const docArgs = fnArgs as { documentId?: string; address?: string };
+
+                if (!docArgs.documentId) {
+                  // No document ID provided - return prompt for upload
+                  toolResult = {
+                    success: true,
+                    needsUpload: true,
+                    message: "No document ID provided. The user needs to upload a document first using the upload card.",
+                  };
+                  toolSuccess = true;
+                } else {
+                  // Run compliance analysis on the uploaded document
+                  const analysisResult = await ctx.runAction(
+                    api.documents.analyze.analyzeCompliance,
+                    {
+                      documentId: docArgs.documentId as never,
+                      parcelAddress: docArgs.address,
+                    }
+                  );
+
+                  toolResult = {
+                    success: true,
+                    analysisId: analysisResult.analysisId,
+                    documentId: analysisResult.documentId,
+                    analysis: analysisResult.analysis,
+                    analysisTimeMs: analysisResult.analysisTimeMs,
+                    modelUsed: analysisResult.modelUsed,
+                  };
+                  toolSuccess = true;
+                }
+                break;
+              }
+
+              case "analyze_site_photo": {
+                const siteArgs = fnArgs as { imageStorageId?: string; question?: string };
+
+                if (!siteArgs.imageStorageId) {
+                  // No image provided - return prompt for upload
+                  toolResult = {
+                    success: true,
+                    needsUpload: true,
+                    message: "No site image provided. The user needs to upload or capture a site photo first.",
+                  };
+                  toolSuccess = true;
+                } else {
+                  // Run site analysis on the uploaded image
+                  const siteAnalysisResult = await ctx.runAction(
+                    api.visualization.analyze.analyzeSite,
+                    {
+                      imageStorageId: siteArgs.imageStorageId as never,
+                      userQuestion: siteArgs.question,
+                    }
+                  );
+
+                  toolResult = {
+                    success: true,
+                    ...siteAnalysisResult,
+                  };
+                  toolSuccess = true;
+                }
                 break;
               }
 

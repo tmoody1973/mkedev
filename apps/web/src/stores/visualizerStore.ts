@@ -63,6 +63,34 @@ export interface VisualizationEntry {
   timestamp: number;
 }
 
+/**
+ * Site analysis result shape matching the return from analyzeSite action.
+ */
+export interface SiteAnalysisResult {
+  siteDescription: {
+    lotCharacteristics: string;
+    existingConditions: string;
+    topography: string;
+    vegetation: string;
+  };
+  contextAnalysis: {
+    adjacentBuildings: string;
+    neighborhoodCharacter: string;
+    streetType: string;
+    pedestrianEnvironment: string;
+  };
+  developmentPotential: {
+    suitableUses: string[];
+    estimatedCapacity: string;
+    designConsiderations: string[];
+    challenges: string[];
+    opportunities: string[];
+  };
+  questionsToInvestigate: string[];
+  analysisTimeMs?: number;
+  modelUsed?: string;
+}
+
 export interface VisualizerState {
   // Modal state
   isOpen: boolean;
@@ -104,6 +132,12 @@ export interface VisualizerState {
 
   // Visualization gallery (completed generations)
   visualizations: VisualizationEntry[];
+
+  // Analyze mode state
+  analyzeMode: boolean;
+  analysisResult: SiteAnalysisResult | null;
+  isAnalyzing: boolean;
+  analysisError: string | null;
 
   // Actions
   openVisualizer: () => void;
@@ -166,6 +200,12 @@ export interface VisualizerState {
   loadVisualization: (id: string) => void;
   clearVisualizations: () => void;
 
+  // Analyze mode actions
+  setAnalyzeMode: (enabled: boolean) => void;
+  setAnalysisResult: (result: SiteAnalysisResult | null) => void;
+  setIsAnalyzing: (analyzing: boolean) => void;
+  setAnalysisError: (error: string | null) => void;
+
   // Reset
   reset: () => void;
 }
@@ -194,6 +234,10 @@ const initialState = {
   historyIndex: -1,
   screenshots: [] as ScreenshotEntry[],
   visualizations: [] as VisualizationEntry[],
+  analyzeMode: false,
+  analysisResult: null as SiteAnalysisResult | null,
+  isAnalyzing: false,
+  analysisError: null as string | null,
 };
 
 export const useVisualizerStore = create<VisualizerState>()(
@@ -399,6 +443,17 @@ export const useVisualizerStore = create<VisualizerState>()(
       },
 
       clearVisualizations: () => set({ visualizations: [] }),
+
+      // Analyze mode actions
+      setAnalyzeMode: (enabled) => set({
+        analyzeMode: enabled,
+        analysisResult: null,
+        analysisError: null,
+      }),
+
+      setAnalysisResult: (result) => set({ analysisResult: result }),
+      setIsAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
+      setAnalysisError: (error) => set({ analysisError: error }),
 
       // Reset
       reset: () => set(initialState),
