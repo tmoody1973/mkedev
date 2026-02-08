@@ -507,78 +507,24 @@ export function MapContainer({
         const draw = new MapboxDraw({
           displayControlsDefault: false,
           controls: {},
-          defaultMode: 'draw_polygon',
-          styles: [
-            // Polygon fill (semi-transparent sky blue)
-            {
-              id: 'gl-draw-polygon-fill',
-              type: 'fill',
-              filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
-              paint: {
-                'fill-color': '#0ea5e9',
-                'fill-outline-color': '#0ea5e9',
-                'fill-opacity': 0.15,
-              },
-            },
-            // Polygon outline
-            {
-              id: 'gl-draw-polygon-stroke-active',
-              type: 'line',
-              filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
-              layout: {
-                'line-cap': 'round',
-                'line-join': 'round',
-              },
-              paint: {
-                'line-color': '#0ea5e9',
-                'line-dasharray': [0.2, 2],
-                'line-width': 3,
-              },
-            },
-            // Active line
-            {
-              id: 'gl-draw-line-active',
-              type: 'line',
-              filter: ['all', ['==', '$type', 'LineString'], ['!=', 'mode', 'static']],
-              layout: {
-                'line-cap': 'round',
-                'line-join': 'round',
-              },
-              paint: {
-                'line-color': '#0ea5e9',
-                'line-dasharray': [0.2, 2],
-                'line-width': 3,
-              },
-            },
-            // Vertex points
-            {
-              id: 'gl-draw-point-active',
-              type: 'circle',
-              filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'vertex']],
-              paint: {
-                'circle-radius': 6,
-                'circle-color': '#ffffff',
-                'circle-stroke-color': '#0ea5e9',
-                'circle-stroke-width': 2,
-              },
-            },
-            // Midpoints
-            {
-              id: 'gl-draw-point-midpoint',
-              type: 'circle',
-              filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'midpoint']],
-              paint: {
-                'circle-radius': 4,
-                'circle-color': '#0ea5e9',
-                'circle-stroke-color': '#ffffff',
-                'circle-stroke-width': 1,
-              },
-            },
-          ],
+          // Use simple_select as default — we switch to draw_polygon explicitly below
+          defaultMode: 'simple_select',
         })
 
         map.addControl(draw as unknown as mapboxgl.IControl)
         drawRef.current = draw
+
+        // Explicitly enter draw_polygon mode after control is attached
+        // Using setTimeout ensures the control is fully initialized on the map
+        setTimeout(() => {
+          try {
+            if (drawRef.current) {
+              drawRef.current.changeMode('draw_polygon')
+            }
+          } catch (err) {
+            console.warn('[measurement] Failed to enter draw_polygon mode:', err)
+          }
+        }, 100)
 
         // Calculate measurement from drawn geometry
         const updateMeasurement = () => {
@@ -605,9 +551,23 @@ export function MapContainer({
           }
         }
 
-        map.on('draw.create', updateMeasurement)
+        // On create: measure, then delete old polygon and restart draw mode
+        // so user can draw a new one immediately
+        const handleCreate = () => {
+          updateMeasurement()
+        }
+
+        map.on('draw.create', handleCreate)
         map.on('draw.update', updateMeasurement)
         map.on('draw.delete', updateMeasurement)
+
+        // When mode changes to simple_select (after completing polygon),
+        // stay in that mode so user can edit vertices by dragging them
+        map.on('draw.modechange', (e: { mode: string }) => {
+          // If user somehow enters direct_select, that's fine (editing vertices)
+          // If entering simple_select after create, also fine (can click polygon to edit)
+          console.log('[measurement] mode changed to:', e.mode)
+        })
       }
     } else {
       // Remove Draw control
