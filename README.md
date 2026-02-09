@@ -1,6 +1,6 @@
 # MKE.dev
 
-> Voice-First AI-Powered Civic Intelligence Platform for Milwaukee
+> AI-Powered Civic Intelligence Platform for Milwaukee
 
 ![Node](https://img.shields.io/badge/node-20%2B-green)
 ![pnpm](https://img.shields.io/badge/pnpm-9%2B-orange)
@@ -13,11 +13,10 @@
 
 ## Overview
 
-MKE.dev democratizes access to Milwaukee's civic development information by transforming complex zoning codes, financial incentives, and regulatory data into a single, intuitive, voice-first conversational experience.
+MKE.dev democratizes access to Milwaukee's civic development information by transforming complex zoning codes, financial incentives, and regulatory data into a single, intuitive AI-powered interface.
 
 ### Key Features
 
-- **Voice-First Interface** - Real-time voice conversations via Gemini Live API with full chat integration
 - **Zoning Interpreter Agent** - AI-powered zoning assistant using Gemini function calling with RAG (22 tools)
 - **AI Site Visualizer** - Transform photos into architectural renderings with Gemini 3 Pro Image
 - **Generative UI Cards** - Rich interactive cards for homes, parcels, zoning info, and properties
@@ -55,7 +54,7 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 | Maps | Mapbox GL JS + Milwaukee ESRI ArcGIS |
 | Tiles | PMTiles on Cloudflare R2 |
 | AI/LLM | Google Gemini 3 (Flash + Pro) |
-| Voice | Gemini Live API (bidirectional audio + text) |
+| Voice (Alpha) | Gemini Live API (bidirectional audio) |
 | Vision | Gemini 3 Pro Image + 2.5 Flash (with fallback) |
 | Generative UI | CopilotKit |
 | Reports | Hybiscus PDF API |
@@ -325,33 +324,9 @@ mkedev/
 
 ---
 
-## Voice Interface
+## Voice Interface (Alpha)
 
-MKE.dev features a voice-first interface powered by Gemini Live API:
-
-### Capabilities
-
-- **Bidirectional Audio** - Speak naturally and hear responses
-- **Real-time Transcription** - User speech appears in chat as you speak
-- **Function Calling** - Voice commands trigger map actions and data lookups
-- **Generative UI** - Voice requests render rich cards (homes, zoning, parcels)
-- **Seamless Integration** - Voice and text conversations share the same chat
-
-### Voice Commands
-
-```
-"Show me homes for sale in Bay View"
-→ Displays HomesListCard with available properties
-
-"What's the zoning at 500 N Water Street?"
-→ Flies to location, shows ZoneInfoCard with district info
-
-"Explain what RS6 zoning means"
-→ Shows CodeCitationCard with regulations from zoning code
-
-"Search for commercial properties downtown"
-→ Displays CommercialPropertiesListCard
-```
+MKE.dev includes an experimental voice interface powered by Gemini Live API with bidirectional audio and function calling. Voice and text conversations share the same chat.
 
 ---
 
@@ -576,13 +551,13 @@ Transform photos into architectural renderings with Gemini 3 Pro Image:
 - [x] Chat panel UI
 - [x] PMTiles pipeline
 
-### Week 2: Voice & AI (Complete)
+### Week 2: AI Agent & Features (Complete)
 - [x] **Zoning Interpreter Agent** - Gemini function calling with 22 tools
 - [x] **File Search RAG** - 42 docs across 5 persistent stores
 - [x] **ESRI Integration** - Geocoding + zoning lookup
 - [x] **3D Map Visualization** - Zoning extrusions with category colors
 - [x] **Gemini Live API** - Voice conversations with text transcription
-- [x] **Voice-to-Chat** - Voice messages render in chat with cards
+- [x] **Voice-to-Chat** - Voice and text share the same conversation
 - [x] **Generative UI Cards** - 24 card types for structured data
 - [x] **Conversation History** - Persistence, search, starring
 - [x] **Homes MKE Integration** - City-owned homes search
