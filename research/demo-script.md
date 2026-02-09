@@ -50,7 +50,7 @@
 
 **[SCREEN: Show classification completing, then ComplianceReportCard appearing]**
 
-> "Then Gemini 3 Flash switches to high-level thinking and performs a deep compliance analysis against the actual zoning code. Dimensional compliance. Setback checks. Use compatibility. Variance needs. Risk assessment. What used to take a city planner days now takes 30 seconds."
+> "Then Gemini 3 Flash switches to high-level thinking and performs a deep compliance analysis. It retrieves the actual zoning regulations through Gemini File Search, combines them with the parcel data, and produces a structured report. Dimensional compliance. Setback checks. Use compatibility. Variance needs. Risk assessment. What used to take a city planner days now takes 30 seconds."
 
 ---
 
@@ -62,7 +62,7 @@
 
 **[SCREEN: Type prompt: "Add a 4-story mixed-use building with retail on the ground floor", show Gemini 3 Pro Image generating]**
 
-> "Gemini 3 Pro Image generates a photorealistic rendering that respects the zoning constraints we just looked up -- setbacks, height limits, lot coverage. This isn't just image generation. It's AI architecture grounded in real city data."
+> "Gemini 3 Pro Image generates a photorealistic rendering. But here's what makes this different -- the system injects real zoning context into the generation: setback requirements, height limits, FAR, and lot dimensions from the parcel data. This isn't just image generation. It's AI architecture constrained by actual city regulations."
 
 ---
 

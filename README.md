@@ -57,7 +57,6 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 | AI/LLM | Google Gemini 3 (Flash + Pro) |
 | Voice | Gemini Live API (bidirectional audio + text) |
 | Vision | Gemini 3 Pro Image + 2.5 Flash (with fallback) |
-| Agents | Google ADK |
 | Generative UI | CopilotKit |
 | Reports | Hybiscus PDF API |
 | Monitoring | Sentry (error + performance) |
@@ -313,7 +312,7 @@ mkedev/
 │   │   │   ├── documents/      # Document analyzer pipeline
 │   │   │   └── ingestion/      # RAG & File Search Stores
 │   │   └── scripts/            # Setup scripts
-│   └── agents/                 # Google ADK agents (standalone)
+│   └── agents/                 # Standalone agent experiments
 ├── packages/
 │   └── tile-builder/           # ESRI → PMTiles pipeline
 ├── agent-os/                   # Specs and documentation
