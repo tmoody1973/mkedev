@@ -64,6 +64,178 @@ MKE.dev democratizes access to Milwaukee's civic development information by tran
 
 ---
 
+## Architecture
+
+### System Overview
+
+```mermaid
+graph TB
+    subgraph User["User Interface"]
+        Chat["Chat Panel"]
+        Upload["Document Upload"]
+        Map["Interactive 3D Map"]
+        Viz["Site Visualizer"]
+    end
+
+    subgraph NextJS["Next.js 15 / React 19"]
+        CK["CopilotKit<br/>24 Generative UI Cards"]
+        MapGL["Mapbox GL JS<br/>8 ESRI Layers + PMTiles"]
+        VizUI["Mask Painting<br/>Before/After Compare"]
+    end
+
+    subgraph Convex["Convex Backend"]
+        Agent["Zoning Interpreter Agent<br/>22 Function-Calling Tools"]
+        DocPipe["Document Pipeline<br/>Classify → Enrich → Analyze"]
+        ImgGen["Image Generation<br/>+ Site Analysis"]
+        Cache["Context Cache"]
+    end
+
+    subgraph Gemini3["Gemini 3 Models"]
+        Flash["Gemini 3 Flash<br/>Function Calling + Thinking"]
+        ProImg["Gemini 3 Pro Image<br/>Architectural Rendering"]
+        FS["Gemini File Search<br/>42 Documents / 5 Stores"]
+    end
+
+    subgraph Data["Milwaukee Data Sources"]
+        ESRI["ESRI ArcGIS REST<br/>Zoning, Parcels, TIF,<br/>Historic, Opportunity Zones"]
+        Mapbox["Mapbox Geocoding"]
+        PMT["PMTiles on R2<br/>313K Features"]
+    end
+
+    Chat --> CK
+    Upload --> CK
+    Map --> MapGL
+    Viz --> VizUI
+
+    CK --> Agent
+    CK --> DocPipe
+    VizUI --> ImgGen
+
+    Agent -->|"Function Calling<br/>MINIMAL→HIGH Thinking"| Flash
+    Agent -->|"RAG Retrieval"| FS
+    DocPipe -->|"MINIMAL Thinking<br/>Classification"| Flash
+    DocPipe -->|"HIGH Thinking<br/>Compliance Analysis"| Flash
+    DocPipe -->|"Zoning Code Search"| FS
+    ImgGen -->|"Image Generation"| ProImg
+    ImgGen -->|"Vision Analysis"| Flash
+
+    Agent --> ESRI
+    Agent --> Mapbox
+    DocPipe --> ESRI
+    DocPipe --> Mapbox
+    MapGL --> PMT
+    MapGL --> ESRI
+
+    style Gemini3 fill:#4285F4,color:#fff,stroke:#1a73e8
+    style Flash fill:#34A853,color:#fff
+    style ProImg fill:#EA4335,color:#fff
+    style FS fill:#FBBC04,color:#000
+```
+
+### Gemini 3 Feature Map
+
+```mermaid
+graph LR
+    subgraph Capabilities["Gemini 3 Capabilities Used"]
+        FC["Function Calling"]
+        TH["Thinking Levels"]
+        FSR["File Search RAG"]
+        IG["Image Generation"]
+        MM["Multimodal Input"]
+        SJ["Structured JSON Output"]
+    end
+
+    subgraph Features["MKE.dev Features"]
+        ZA["Zoning Agent<br/>22 Tools"]
+        DC["Document Classification<br/>10 Types"]
+        CA["Compliance Analysis<br/>Dimensional + Use"]
+        AV["Architectural Visualization<br/>Zoning-Constrained"]
+        SA["Site Photo Analysis<br/>Development Potential"]
+        PR["Permit Recommendations<br/>Project-Specific"]
+    end
+
+    FC --> ZA
+    FC --> PR
+    TH -->|"MINIMAL"| DC
+    TH -->|"HIGH"| CA
+    TH -->|"MEDIUM"| SA
+    FSR --> ZA
+    FSR --> CA
+    IG --> AV
+    MM -->|"PDF + Image"| DC
+    MM -->|"Photo"| SA
+    SJ --> CA
+    SJ --> DC
+
+    style Capabilities fill:#4285F4,color:#fff,stroke:#1a73e8
+    style FC fill:#34A853,color:#fff
+    style TH fill:#34A853,color:#fff
+    style FSR fill:#34A853,color:#fff
+    style IG fill:#EA4335,color:#fff
+    style MM fill:#FBBC04,color:#000
+    style SJ fill:#FBBC04,color:#000
+```
+
+### Document Analysis Pipeline
+
+```mermaid
+flowchart LR
+    A["📄 Upload<br/>PDF or Image"] --> B["Gemini 3 Flash<br/>MINIMAL Thinking"]
+    B -->|"Classify"| C["Document Type<br/>+ Extracted Data"]
+    C --> D["Auto-Enrich"]
+    D -->|"Geocode"| E["Mapbox API"]
+    D -->|"Zoning"| F["ESRI GIS"]
+    D -->|"Parcel"| G["ESRI Parcels"]
+
+    E & F & G --> H["Gemini 3 Flash<br/>HIGH Thinking"]
+    H -->|"+ File Search RAG<br/>Zoning Code"| I["Compliance Report"]
+
+    I --> J["✅ Dimensional Compliance"]
+    I --> K["✅ Use Compatibility"]
+    I --> L["⚠️ Variance Needs"]
+    I --> M["📊 Risk Assessment"]
+
+    style B fill:#34A853,color:#fff
+    style H fill:#34A853,color:#fff
+    style I fill:#4285F4,color:#fff
+```
+
+### Site Visualizer Pipeline
+
+```mermaid
+flowchart LR
+    A["📸 Capture<br/>Map or Street View"] --> B["🎨 Paint Mask<br/>Select Area"]
+    B --> C["💬 Describe<br/>What to Build"]
+    C --> D["Gemini 3 Pro Image<br/>Image Generation"]
+
+    E["Zoning Context"] -->|"Setbacks, Height,<br/>FAR, Lot Coverage"| D
+    F["Parcel Data"] -->|"Lot Dimensions,<br/>Address"| D
+
+    D --> G["🏗️ Photorealistic<br/>Rendering"]
+    G --> H["Before / After<br/>Comparison View"]
+
+    I["Gemini 3 Flash<br/>MEDIUM Thinking"] -->|"Site Photo<br/>Analysis"| J["📋 Development<br/>Potential Report"]
+
+    style D fill:#EA4335,color:#fff
+    style I fill:#34A853,color:#fff
+    style G fill:#4285F4,color:#fff
+```
+
+### Gemini Model Usage
+
+| Model | Feature | Gemini 3 Capability | Thinking Level |
+|-------|---------|---------------------|----------------|
+| **Gemini 3 Flash** | Zoning Interpreter Agent | Function Calling (22 tools) | MINIMAL → HIGH |
+| **Gemini 3 Flash** | Document Classification | Multimodal (PDF/Image) | MINIMAL |
+| **Gemini 3 Flash** | Compliance Analysis | Structured JSON + File Search | HIGH |
+| **Gemini 3 Flash** | Site Photo Analysis | Multimodal Vision | MEDIUM |
+| **Gemini 3 Pro Image** | Site Visualizer | Image Generation + Inpainting | -- |
+| **Gemini 3 Pro Image** | Zoning-Aware Rendering | Constrained by setbacks, height, FAR | -- |
+| **Gemini 3 Flash** | File Search RAG | Retrieval over 42 docs | -- |
+| **Gemini 3 Flash** | Context Caching | 1M context window | Configurable |
+
+---
+
 ## Quick Start
 
 ### Prerequisites
