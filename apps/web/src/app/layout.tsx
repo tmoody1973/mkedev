@@ -27,7 +27,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "MKE.dev - Milwaukee Civic Intelligence",
   description:
-    "Voice-first AI-powered civic intelligence platform for Milwaukee real estate development",
+    "AI-powered civic intelligence platform for Milwaukee zoning and development",
 };
 
 /**
