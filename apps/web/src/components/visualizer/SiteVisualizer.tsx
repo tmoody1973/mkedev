@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
-import { X, Undo2, Redo2, AlertCircle, Images, Camera, Search, Sparkles } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, Undo2, Redo2, AlertCircle, Images, Camera, Search, Sparkles, HelpCircle } from 'lucide-react';
 import { useVisualizerStore } from '@/stores';
 import { VisualizerCanvas } from './VisualizerCanvas';
 import { MaskToolbar } from './MaskToolbar';
@@ -11,6 +11,7 @@ import { GenerationResult } from './GenerationResult';
 import { ImageCapture } from './ImageCapture';
 import { VisualizationGallery } from './VisualizationGallery';
 import { SiteAnalysisResultView } from './SiteAnalysisResultView';
+import { PromptHelpModal } from './PromptHelpModal';
 
 /**
  * SiteVisualizer - Main container for AI site visualization
@@ -35,6 +36,8 @@ export function SiteVisualizer() {
     canRedo,
     reset,
   } = useVisualizerStore();
+
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Handle escape key to close
   useEffect(() => {
@@ -179,6 +182,22 @@ export function SiteVisualizer() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Help button */}
+            <button
+              onClick={() => setIsHelpOpen(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-lg border-2 border-black
+                bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300
+                shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950 dark:hover:text-purple-400
+                hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]
+                active:translate-y-1 active:shadow-none
+                transition-all duration-100"
+              aria-label="Prompt tips"
+              title="Prompt tips"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+
             {/* Undo/Redo buttons (when in edit mode and not analyzing) */}
             {mode === 'edit' && !analyzeMode && (
               <>
@@ -298,6 +317,8 @@ export function SiteVisualizer() {
           {mode === 'gallery' && <VisualizationGallery />}
         </main>
       </div>
+
+      <PromptHelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }
